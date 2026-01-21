@@ -1,0 +1,10 @@
+spring:
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}  # 从环境变量读取
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}  # 从环境变量读取，默认 OpenAI 官方地址
+      chat:
+        options:
+          model: deepseek-chat  # DeepSeek 对话模型（如使用 OpenAI 则改为 gpt-4-turbo-preview）
+          temperature: 0.7
+          max-tokens: 1000

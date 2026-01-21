@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: ai-chat-assistant
+
+  # 多环境配置支持 - 默认使用 OpenAI
+  profiles:
+    active: openai
+
+  # AI 通用配置
+  ai:
+    retry:
+      max-attempts: 3
+      backoff-delay: 1000
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+    com.example.aidevelop: DEBUG
+    org.springframework.ai: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/aidevelop.log
+
+# 应用自定义配置
+app:
+  chat:
+    max-history-size: 10  # 最大历史消息数
+    default-temperature: 0.7
+    default-max-tokens: 1000
