@@ -12,6 +12,50 @@ spring:
       max-attempts: 3
       backoff-delay: 1000
 
+  # Knife4j 配置
+  webflux:
+    base-path: /
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+# SpringDoc OpenAPI 配置
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+  # Knife4j 增强配置
+  show-actuator: false
+  use-fqn: true
+
+# Knife4j 配置
+knife4j:
+  enable: true
+  production: false
+  basic:
+    enable: false
+  # 增强功能配置
+  documents:
+    - name: 项目说明
+      locations: classpath:knife4j/project.md
+  # 左侧菜单配置
+  settings:
+    language: zh_CN
+    enable-swagger-models: true
+    enable-document-manage: true
+    swagger-models-name: 数据模型
+    enable-host-text: false
+    enable-footer: false
+    enable-footer-custom: true
+    footer-custom-content: "© 2026 AI Chat Assistant | 智能对话助手系统"
+    enable-dynamic-modify-parameter: true
+    enable-debug: true
+    enable-open-api: true
+    enable-filter-multipart-apis: true
+    enable-filter-multipart-api-method-type: POST
+
 server:
   port: 8080
 
@@ -31,3 +75,4 @@ app:
     max-history-size: 10  # 最大历史消息数
     default-temperature: 0.7
     default-max-tokens: 1000
+

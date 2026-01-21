@@ -15,3 +15,4 @@ public class Message {
     private LocalDateTime timestamp;
     private String model;  // 使用的模型
 }
+

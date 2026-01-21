@@ -15,11 +15,12 @@
 
 ### 主要特性
 
-- ✅ **多 LLM 支持**：OpenAI GPT-4、Anthropic Claude、阿里通义千问
+- ✅ **多 LLM 支持**：OpenAI GPT-4、Anthropic Claude、DeepSeek、阿里通义千问
 - ✅ **流式响应**：Server-Sent Events (SSE) 实时打字机效果
 - ✅ **对话历史**：智能滑动窗口管理，优化成本
 - ✅ **Web 界面**：简洁美观的聊天界面
 - ✅ **RESTful API**：完整的后端 API 接口
+- ✅ **Swagger 文档**：在线 API 调试和文档（http://localhost:8080/swagger-ui.html）
 - ✅ **学习文档**：从入门到进阶的完整学习路径
 
 ### 技术栈
@@ -73,8 +74,9 @@ mvn spring-boot:run -Dspring-boot.run.profiles=anthropic
 
 #### 4. 访问应用
 
-- **Web 界面**: http://localhost:8080/index.html
-- **API 文档**: http://localhost:8080/health (健康检查)
+- **Web 聊天界面**: http://localhost:8080/index.html
+- **Swagger API 文档**: http://localhost:8080/swagger-ui.html 🔥
+- **健康检查**: http://localhost:8080/health
 
 ---
 
