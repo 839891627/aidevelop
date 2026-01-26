@@ -79,6 +79,12 @@
             <artifactId>spring-ai-zhipuai-spring-boot-starter</artifactId>
         </dependency>
 
+        <!-- Spring AI PDF Document Reader (支持读取 PDF 文档) -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-pdf-document-reader</artifactId>
+        </dependency>
+
         <!-- SpringDoc OpenAPI (Swagger 3.0) -->
         <dependency>
             <groupId>org.springdoc</groupId>
@@ -86,12 +92,14 @@
             <version>2.4.0</version>
         </dependency>
 
-        <!-- Knife4j (美化版 Swagger UI) -->
+        <!-- 暂时注释 Knife4j，与 SpringDoc 2.4.0 不兼容 -->
+        <!--
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
             <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
             <version>4.5.0</version>
         </dependency>
+        -->
 
         <!-- Spring Boot Data JPA -->
         <dependency>

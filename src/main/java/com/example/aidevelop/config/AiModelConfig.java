@@ -1,8 +1,11 @@
 package com.example.aidevelop.config;
 
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor;
+import org.springframework.ai.chat.client.advisor.*;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.InMemoryChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -15,22 +18,40 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 public class AiModelConfig {
 
+    private final RagProperties ragProperties;
+
+    public AiModelConfig(RagProperties ragProperties) {
+        this.ragProperties = ragProperties;
+    }
+
+    /**
+     * 对话记忆 Bean
+     * 用于在多轮对话中存储和检索历史消息，实现指代消解和上下文补全
+     */
+    @Bean
+    public ChatMemory chatMemory() {
+        return new InMemoryChatMemory();
+    }
+
     /**
      * OpenAI 配置 - 当 profile 为 openai 时使用
      */
     @Bean
     @Profile("openai")
     public ChatClient chatClientForOpenAI(@Qualifier("openAiChatModel") ChatModel chatModel,
-                                           VectorStore vectorStore) {
-        log.info("初始化 ChatClient，使用提供商: OpenAI (DeepSeek)");
+                                           @Qualifier("vectorStore") VectorStore vectorStore,
+                                           ChatMemory chatMemory) {
+        log.info("初始化 ChatClient，使用提供商: OpenAI (DeepSeek)，启用对话记忆功能");
 
         // RAG 检索参数配置
         // ⚠️ 重要：ZhipuAI 对于短查询词的相似度通常在 0.3-0.5 之间
         // 所以阈值设置为 0.3，否则会过滤掉相关文档
+        // RAG 检索参数配置（从配置文件读取）
         SearchRequest searchRequest = SearchRequest.defaults()
-                .topK(5)
-                .similarityThreshold(0.3) // 从 0.75 降低到 0.3
+                .topK(ragProperties.getTopK())
+                .similarityThreshold(ragProperties.getSimilarityThreshold())
                 .build();
+
 
         return ChatClient.builder(chatModel)
                 .defaultSystem("""
@@ -40,6 +61,11 @@ public class AiModelConfig {
                         
                         1. **RAG（知识库检索）**：你可以查询业务规则知识库，了解贷款业务的政策和规定。
                         2. **Function Calling（数据查询）**：你可以查询数据库中的实际借款和还款数据。
+                        
+                        ## 🧠 对话记忆与指代消解
+                        你具备记忆功能，能够回忆之前的对话内容。
+                        - 当用户使用"它"、"这个"、"那个"等代词时，请根据上下文推断具体指代。
+                        - 例如：用户问"产品A的利率"，然后问"它支持提前还款吗"，你应理解"它"为"产品A"。
                         
                         ## 📚 RAG 知识库使用说明（重要！）
                         
@@ -90,7 +116,9 @@ public class AiModelConfig {
                         - **混合问题**：分别展示数据依据和规则依据，然后给出综合建议
                         - **假设性问题**：重点说明规则内容，再结合实际情况分析
                         """)
+                // 关键：添加 MessageChatMemoryAdvisor 以启用对话记忆
                 .defaultAdvisors(
+                        new MessageChatMemoryAdvisor(chatMemory),
                         new QuestionAnswerAdvisor(vectorStore, searchRequest)
                 )
                 .defaultFunctions("loanQueryFunction", "repaymentQueryFunction", "riskAssessmentFunction")
@@ -103,13 +131,14 @@ public class AiModelConfig {
     @Bean
     @Profile("anthropic")
     public ChatClient chatClientForAnthropic(@Qualifier("anthropicChatModel") ChatModel chatModel,
-                                              VectorStore vectorStore) {
-        log.info("初始化 ChatClient，使用提供商: Anthropic Claude");
+                                              @Qualifier("vectorStore") VectorStore vectorStore,
+                                              ChatMemory chatMemory) {
+        log.info("初始化 ChatClient，使用提供商: Anthropic Claude，启用对话记忆功能");
 
         // RAG 检索参数配置
         SearchRequest searchRequest = SearchRequest.defaults()
                 .topK(5)
-                .similarityThreshold(0.3) // 从 0.75 降低到 0.3
+                .similarityThreshold(0.3)
                 .build();
 
         return ChatClient.builder(chatModel)
@@ -121,6 +150,11 @@ public class AiModelConfig {
                         1. **RAG（知识库检索）**：你可以查询业务规则知识库，了解贷款业务的政策和规定。
                         2. **Function Calling（数据查询）**：你可以查询数据库中的实际借款和还款数据。
                         
+                        ## 🧠 对话记忆与指代消解
+                        你具备记忆功能，能够回忆之前的对话内容。
+                        - 当用户使用"它"、"这个"、"那个"等代词时，请根据上下文推断具体指代。
+                        - 例如：用户问"产品A的利率"，然后问"它支持提前还款吗"，你应理解"它"为"产品A"。
+
                         ## 📚 RAG 知识库使用说明（重要！）
                         
                         你会自动收到相关的知识库文档片段作为上下文（Context）。
@@ -171,6 +205,7 @@ public class AiModelConfig {
                         - **假设性问题**：重点说明规则内容，再结合实际情况分析
                         """)
                 .defaultAdvisors(
+                        new MessageChatMemoryAdvisor(chatMemory),
                         new QuestionAnswerAdvisor(vectorStore, searchRequest)
                 )
                 .defaultFunctions("loanQueryFunction", "repaymentQueryFunction", "riskAssessmentFunction")

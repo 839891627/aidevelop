@@ -1,5 +1,6 @@
 package com.example.aidevelop.controller;
 
+import com.example.aidevelop.config.RagProperties;
 import com.example.aidevelop.model.dto.ChatRequest;
 import com.example.aidevelop.model.dto.ChatResponse;
 import com.example.aidevelop.service.ChatService;
@@ -40,6 +41,7 @@ public class ChatController {
 
     private final ChatService chatService;
     private final VectorStore vectorStore;
+    private final RagProperties ragProperties;
 
     /**
      * 调试接口：测试特定查询的相似度分数
@@ -52,8 +54,8 @@ public class ChatController {
     ) {
         // 获取所有文档，不设置相似度阈值
         SearchRequest searchRequest = SearchRequest.query(query)
-                .withTopK(1000)
-                .withSimilarityThreshold(0.0); // 无阈值
+                .withTopK(ragProperties.getTopK())
+                .withSimilarityThreshold(ragProperties.getSimilarityThreshold()); // 无阈值
 
         List<Document> documents = vectorStore.similaritySearch(searchRequest);
 
@@ -86,8 +88,8 @@ public class ChatController {
 
         // 尝试获取所有文档（无阈值限制）
         SearchRequest allDocsRequest = SearchRequest.query(".")
-                .withTopK(1000)
-                .withSimilarityThreshold(0.0);
+                .withTopK(ragProperties.getTopK())
+                .withSimilarityThreshold(ragProperties.getSimilarityThreshold());
 
         List<Document> allDocs = vectorStore.similaritySearch(allDocsRequest);
 
@@ -192,7 +194,7 @@ public class ChatController {
         // 注意：ZhipuAI 对于短查询词 + 长文档的相似度通常在 0.3-0.5 之间
         SearchRequest searchRequest = SearchRequest.query(query)
                 .withTopK(searchTopK)
-                .withSimilarityThreshold(0.3); // 从 0.5 降低到 0.3
+                .withSimilarityThreshold(ragProperties.getSimilarityThreshold()); // 从 0.5 降低到 0.3
 
         // 执行检索
         List<Document> documents = vectorStore.similaritySearch(searchRequest);
