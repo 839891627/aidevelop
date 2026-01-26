@@ -1,4 +1,4 @@
-package com.example.aidevelop.model.dto;
+package com.example.aidevelop.model.dto.chat;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;

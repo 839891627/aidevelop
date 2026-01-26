@@ -1,7 +1,7 @@
 package com.example.aidevelop.service;
 
-import com.example.aidevelop.model.dto.ChatRequest;
-import com.example.aidevelop.model.dto.ChatResponse;
+import com.example.aidevelop.model.dto.chat.ChatRequest;
+import com.example.aidevelop.model.dto.chat.ChatResponse;
 import reactor.core.publisher.Flux;
 
 /**

@@ -1,8 +1,8 @@
 package com.example.aidevelop.service.impl;
 
 import com.example.aidevelop.exception.AiServiceException;
-import com.example.aidevelop.model.dto.ChatRequest;
-import com.example.aidevelop.model.dto.ChatResponse;
+import com.example.aidevelop.model.dto.chat.ChatRequest;
+import com.example.aidevelop.model.dto.chat.ChatResponse;
 import com.example.aidevelop.model.entity.Conversation;
 import com.example.aidevelop.model.entity.Message;
 import com.example.aidevelop.model.entity.MessageRole;

@@ -1,9 +1,14 @@
 package com.example.aidevelop.controller;
 
 import com.example.aidevelop.config.RagProperties;
-import com.example.aidevelop.model.dto.ChatRequest;
-import com.example.aidevelop.model.dto.ChatResponse;
+import com.example.aidevelop.model.dto.chat.ChatRequest;
+import com.example.aidevelop.model.dto.chat.ChatResponse;
+import com.example.aidevelop.model.dto.rag.QueryExpansionDetailDTO;
+import com.example.aidevelop.model.dto.rag.QueryRewriteDetailDTO;
+import com.example.aidevelop.model.dto.rag.SearchResultDTO;
 import com.example.aidevelop.service.ChatService;
+import com.example.aidevelop.service.rag.QueryExpansionService;
+import com.example.aidevelop.service.rag.QueryRewriteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,6 +47,8 @@ public class ChatController {
     private final ChatService chatService;
     private final VectorStore vectorStore;
     private final RagProperties ragProperties;
+    private final QueryExpansionService queryExpansionService;
+    private final QueryRewriteService queryRewriteService;
 
     /**
      * 调试接口：测试特定查询的相似度分数
@@ -186,15 +193,18 @@ public class ChatController {
     ) {
         log.info("知识库检索 - query: {}, type: {}, topK: {}", query, type, topK);
 
+        // ========== 查询扩展 ==========
+        String expandedQuery = queryExpansionService.expandQuery(query);
+        log.info("查询扩展: {} -> {}", query, expandedQuery);
+
         // SimpleVectorStore 不支持元数据过滤，需要手动实现
         // 获取更多结果以便后续过滤
         int searchTopK = type != null && !type.isEmpty() ? topK * 5 : topK;
 
-        // 构建检索请求（降低相似度阈值到 0.3）
-        // 注意：ZhipuAI 对于短查询词 + 长文档的相似度通常在 0.3-0.5 之间
-        SearchRequest searchRequest = SearchRequest.query(query)
+        // 构建检索请求（使用扩展后的查询）
+        SearchRequest searchRequest = SearchRequest.query(expandedQuery)
                 .withTopK(searchTopK)
-                .withSimilarityThreshold(ragProperties.getSimilarityThreshold()); // 从 0.5 降低到 0.3
+                .withSimilarityThreshold(ragProperties.getSimilarityThreshold());
 
         // 执行检索
         List<Document> documents = vectorStore.similaritySearch(searchRequest);
@@ -233,25 +243,56 @@ public class ChatController {
                 ))
                 .collect(Collectors.toList());
     }
+
     /**
-     * 检索结果 DTO
+     * 查询扩展调试接口
+     * GET /api/chat/query-expansion?query=黑名单
      */
-    @lombok.Data
-    @lombok.AllArgsConstructor
-    public static class SearchResultDTO {
-        /**
-         * 文档内容
-         */
-        private String content;
+    @GetMapping("/query-expansion")
+    @Operation(
+            summary = "查询扩展调试",
+            description = "查看查询扩展的详细信息，包括匹配的同义词和专业术语"
+    )
+    public QueryExpansionDetailDTO queryExpansionDebug(
+            @Parameter(description = "需要分析的查询", required = true, example = "黑名单规则")
+            @RequestParam String query
+    ) {
+        log.info("查询扩展调试 - query: {}", query);
 
-        /**
-         * 元数据
-         */
-        private Map<String, Object> metadata;
+        var detail = queryExpansionService.getExpansionDetail(query);
 
-        /**
-         * 相似度分数
-         */
-        private Double score;
+        return new QueryExpansionDetailDTO(
+                detail.getOriginalQuery(),
+                detail.getExpandedQuery(),
+                detail.getSynonymExpansions(),
+                detail.getTechnicalExpansions()
+        );
+    }
+
+    /**
+     * 查询重写调试接口
+     * GET /api/chat/query-rewrite?query=它支持提前还款吗&conversationId=xxx
+     */
+    @GetMapping("/query-rewrite")
+    @Operation(
+            summary = "查询重写调试",
+            description = "查看查询重写的详细信息，包括指代消解和上下文补全"
+    )
+    public QueryRewriteDetailDTO queryRewriteDebug(
+            @Parameter(description = "需要重写的查询", required = true, example = "它支持提前还款吗")
+            @RequestParam String query,
+            @Parameter(description = "对话 ID（可选），用于获取历史上下文", required = false)
+            @RequestParam(required = false) String conversationId
+    ) {
+        log.info("查询重写调试 - query: {}, conversationId: {}", query, conversationId);
+
+        var detail = queryRewriteService.getRewriteDetail(query, conversationId);
+
+        return new QueryRewriteDetailDTO(
+                detail.getOriginalQuery(),
+                detail.getRewrittenQuery(),
+                detail.getChanged(),
+                detail.getReason()
+        );
     }
 }
