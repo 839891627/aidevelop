@@ -2,7 +2,18 @@
   "permissions": {
     "allow": [
       "Bash(java -version:*)",
-      "Bash(mvn:*)"
+      "Bash(mvn:*)",
+      "Bash(echo:*)",
+      "Bash(ls:*)",
+      "Bash(if:*)",
+      "Bash(then cat .env)",
+      "Bash(else:*)",
+      "Bash(fi:*)",
+      "Bash(lsof:*)",
+      "Bash(curl:*)",
+      "Bash(/usr/libexec/java_home:*)",
+      "Bash(JAVA_17_HOME=/Users/arvin/Library/Java/JavaVirtualMachines/azul-17.0.16/Contents/Home mvn:*)",
+      "Bash(javap:*)"
     ]
   }
 }

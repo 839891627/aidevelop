@@ -6,11 +6,38 @@ spring:
   profiles:
     active: openai
 
+  # 数据库配置
+  datasource:
+    url: jdbc:mysql://10.10.101.35:3308/fundcore?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: xf_fundcore
+    password: ${DB_PASSWORD:}  # 请在环境变量中设置密码：export DB_PASSWORD=你的密码
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  # JPA 配置
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    show-sql: true
+    hibernate:
+      ddl-auto: none  # 不自动创建表，使用已有表结构
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+
   # AI 通用配置
   ai:
     retry:
       max-attempts: 3
       backoff-delay: 1000
+    # 智谱 AI 配置 (用于 RAG 向量化)
+    zhipuai:
+      api-key: ${ZHIPUAI_API_KEY:}  # 请在环境变量中设置：export ZHIPUAI_API_KEY=你的Key
+      embedding:
+        enabled: true
 
   # Knife4j 配置
   webflux:

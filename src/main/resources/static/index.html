@@ -5,30 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 智能助手</title>
     <link rel="stylesheet" href="/css/chat.css">
+    <!-- Markdown解析库 - 必须在chat.js之前加载 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+    <base target="_blank">
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <h1>🤖 AI 智能助手</h1>
-            <div class="controls">
-                <button id="clearBtn">清空对话</button>
-                <select id="modeSelect">
-                    <option value="normal">普通模式</option>
-                    <option value="stream" selected>流式模式</option>
-                </select>
-            </div>
-        </div>
-
-        <div id="chatMessages" class="chat-messages">
-            <!-- 消息将动态插入这里 -->
-        </div>
-
-        <div class="chat-input">
-            <textarea id="messageInput" placeholder="输入消息..." rows="3"></textarea>
-            <button id="sendBtn">发送</button>
+<div class="chat-container">
+    <div class="chat-header">
+        <h1>🤖 AI 智能助手</h1>
+        <div class="controls">
+            <button id="clearBtn">清空对话</button>
+            <select id="modeSelect">
+                <option value="normal">普通模式</option>
+                <option value="stream" selected>流式模式</option>
+            </select>
         </div>
     </div>
 
-    <script src="/js/chat.js"></script>
+    <div id="chatMessages" class="chat-messages">
+        <!-- 消息将动态插入这里 -->
+    </div>
+
+    <div class="chat-input">
+        <textarea id="messageInput" placeholder="输入消息..." rows="3"></textarea>
+        <button id="sendBtn">发送</button>
+    </div>
+</div>
+
+<script src="/js/chat.js"></script>
 </body>
 </html>
