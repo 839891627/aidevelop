@@ -3,12 +3,21 @@ package com.example.aidevelop.controller;
 import com.example.aidevelop.config.RagProperties;
 import com.example.aidevelop.model.dto.chat.ChatRequest;
 import com.example.aidevelop.model.dto.chat.ChatResponse;
+import com.example.aidevelop.model.dto.rag.EvaluationMetricsDTO;
+import com.example.aidevelop.model.dto.rag.HybridSearchResultDTO;
+import com.example.aidevelop.model.dto.rag.PipelineSearchResultDTO;
+import com.example.aidevelop.model.dto.rag.PipelineSearchResultDTO.DocumentResult;
 import com.example.aidevelop.model.dto.rag.QueryExpansionDetailDTO;
 import com.example.aidevelop.model.dto.rag.QueryRewriteDetailDTO;
+import com.example.aidevelop.model.dto.rag.RerankSearchResultDTO;
 import com.example.aidevelop.model.dto.rag.SearchResultDTO;
 import com.example.aidevelop.service.ChatService;
+import com.example.aidevelop.service.rag.HybridSearchService;
 import com.example.aidevelop.service.rag.QueryExpansionService;
 import com.example.aidevelop.service.rag.QueryRewriteService;
+import com.example.aidevelop.service.rag.RerankService;
+import com.example.aidevelop.service.rag.RagEvaluationService;
+import com.example.aidevelop.service.rag.RagPipelineService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -49,6 +58,10 @@ public class ChatController {
     private final RagProperties ragProperties;
     private final QueryExpansionService queryExpansionService;
     private final QueryRewriteService queryRewriteService;
+    private final HybridSearchService hybridSearchService;
+    private final RerankService rerankService;
+    private final RagPipelineService ragPipelineService;
+    private final RagEvaluationService ragEvaluationService;
 
     /**
      * 调试接口：测试特定查询的相似度分数
@@ -245,6 +258,101 @@ public class ChatController {
     }
 
     /**
+     * 混合检索接口（向量检索 + BM25 检索）
+     * GET /api/chat/hybrid-search?query=M1阶段的征信上报&topK=5
+     */
+    @GetMapping("/hybrid-search")
+    @Operation(
+        summary = "混合检索",
+        description = "结合向量检索（语义理解）和BM25检索（关键词匹配）的优势，使用RRF算法融合结果"
+    )
+    public List<HybridSearchResultDTO> hybridSearch(
+        @Parameter(description = "检索关键词", required = true, example = "M1阶段的征信上报")
+        @RequestParam String query,
+        @Parameter(description = "返回数量", required = false, example = "5")
+        @RequestParam(defaultValue = "5") int topK
+    ) {
+        log.info("混合检索 - query: {}, topK: {}", query, topK);
+
+        // 调用混合检索服务
+        var hybridResults = hybridSearchService.hybridSearch(query, topK);
+
+        // 转换为 DTO
+        return hybridResults.stream()
+            .map(result -> {
+                var source = HybridSearchResultDTO.determineSource(
+                    result.getVectorRank(),
+                    result.getBm25Rank()
+                );
+
+                return new HybridSearchResultDTO(
+                    result.getDocument().getContent(),
+                    result.getDocument().getMetadata(),
+                    result.getFinalScore(),
+                    result.getVectorRank(),
+                    result.getBm25Rank(),
+                    result.getVectorScore(),
+                    result.getBm25Score(),
+                    source
+                );
+            })
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * 重排序检索接口（向量检索 + LLM 重排序）
+     * GET /api/chat/rerank-search?query=客户逾期了怎么办&topK=5
+     */
+    @GetMapping("/rerank-search")
+    @Operation(
+        summary = "重排序检索",
+        description = "先用向量检索召回更多文档（Top-20），再使用LLM进行精确重排序，返回Top-K结果"
+    )
+    public List<RerankSearchResultDTO> rerankSearch(
+        @Parameter(description = "检索关键词", required = true, example = "客户逾期了怎么办")
+        @RequestParam String query,
+        @Parameter(description = "返回数量", required = false, example = "5")
+        @RequestParam(defaultValue = "5") int topK
+    ) {
+        log.info("重排序检索 - query: {}, topK: {}", query, topK);
+
+        // 调用重排序服务
+        var rerankResults = rerankService.rerankSearch(query, topK);
+
+        // 转换为 DTO
+        return rerankResults.stream()
+            .map(result -> new RerankSearchResultDTO(
+                result.document().getContent(),
+                result.document().getMetadata(),
+                result.rerankScore(),
+                result.getVectorScore(),
+                result.getScoreImprovement(),
+                result.reranked(),
+                formatRankChange(result.getVectorScore(), result.rerankScore())
+            ))
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * 格式化排名变化描述
+     */
+    private String formatRankChange(double vectorScore, double rerankScore) {
+        double improvement = rerankScore - vectorScore;
+
+        if (improvement > 0.2) {
+            return String.format("显著提升（+%.2f）", improvement);
+        } else if (improvement > 0) {
+            return String.format("小幅提升（+%.2f）", improvement);
+        } else if (improvement < -0.2) {
+            return String.format("显著下降（%.2f）", improvement);
+        } else if (improvement < 0) {
+            return String.format("小幅下降（%.2f）", improvement);
+        } else {
+            return "基本持平";
+        }
+    }
+
+    /**
      * 查询扩展调试接口
      * GET /api/chat/query-expansion?query=黑名单
      */
@@ -294,5 +402,106 @@ public class ChatController {
                 detail.getChanged(),
                 detail.getReason()
         );
+    }
+
+    /**
+     * 智能 RAG 管道检索接口（自动组合使用多种技巧）
+     * GET /api/chat/pipeline?query=客户逾期了怎么办&conversationId=xxx&topK=5
+     */
+    @GetMapping("/pipeline")
+    @Operation(
+        summary = "智能 RAG 管道检索",
+        description = "根据查询特点自动组合使用查询重写、查询扩展、混合检索、重排序等技巧，实现最佳的检索效果"
+    )
+    public PipelineSearchResultDTO pipelineSearch(
+        @Parameter(description = "检索关键词", required = true, example = "客户逾期了怎么办")
+        @RequestParam String query,
+        @Parameter(description = "对话 ID（可选），用于查询重写", required = false)
+        @RequestParam(required = false) String conversationId,
+        @Parameter(description = "返回数量", required = false, example = "5")
+        @RequestParam(defaultValue = "5") int topK
+    ) {
+        log.info("RAG 管道检索 - query: {}, conversationId: {}, topK: {}", query, conversationId, topK);
+
+        // 调用 RAG 管道服务
+        var pipelineResult = ragPipelineService.search(query, conversationId, topK);
+
+        // 转换为 DTO
+        List<DocumentResult> documentResults = pipelineResult.getDocuments().stream()
+            .map(doc -> new DocumentResult(
+                doc.getContent(),
+                doc.getMetadata(),
+                doc.getScore()
+            ))
+            .collect(Collectors.toList());
+
+        return new PipelineSearchResultDTO(
+            pipelineResult.getOriginalQuery(),
+            pipelineResult.getRewrittenQuery(),
+            pipelineResult.getExpandedQuery(),
+            pipelineResult.getStrategy().toString(),
+            pipelineResult.getTransformationSummary(),
+            documentResults
+        );
+    }
+
+    /**
+     * RAG 系统评估接口
+     * POST /api/chat/evaluate
+     */
+    @PostMapping("/evaluate")
+    @Operation(
+        summary = "RAG 系统评估",
+        description = "评估 RAG 系统的检索效果，计算召回率、精确率、F1、MRR、NDCG等指标"
+    )
+    public EvaluationMetricsDTO evaluate(
+        @Parameter(description = "评估请求", required = true)
+        @RequestBody EvaluationRequestDTO request
+    ) {
+        log.info("RAG 系统评估 - query: {}, topK: {}", request.getQuery(), request.getTopK());
+
+        // 调用评估服务
+        var metrics = ragEvaluationService.evaluate(
+            request.getQuery(),
+            request.getRelevantDocIds(),
+            request.getTopK()
+        );
+
+        // 转换为 DTO
+        return new EvaluationMetricsDTO(
+            metrics.query(),
+            metrics.retrievedCount(),
+            metrics.relevantCount(),
+            Math.round(metrics.recall() * 1000.0) / 1000.0,
+            Math.round(metrics.precision() * 1000.0) / 1000.0,
+            Math.round(metrics.f1() * 1000.0) / 1000.0,
+            Math.round(metrics.mrr() * 1000.0) / 1000.0,
+            Math.round(metrics.ndcg() * 1000.0) / 1000.0,
+            metrics.meetsTarget(request.getMinTargetRecall(), request.getMinTargetPrecision()),
+            metrics.detailedInfo()
+        );
+    }
+
+    /**
+     * 评估请求 DTO
+     */
+    @lombok.Data
+    @lombok.AllArgsConstructor
+    @lombok.NoArgsConstructor
+    public static class EvaluationRequestDTO {
+        @io.swagger.v3.oas.annotations.media.Schema(description = "查询文本", example = "逾期处理流程", required = true)
+        private String query;
+
+        @io.swagger.v3.oas.annotations.media.Schema(description = "相关文档ID列表（应该被检索到的文档）", required = true)
+        private List<String> relevantDocIds;
+
+        @io.swagger.v3.oas.annotations.media.Schema(description = "检索返回的文档数量", example = "5")
+        private int topK = 5;
+
+        @io.swagger.v3.oas.annotations.media.Schema(description = "目标最低召回率", example = "0.8")
+        private double minTargetRecall = 0.7;
+
+        @io.swagger.v3.oas.annotations.media.Schema(description = "目标最低精确率", example = "0.75")
+        private double minTargetPrecision = 0.75;
     }
 }

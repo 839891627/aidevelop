@@ -106,4 +106,20 @@ app:
     rag:
       similarity-threshold: 0.2  # 相似度阈值 (0.0-1.0)，ZhipuAI 建议设为 0.2 以匹配大段文本
       top-k: 5                   # 检索返回的文档数量
+      # RAG 管道配置（组合使用多种技巧）
+      pipeline:
+        enable-query-rewrite: true      # 启用查询重写
+        enable-query-expansion: true    # 启用查询扩展
+        enable-hybrid-search: false     # 启用混合检索（默认关闭，速度慢）
+        enable-rerank: true            # 启用重排序（默认关闭，速度慢）
+        auto-mode: true                 # 自动模式：根据查询特点选择最佳策略
+        complex-query-length: 10        # 复杂查询长度阈值
+        question-words:                 # 问题词列表（包含这些词启用重排序）
+          - 怎么办
+          - 如何
+          - 怎么
+          - 为什么
+          - 是什么
+          - 哪些
+          - 如何处理
 
