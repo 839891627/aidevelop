@@ -1,275 +1,99 @@
 package com.example.aidevelop.service.function;
 
-import com.example.aidevelop.model.entity.FundLoan;
-import com.example.aidevelop.repository.FundLoanRepository;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.RequiredArgsConstructor;
+import com.example.aidevelop.model.entity.Loan;
+import com.example.aidevelop.repository.LoanRepository;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Description;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.function.Function;
 
 /**
- * 借款查询Function - 用于Function Calling
- *
- * 用途：查询金融借款系统的借款信息
+ * 借款查询功能（演示版）
+ * 用于 AI Function Calling，让 AI 能够查询用户的借款信息
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
-@Description("查询借款信息，支持根据业务流水号、三方借据号、合同号或客户编号查询借款")
+@Description("查询用户的借款记录，支持按用户编号、状态等条件查询")
 public class LoanQueryFunction implements Function<LoanQueryFunction.Request, LoanQueryFunction.Response> {
 
-    private final FundLoanRepository loanRepository;
+    private final LoanRepository loanRepository;
 
-    /**
-     * 函数请求参数
-     */
-    public record Request(
-        @JsonProperty(value = "bizSerial", required = false)
-        @Description("业务流水号（可选）")
-        String bizSerial,
-
-        @JsonProperty(value = "thirdLoanNo", required = false)
-        @Description("三方借据号（可选）")
-        String thirdLoanNo,
-
-        @JsonProperty(value = "contractNumber", required = false)
-        @Description("合同号（可选）")
-        String contractNumber,
-
-        @JsonProperty(value = "custNo", required = false)
-        @Description("客户编号（可选）- 如果提供，查询该客户的所有借款记录")
-        String custNo
-    ) {
-        @JsonCreator
-        public Request {}
-    }
-
-    /**
-     * 函数响应结果
-     */
-    public record Response(
-        @JsonProperty("success")
-        boolean success,
-
-        @JsonProperty("message")
-        String message,
-
-        @JsonProperty("loan")
-        LoanDetail loan,
-
-        @JsonProperty("loans")
-        java.util.List<LoanDetail> loans,
-
-        @JsonProperty("summary")
-        LoanSummary summary
-    ) {
-        /**
-         * 借款详情
-         */
-        public record LoanDetail(
-            @JsonProperty("bizSerial")
-            String bizSerial,
-
-            @JsonProperty("thirdLoanNo")
-            String thirdLoanNo,
-
-            @JsonProperty("contractNumber")
-            String contractNumber,
-
-            @JsonProperty("custNo")
-            String custNo,
-
-            @JsonProperty("productCode")
-            String productCode,
-
-            @JsonProperty("loanAmt")
-            String loanAmt,
-
-            @JsonProperty("status")
-            String status,
-
-            @JsonProperty("statusText")
-            String statusText,
-
-            @JsonProperty("fundStatus")
-            String fundStatus,
-
-            @JsonProperty("billStatus")
-            String billStatus,
-
-            @JsonProperty("term")
-            Integer term,
-
-            @JsonProperty("feeRate")
-            String feeRate,
-
-            @JsonProperty("loanSuccessTime")
-            String loanSuccessTime,
-
-            @JsonProperty("billRepayTime")
-            String billRepayTime
-        ) {
-            public static LoanDetail fromEntity(FundLoan loan) {
-                return new LoanDetail(
-                    loan.getBizSerial(),
-                    loan.getThirdLoanNo(),
-                    loan.getContractNumber(),
-                    loan.getCustNo(),
-                    loan.getProductCode(),
-                    loan.getLoanAmt() != null ? loan.getLoanAmt().toString() : "0",
-                    loan.getStatus(),
-                    getStatusText(loan.getStatus()),
-                    loan.getFundStatus(),
-                    loan.getBillStatus(),
-                    loan.getTerm(),
-                    loan.getFeeRate() != null ? loan.getFeeRate().toString() : "0",
-                    loan.getLoanSuccessTime() != null
-                        ? loan.getLoanSuccessTime().toString()
-                        : "未放款",
-                    loan.getBillRepayTime() != null
-                        ? loan.getBillRepayTime().toString()
-                        : "未结清"
-                );
-            }
-
-            private static String getStatusText(String status) {
-                return switch (status) {
-                    case "INIT" -> "创建";
-                    case "SUCCESS" -> "成功";
-                    case "FAIL" -> "失败";
-                    case "PENDING" -> "借款中";
-                    default -> status;
-                };
-            }
-        }
-
-        /**
-         * 借款汇总信息
-         */
-        public record LoanSummary(
-            @JsonProperty("totalCount")
-            int totalCount,
-
-            @JsonProperty("totalAmount")
-            String totalAmount,
-
-            @JsonProperty("successCount")
-            int successCount,
-
-            @JsonProperty("pendingCount")
-            int pendingCount
-        ) {
-            public LoanSummary(int totalCount, String totalAmount, int successCount, int pendingCount) {
-                this.totalCount = totalCount;
-                this.totalAmount = totalAmount;
-                this.successCount = successCount;
-                this.pendingCount = pendingCount;
-            }
-        }
+    public LoanQueryFunction(LoanRepository loanRepository) {
+        this.loanRepository = loanRepository;
     }
 
     @Override
     public Response apply(Request request) {
-        log.info("执行借款查询函数：bizSerial={}, thirdLoanNo={}, contractNumber={}, custNo={}",
-            request.bizSerial, request.thirdLoanNo, request.contractNumber, request.custNo);
+        log.info("执行借款查询: userNo={}, status={}", request.userNo(), request.status());
 
-        try {
-            // 1. 根据业务流水号查询（优先级最高）
-            if (request.bizSerial != null && !request.bizSerial.isEmpty()) {
-                FundLoan loan = loanRepository.findByBizSerial(request.bizSerial);
-                if (loan != null) {
-                    log.info("找到借款记录：bizSerial={}", loan.getBizSerial());
-                    return new Response(
-                        true,
-                        "查询成功",
-                        Response.LoanDetail.fromEntity(loan),
-                        null,
-                        null
-                    );
-                }
-                return new Response(false, "未找到业务流水号：" + request.bizSerial, null, null, null);
-            }
+        List<Loan> loans;
+        if (request.status() != null && !request.status().isEmpty()) {
+            // TODO: 需要在 LoanRepository 中添加 findByUserNoAndStatus 方法
+            loans = loanRepository.findByUserNo(request.userNo()).stream()
+                .filter(loan -> request.status().equals(loan.getStatus()))
+                .toList();
+        } else {
+            loans = loanRepository.findByUserNo(request.userNo());
+        }
 
-            // 2. 根据三方借据号查询
-            if (request.thirdLoanNo != null && !request.thirdLoanNo.isEmpty()) {
-                FundLoan loan = loanRepository.findByThirdLoanNo(request.thirdLoanNo);
-                if (loan != null) {
-                    log.info("找到借款记录：thirdLoanNo={}", loan.getThirdLoanNo());
-                    return new Response(
-                        true,
-                        "查询成功",
-                        Response.LoanDetail.fromEntity(loan),
-                        null,
-                        null
-                    );
-                }
-                return new Response(false, "未找到三方借据号：" + request.thirdLoanNo, null, null, null);
-            }
+        log.info("查询到 {} 条借款记录", loans.size());
 
-            // 3. 根据合同号查询
-            if (request.contractNumber != null && !request.contractNumber.isEmpty()) {
-                FundLoan loan = loanRepository.findByContractNumber(request.contractNumber);
-                if (loan != null) {
-                    log.info("找到借款记录：contractNumber={}", loan.getContractNumber());
-                    return new Response(
-                        true,
-                        "查询成功",
-                        Response.LoanDetail.fromEntity(loan),
-                        null,
-                        null
-                    );
-                }
-                return new Response(false, "未找到合同号：" + request.contractNumber, null, null, null);
-            }
+        return new Response(
+            request.userNo(),
+            loans.size(),
+            loans.stream().map(loan -> new LoanInfo(
+                loan.getBizSerial(),
+                loan.getUserNo(),
+                loan.getProductCode(),
+                loan.getLoanAmt(),
+                loan.getFeeRate(),
+                loan.getStatus(),
+                loan.getLoanSuccessTime()
+            )).toList()
+        );
+    }
 
-            // 4. 根据客户编号查询所有借款
-            if (request.custNo != null && !request.custNo.isEmpty()) {
-                var loans = loanRepository.findByCustNoOrderByCreateTimeDesc(request.custNo);
-                log.info("找到客户{}的{}条借款记录", request.custNo, loans.size());
+    /**
+     * 请求参数
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record Request(
+        String userNo,
 
-                if (loans.isEmpty()) {
-                    return new Response(false, "客户" + request.custNo + "没有借款记录", null, null, null);
-                }
+        String status
+    ) {}
 
-                // 计算汇总信息
-                int successCount = (int) loans.stream()
-                    .filter(l -> "SUCCESS".equals(l.getStatus()))
-                    .count();
-                int pendingCount = (int) loans.stream()
-                    .filter(l -> "PENDING".equals(l.getStatus()))
-                    .count();
+    /**
+     * 响应结果
+     */
+    public record Response(
+        String userNo,
+        int totalCount,
+        List<LoanInfo> loans
+    ) {
+        public String getSummary() {
+            return String.format("用户 %s 共有 %d 条借款记录", userNo, totalCount);
+        }
+    }
 
-                var totalAmount = loanRepository.sumLoanAmtByCustNo(request.custNo);
-
-                Response.LoanSummary summary = new Response.LoanSummary(
-                    loans.size(),
-                    totalAmount.toString(),
-                    successCount,
-                    pendingCount
-                );
-
-                return new Response(
-                    true,
-                    "查询成功，找到" + loans.size() + "条借款记录",
-                    null,
-                    loans.stream()
-                        .map(Response.LoanDetail::fromEntity)
-                        .toList(),
-                    summary
-                );
-            }
-
-            // 都没有提供
-            log.warn("查询参数为空");
-            return new Response(false, "请提供查询条件（业务流水号/三方借据号/合同号/客户编号）", null, null, null);
-
-        } catch (Exception e) {
-            log.error("查询借款失败", e);
-            return new Response(false, "查询失败：" + e.getMessage(), null, null, null);
+    /**
+     * 借款信息
+     */
+    public record LoanInfo(
+        String bizSerial,
+        String userNo,
+        String productCode,
+        java.math.BigDecimal loanAmt,
+        java.math.BigDecimal feeRate,
+        String status,
+        java.time.LocalDateTime loanSuccessTime
+    ) {
+        public String getDescription() {
+            return String.format("流水号: %s, 产品: %s, 金额: %.2f元, 利率: %.2f%%, 状态: %s",
+                bizSerial, productCode, loanAmt, feeRate.multiply(java.math.BigDecimal.valueOf(100)), status);
         }
     }
 }

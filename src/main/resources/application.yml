@@ -8,9 +8,9 @@ spring:
 
   # 数据库配置
   datasource:
-    url: jdbc:mysql://10.10.101.35:3308/fundcore?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: xf_fundcore
-    password: ${DB_PASSWORD:}  # 请在环境变量中设置密码：export DB_PASSWORD=你的密码
+    url: ${DB_URL:jdbc:mysql://localhost:3306/ai_develop}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 10
@@ -35,7 +35,8 @@ spring:
       backoff-delay: 1000
     # 智谱 AI 配置 (用于 RAG 向量化)
     zhipuai:
-      api-key: ${ZHIPUAI_API_KEY:}  # 请在环境变量中设置：export ZHIPUAI_API_KEY=你的Key
+      api-key: ${ZHIPUAI_API_KEY:}
+      # 不需要设置 base-url，Spring AI 已有默认配置
       embedding:
         enabled: true
 

@@ -85,7 +85,7 @@ public class AiModelConfig {
                         1. **loanQueryFunction** - 借款查询
                         2. **repaymentQueryFunction** - 还款查询
                         3. **riskAssessmentFunction** - 风险评估
-                        
+
                         ## 🧠 智能决策策略
                         
                         ### 场景 1：纯业务规则问题
@@ -173,7 +173,7 @@ public class AiModelConfig {
                         1. **loanQueryFunction** - 借款查询
                         2. **repaymentQueryFunction** - 还款查询
                         3. **riskAssessmentFunction** - 风险评估
-                        
+
                         ## 🧠 智能决策策略
                         
                         ### 场景 1：纯业务规则问题
