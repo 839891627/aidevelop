@@ -124,3 +124,29 @@ app:
           - 哪些
           - 如何处理
 
+  # 提示词管理配置
+  prompts:
+    enabled: true
+    base-path: classpath:prompts/
+    system-prompt: system/default.txt
+    rag-qa-prompt: rag/qa.txt
+    function-calling-prompt: function/calling.txt
+
+  # 成本追踪配置
+  cost-tracking:
+    enabled: true
+    log-all-calls: true  # 是否记录所有AI调用
+
+  # 缓存配置
+  cache:
+    enabled: true  # 是否启用缓存
+    ai-response:
+      max-size: 1000  # AI响应缓存最大条数
+      ttl: 30  # 过期时间（分钟）
+    vector-search:
+      max-size: 500  # 向量检索缓存最大条数
+      ttl: 60  # 过期时间（分钟）
+    function-call:
+      max-size: 2000  # 函数调用缓存最大条数
+      ttl: 10  # 过期时间（分钟）
+
