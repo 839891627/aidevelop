@@ -286,6 +286,26 @@ select option {
     color: var(--text-primary);
 }
 
+/* 导航链接 */
+.nav-link {
+    padding: var(--space-sm) var(--space-lg);
+    background: transparent;
+    color: var(--accent-primary);
+    border: 1px solid var(--accent-primary);
+    border-radius: 10px;
+    text-decoration: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all var(--transition-normal);
+    display: inline-block;
+}
+
+.nav-link:hover {
+    background: rgba(0, 255, 245, 0.1);
+    box-shadow: 0 0 20px var(--accent-glow);
+}
+
 /* 消息区域 */
 .chat-messages {
     flex: 1;

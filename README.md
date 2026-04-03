@@ -1,34 +1,41 @@
 # AI Chat Assistant - 智能对话助手系统
 
-🤖 **Java 开发者转型 AI 的实战项目** | 基于 Spring Boot + Spring AI 构建
-
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.1-brightgreen.svg)](https://spring.io/projects/spring-boot)
-[![Spring AI](https://img.shields.io/badge/Spring%20AI-1.0.0--M4-blue.svg)](https://docs.spring.io/spring-ai/)
-[![Java](https://img.shields.io/badge/Java-17-orange.svg)](https://www.oracle.com/java/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+Java 开发者学习 AI Agent 开发的实战项目 | 基于 Spring Boot 3.3 + Spring AI 构建
 
 ---
 
 ## 项目简介
 
-这是一个完整的 **AI 智能对话助手系统**，专为想要转型 AI 方向的 Java 开发者设计。项目不仅提供了可运行的代码，还包含详细的学习路径规划和技术文档。
+这是一个循序渐进的 **AI Agent 学习项目**，从基础的 AI 对话到高级的 RAG 检索增强生成，覆盖了 Java 开发者转型 AI 方向的核心知识点。每个功能模块都是独立的，可以逐步学习和实践。
 
-### 主要特性
+## 已实现的功能
 
-- ✅ **多 LLM 支持**：OpenAI GPT-4、Anthropic Claude、DeepSeek、阿里通义千问
-- ✅ **流式响应**：Server-Sent Events (SSE) 实时打字机效果
-- ✅ **对话历史**：智能滑动窗口管理，优化成本
-- ✅ **Web 界面**：简洁美观的聊天界面
-- ✅ **RESTful API**：完整的后端 API 接口
-- ✅ **Swagger 文档**：在线 API 调试和文档（http://localhost:8080/swagger-ui.html）
-- ✅ **学习文档**：从入门到进阶的完整学习路径
+| 模块 | 功能 | 说明 |
+|------|------|------|
+| **基础对话** | 多 LLM 支持 | 智谱 AI / OpenAI / Anthropic，通过 Profile 切换 |
+| | 流式响应 | SSE 实时打字机效果 |
+| | 对话历史 | 滑动窗口管理，控制上下文长度 |
+| **Function Calling** | 贷款查询 | AI 自动调用后端函数查询贷款信息 |
+| | 还款查询 | 查询还款记录 |
+| | 风险评估 | 基于规则的风险评估函数 |
+| **RAG 检索增强** | 向量检索 | 基于语义相似度的知识库检索 |
+| | 查询扩展 | 同义词 + 专业术语扩展提升召回率 |
+| | 查询重写 | 指代消解和上下文补全 |
+| | 混合检索 | 向量检索 + BM25 关键词检索，RRF 融合 |
+| | LLM 重排序 | 先召回后精排，提升精确率 |
+| | RAG 管道 | 自动组合以上策略的智能检索 |
+| | RAG 评估 | 召回率、精确率、F1、MRR、NDCG 指标 |
+| **成本管理** | 调用日志 | AOP 自动记录每次 AI 调用 |
+| | 成本统计 | 按日/周/月统计 Token 和费用 |
+| | 前端看板 | 可视化成本管理界面 |
+| **Prompt 管理** | 模板管理 | 外部化 Prompt 配置和版本管理 |
 
-### 技术栈
+## 技术栈
 
-- **后端**: Spring Boot 3.2, Spring AI 1.0.0-M4, Java 17
+- **后端**: Spring Boot 3.3.5, Spring AI 1.0.0-M5, Java 17
 - **前端**: HTML5, CSS3, JavaScript (原生)
+- **数据库**: MySQL (JPA + Hibernate)
 - **构建工具**: Maven 3.9+
-- **AI 模型**: OpenAI GPT-4 / Anthropic Claude / 阿里通义千问
 
 ---
 
@@ -36,336 +43,140 @@
 
 ### 前提条件
 
-- Java 17 或更高版本
-- Maven 3.6 或更高版本
-- OpenAI API Key（或其他 LLM 提供商的 API Key）
+- Java 17+
+- Maven 3.6+
+- MySQL 数据库
+- AI 模型 API Key（智谱 AI / OpenAI / Anthropic）
 
-### 3 步启动
+### 启动步骤
 
-#### 1. 克隆项目（如果使用 Git）
+1. **配置环境变量**（或创建 `.env` 文件参考 `.env.example`）
 
 ```bash
-# 如果你的项目在 Git 仓库中
-git clone <your-repo-url>
-cd aidevelop
+# 数据库
+export DB_URL=jdbc:mysql://localhost:3306/ai_develop
+export DB_USERNAME=root
+export DB_PASSWORD=your-password
+
+# AI 模型（至少配置一个）
+export ZHIPUAI_API_KEY=your-zhipuai-key
 ```
 
-#### 2. 配置 API Key
+2. **启动应用**
 
 ```bash
-# 方式 1: 设置环境变量（推荐）
-export OPENAI_API_KEY=sk-your-openai-key-here
-
-# 方式 2: 使用其他 LLM
-export ANTHROPIC_API_KEY=sk-ant-your-key-here
-```
-
-或者创建 `.env` 文件（参考 `.env.example`）
-
-#### 3. 启动应用
-
-```bash
-# 使用 Maven 启动
 mvn spring-boot:run
-
-# 或指定使用 Claude
-mvn spring-boot:run -Dspring-boot.run.profiles=anthropic
 ```
 
-#### 4. 访问应用
+3. **访问页面**
 
-- **Web 聊天界面**: http://localhost:8080/index.html
-- **Swagger API 文档**: http://localhost:8080/swagger-ui.html 🔥
-- **健康检查**: http://localhost:8080/health
+| 页面 | 地址 |
+|------|------|
+| 聊天界面 | http://localhost:8080/index.html |
+| 成本管理 | http://localhost:8080/cost.html |
+| Swagger 文档 | http://localhost:8080/swagger-ui.html |
+| 健康检查 | http://localhost:8080/health |
 
 ---
 
 ## 项目结构
 
 ```
-aidevelop/
-├── src/main/java/com/example/aidevelop/
-│   ├── AiDevelopApplication.java          # 启动类
-│   ├── config/                            # 配置层
-│   │   ├── AiModelConfig.java            # AI 模型配置
-│   │   └── CorsConfig.java               # 跨域配置
-│   ├── model/                            # 数据模型
-│   │   ├── dto/                          # 数据传输对象
-│   │   └── entity/                       # 实体类
-│   ├── repository/                       # 数据访问层
-│   ├── service/                          # 业务逻辑层
-│   │   └── impl/ChatServiceImpl.java     # 核心业务实现
-│   ├── controller/                       # 控制器层
-│   │   └── ChatController.java           # 聊天 API
-│   └── exception/                        # 异常处理
-├── src/main/resources/
-│   ├── application.yml                   # 主配置
-│   ├── application-openai.yml            # OpenAI 配置
-│   ├── application-anthropic.yml         # Claude 配置
-│   └── static/                           # 静态资源
-│       ├── index.html                    # 聊天界面
-│       ├── css/chat.css                  # 样式
-│       └── js/chat.js                    # 前端逻辑
-├── docs/                                 # 文档目录
-│   ├── AI_LEARNING_PATH.md              # 学习路径规划
-│   ├── QUICK_START.md                   # 快速开始指南
-│   └── API_REFERENCE.md                 # API 文档
-├── pom.xml                              # Maven 配置
-└── README.md                            # 项目说明
+src/main/java/com/example/aidevelop/
+├── config/                     # 配置类
+│   ├── AiModelConfig.java      # AI 模型配置
+│   ├── CacheConfig.java        # 缓存配置
+│   ├── PromptProperties.java   # Prompt 模板配置
+│   ├── RagProperties.java      # RAG 参数配置
+│   ├── VectorStoreConfig.java  # 向量库配置
+│   └── SwaggerConfig.java      # Swagger 配置
+├── controller/                 # REST 控制器
+│   ├── ChatController.java     # 聊天 + RAG 检索 API
+│   ├── AiCostController.java   # 成本统计 API
+│   ├── ModelController.java    # 模型信息 API
+│   ├── PromptController.java   # Prompt 管理 API
+│   └── HealthController.java   # 健康检查
+├── model/
+│   ├── dto/                    # 数据传输对象
+│   │   ├── chat/               # 聊天相关 DTO
+│   │   └── rag/                # RAG 检索相关 DTO
+│   └── entity/                 # JPA 实体
+├── repository/                 # 数据访问层
+├── service/
+│   ├── ChatService.java        # 聊天服务接口
+│   ├── impl/ChatServiceImpl.java
+│   ├── cost/                   # 成本计算和统计
+│   ├── function/               # Function Calling 函数
+│   ├── prompt/                 # Prompt 模板管理
+│   ├── cache/                  # 缓存服务
+│   └── rag/                    # RAG 检索相关服务
+│       ├── QueryExpansionService.java
+│       ├── QueryRewriteService.java
+│       ├── BM25Service.java
+│       ├── HybridSearchService.java
+│       ├── RerankService.java
+│       ├── RagPipelineService.java
+│       └── RagEvaluationService.java
+├── interceptor/                # AOP 切面（调用日志）
+├── scheduled/                  # 定时任务
+└── exception/                  # 异常处理
 ```
 
 ---
 
-## 核心功能演示
+## 核心 API
 
-### 1. 普通聊天
+### 聊天
 
-```bash
-curl -X POST http://localhost:8080/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "介绍一下 Spring AI"
-  }'
-```
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/chat` | 普通聊天（阻塞式） |
+| POST | `/api/chat/stream` | 流式聊天（SSE） |
+| DELETE | `/api/chat/{conversationId}` | 清空对话历史 |
 
-**响应示例**:
-```json
-{
-  "conversationId": "uuid-here",
-  "message": "Spring AI 是 Spring 官方推出的...",
-  "model": "gpt-4-turbo-preview",
-  "tokensUsed": 256,
-  "responseTime": 1234
-}
-```
+### RAG 检索
 
-### 2. 流式聊天
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/chat/search?query=xxx` | 向量检索 |
+| GET | `/api/chat/hybrid-search?query=xxx` | 混合检索（向量+BM25） |
+| GET | `/api/chat/rerank-search?query=xxx` | 重排序检索 |
+| GET | `/api/chat/pipeline?query=xxx` | 智能 RAG 管道 |
+| GET | `/api/chat/query-expansion?query=xxx` | 查询扩展调试 |
+| GET | `/api/chat/query-rewrite?query=xxx` | 查询重写调试 |
+| POST | `/api/chat/evaluate` | RAG 系统评估 |
 
-```bash
-curl -X POST http://localhost:8080/api/chat/stream \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "讲个笑话"
-  }'
-```
+### 成本统计
 
-**响应**：逐字返回 SSE 格式数据流
-
-### 3. Web 界面
-
-访问 http://localhost:8080/index.html，在浏览器中直接对话。
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/cost/today` | 今日成本 |
+| GET | `/api/cost/week` | 本周成本 |
+| GET | `/api/cost/month` | 本月成本 |
+| GET | `/api/cost/range?start=&end=` | 自定义时间范围 |
 
 ---
 
-## API 文档
+## 学习文档
 
-### 聊天接口
+所有学习文档统一放在 `docs/` 目录，按难度递进排列：
 
-#### POST /api/chat
-普通聊天（阻塞式返回完整响应）
+| 文档 | 主题 | 难度 |
+|------|------|------|
+| [01-quick-start](docs/01-quick-start.md) | 项目架构总览与快速开始 | ★ |
+| [02-chat-basics](docs/02-chat-basics.md) | 基础对话、流式响应、对话历史 | ★ |
+| [03-multi-llm](docs/03-multi-llm.md) | 多 LLM 接入、Profile 切换 | ★★ |
+| [04-prompt-engineering](docs/04-prompt-engineering.md) | Prompt 模板管理、系统提示词 | ★★ |
+| [05-function-calling](docs/05-function-calling.md) | AI 函数调用、工具使用 | ★★★ |
+| [06-rag-basics](docs/06-rag-basics.md) | RAG 基础、向量检索、知识库 | ★★★ |
+| [07-rag-advanced](docs/07-rag-advanced.md) | 查询重写、混合检索、重排序、管道 | ★★★ |
+| [08-cost-and-observability](docs/08-cost-and-observability.md) | 成本管理、AOP 日志、缓存 | ★★ |
+| [AI_LEARNING_PATH](docs/AI_LEARNING_PATH.md) | 4 周学习路线图 | - |
 
-**请求体**:
-```json
-{
-  "message": "你的问题",
-  "conversationId": "可选-对话ID",
-  "temperature": 0.7,
-  "maxTokens": 1000
-}
-```
-
-**响应**:
-```json
-{
-  "conversationId": "uuid",
-  "message": "AI 的回答",
-  "model": "模型名称",
-  "tokensUsed": 256,
-  "responseTime": 1234
-}
-```
-
-#### POST /api/chat/stream
-流式聊天（SSE 逐字返回）
-
-**请求体**: 同上
-
-**响应**: `text/event-stream` 格式
-
-#### DELETE /api/chat/{conversationId}
-清空对话历史
-
----
-
-## 学习路径
-
-这个项目不仅是一个可运行的应用，更是一个完整的学习项目。
-
-### 📚 学习文档
-
-1. **[AI 学习路径规划](docs/AI_LEARNING_PATH.md)** - 完整的 4 周学习计划
-2. **[快速开始指南](docs/QUICK_START.md)** - 详细的环境搭建和启动步骤
-3. **[API 参考文档](docs/API_REFERENCE.md)** - 所有 API 接口说明
-4. **[进阶功能指南](docs/ADVANCED_FEATURES.md)** - Function Calling、RAG 等高级特性
-
-### 🎯 学习计划
-
-- **第 1 周**: AI 应用开发基础 + Spring AI 入门
-- **第 2 周**: 流式响应 + 对话管理 + Prompt Engineering
-- **第 3 周**: 多 LLM 集成 + 生产环境优化
-- **第 4 周**: Function Calling + RAG + 多模态
-
-详见 [AI_LEARNING_PATH.md](docs/AI_LEARNING_PATH.md)
-
----
-
-## 技术亮点
-
-### 1. 统一抽象层
-通过 Spring AI 实现对多个 LLM 提供商的统一抽象，切换成本极低：
-
-```java
-// 统一的 ChatClient 接口
-ChatClient.builder(chatModel)
-    .defaultSystem("系统提示词")
-    .build();
-```
-
-### 2. 流式响应
-使用 WebFlux 实现真正的流式响应（SSE）：
-
-```java
-@PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-public Flux<String> streamChat(@RequestBody ChatRequest request) {
-    return chatService.streamChat(request)
-        .map(chunk -> "data: " + chunk + "\n\n");
-}
-```
-
-### 3. 智能历史管理
-滑动窗口机制，自动管理对话历史，优化成本：
-
-```java
-public void addMessage(Message message) {
-    messages.add(message);
-    // 保持历史在限定范围内，保留 SYSTEM 消息
-    while (messages.stream()
-        .filter(m -> m.getRole() != MessageRole.SYSTEM)
-        .count() > maxHistorySize) {
-        // 删除最旧的消息
-    }
-}
-```
-
-### 4. 零代码模型切换
-通过 Spring Profile 轻松切换 LLM：
-
-```bash
-# 使用 OpenAI
-mvn spring-boot:run
-
-# 使用 Claude
-mvn spring-boot:run -Dspring-boot.run.profiles=anthropic
-```
-
----
-
-## 进阶扩展
-
-项目提供了清晰的扩展路径：
-
-### 短期扩展（1-2 周）
-- [ ] Prompt 模板管理
-- [ ] Token 计数和成本统计
-- [ ] 用户认证和多用户支持
-
-### 中期扩展（1-2 月）
-- [ ] **Function Calling** - 让 AI 调用外部工具
-- [ ] **RAG 集成** - 知识库问答
-- [ ] **数据持久化** - MySQL/Redis
-- [ ] **Docker 容器化**
-
-### 长期扩展（3-6 月）
-- [ ] **AI Agent 系统** - 自主决策的智能代理
-- [ ] **多模态支持** - 图片理解、语音输入
-- [ ] **企业级功能** - 多租户、审计、权限管理
-- [ ] **Kubernetes 部署** - 生产环境高可用
-
----
-
-## 常见问题
-
-### Q: 为什么选择 Spring AI 而不是 LangChain4j？
-
-**A**: Spring AI 是 Spring 官方框架，与 Spring 生态集成最好，文档齐全，适合 Spring 开发者。LangChain4j 功能更丰富，但学习曲线稍陡。
-
-### Q: 没有 OpenAI API Key 怎么办？
-
-**A**: 可以使用国内的 LLM：
-- 阿里通义千问（便宜，中文好）
-- 腾讯混元
-- 百度文心一言
-
-或使用 API 代理服务。
-
-### Q: 项目可以商用吗？
-
-**A**: 可以。项目代码使用 MIT 协议，但注意：
-- LLM API 调用需要付费
-- 商用需要遵守各 LLM 提供商的服务条款
-
-### Q: 适合新手吗？
-
-**A**: 适合有 Java 和 Spring Boot 基础的开发者。如果是 Java 新手，建议先学习 Spring Boot 基础。
-
----
-
-## 贡献指南
-
-欢迎贡献代码、文档或提出建议！
-
-1. Fork 项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
+详见 [docs/README.md](docs/README.md)。
 
 ---
 
 ## 许可证
 
-MIT License - 详见 [LICENSE](LICENSE) 文件
-
----
-
-## 致谢
-
-- [Spring AI](https://spring.io/projects/spring-ai) - 优秀的 AI 应用开发框架
-- [OpenAI](https://openai.com/) - GPT 系列模型
-- [Anthropic](https://www.anthropic.com/) - Claude 系列模型
-- [阿里云灵积](https://dashscope.aliyun.com/) - 通义千问
-
----
-
-## 联系方式
-
-- 📧 Email: your-email@example.com
-- 💬 Issue: [GitHub Issues](https://github.com/your-username/aidevelop/issues)
-- 📖 博客: your-blog-url
-
----
-
-## 更新日志
-
-### v1.0.0 (2026-01-21)
-- ✨ 初始版本发布
-- ✅ 支持 OpenAI 和 Anthropic Claude
-- ✅ 流式响应功能
-- ✅ Web 聊天界面
-- ✅ 完整学习文档
-
----
-
-**⭐ 如果这个项目对你有帮助，请给一个 Star！**
-
-**🚀 开始你的 AI 转型之旅吧！**
+MIT License

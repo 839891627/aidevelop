@@ -15,7 +15,8 @@
       "Bash(JAVA_17_HOME=/Users/arvin/Library/Java/JavaVirtualMachines/azul-17.0.16/Contents/Home mvn:*)",
       "Bash(javap:*)",
       "Bash(export:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(wc:*)"
     ]
   }
 }
