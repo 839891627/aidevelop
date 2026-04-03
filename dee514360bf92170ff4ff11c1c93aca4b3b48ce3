@@ -1,0 +1,90 @@
+src/main/resources/static/css/loan-form.css
+  9d67529e392b39c5 1-455
+src/main/resources/static/css/chat.css
+  c672b53a0b51e2da 289-308
+README.md
+  c672b53a0b51e2da 3,9-35,37,46-49,51,53,56-59,61-62,65,71,73-78,85-122,127,129,131-135,137,139-147,149,151-156,160,162,164-174,176,182
+src/main/java/com/example/aidevelop/model/dto/loanform/FieldFillRequest.java
+  9d67529e392b39c5 1-50
+src/main/resources/documents/张三个人贷款申请.txt
+  9d67529e392b39c5 1-99
+docs/08-cost-and-observability.md
+  c672b53a0b51e2da 1-247
+docs/02-chat-basics.md
+  c672b53a0b51e2da 1-370
+src/main/java/com/example/aidevelop/controller/LoanFormController.java
+  9d67529e392b39c5 1-106
+docs/04-prompt-engineering.md
+  c672b53a0b51e2da 1-180
+docs/09-ai-form-filling-demo.md
+  9d67529e392b39c5 1-450
+src/main/java/com/example/aidevelop/model/dto/loanform/LoanFormData.java
+  9d67529e392b39c5 1-78
+docs/01-quick-start.md
+  c672b53a0b51e2da 1-197
+docs/06-rag-basics.md
+  c672b53a0b51e2da 1-175
+docs/05-function-calling.md
+  c672b53a0b51e2da 1-230
+docs/03-multi-llm.md
+  c672b53a0b51e2da 1-410
+src/main/java/com/example/aidevelop/service/LoanFormService.java
+  9d67529e392b39c5 1-375
+docs/README.md
+  c672b53a0b51e2da 1-51
+docs/AI_LEARNING_PATH.md
+  c672b53a0b51e2da 1,5,9,11,13-37,41,43,45-49,51-52,54-58,60-64,68,70-74,76-79,81-85,87-90,94,96-100,102-106,108-112,114-118,122-150,154,156-161,165,167-171,175,177-181
+src/main/resources/static/js/cost.js
+  c672b53a0b51e2da 1-132
+src/main/resources/static/js/loan-form.js
+  9d67529e392b39c5 1-360
+src/main/resources/static/index.html
+  c672b53a0b51e2da 17
+docs/07-rag-advanced.md
+  c672b53a0b51e2da 1-303
+src/main/resources/static/loan-form.html
+  9d67529e392b39c5 1-188
+src/main/resources/static/cost.html
+  c672b53a0b51e2da 1-106
+src/main/resources/documents/李四企业经营贷款.txt
+  9d67529e392b39c5 1-128
+src/main/resources/documents/王五房屋抵押贷款.txt
+  9d67529e392b39c5 1-157
+src/main/resources/static/css/cost.css
+  c672b53a0b51e2da 1-331
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.5",
+  "base_commit_sha": "dee514360bf92170ff4ff11c1c93aca4b3b48ce3",
+  "prompts": {
+    "9d67529e392b39c5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "839d15e2-3ab5-4225-a0bc-1476ceaea179",
+        "model": "<synthetic>"
+      },
+      "human_author": "jinliang.cao",
+      "messages": [],
+      "total_additions": 2458,
+      "total_deletions": 15,
+      "accepted_lines": 2446,
+      "overriden_lines": 0,
+      "messages_url": "https://codeaiapi.xinfei-inc.cn/cas/5066b6293118247f5f74c91add4e6ba0474d2fe1f51e6596dab5e1a25fba0253"
+    },
+    "c672b53a0b51e2da": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "38b98e7e-dd5b-4e54-ab94-08c225dda3ce",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "jinliang.cao",
+      "messages": [],
+      "total_additions": 3067,
+      "total_deletions": 644,
+      "accepted_lines": 3026,
+      "overriden_lines": 0,
+      "messages_url": "https://codeaiapi.xinfei-inc.cn/cas/a2a2dc1ccee60a698e697454754bed33a75d2d44e3ad2acf35784988c34a2451"
+    }
+  }
+}
