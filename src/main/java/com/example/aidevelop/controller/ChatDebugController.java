@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @RestController
-@Profile("dev")
 @RequestMapping("/api/chat/debug")
 @RequiredArgsConstructor
 @Tag(name = "聊天调试接口", description = "仅开发环境启用的调试 API")

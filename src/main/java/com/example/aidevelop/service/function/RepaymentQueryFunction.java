@@ -1,5 +1,6 @@
 package com.example.aidevelop.service.function;
 
+import com.example.aidevelop.config.AiFunction;
 import com.example.aidevelop.model.entity.RepaymentRecord;
 import com.example.aidevelop.repository.RepaymentRecordRepository;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -10,12 +11,9 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.function.Function;
 
-/**
- * 还款查询功能（演示版）
- * 用于 AI Function Calling，让 AI 能够查询用户的还款信息
- */
 @Slf4j
 @Component
+@AiFunction
 @Description("查询用户的还款记录，支持按用户编号、状态等条件查询")
 public class RepaymentQueryFunction implements Function<RepaymentQueryFunction.Request, RepaymentQueryFunction.Response> {
 

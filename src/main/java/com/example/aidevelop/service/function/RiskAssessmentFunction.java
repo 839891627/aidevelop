@@ -1,5 +1,6 @@
 package com.example.aidevelop.service.function;
 
+import com.example.aidevelop.config.AiFunction;
 import com.example.aidevelop.model.entity.Loan;
 import com.example.aidevelop.model.entity.RepaymentRecord;
 import com.example.aidevelop.repository.LoanRepository;
@@ -14,12 +15,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.function.Function;
 
-/**
- * 风险评估功能（演示版）
- * 用于 AI Function Calling，评估用户的借款风险
- */
 @Slf4j
 @Component
+@AiFunction
 @Description("评估用户的借款风险，分析逾期情况和还款能力")
 public class RiskAssessmentFunction implements Function<RiskAssessmentFunction.Request, RiskAssessmentFunction.Response> {
 

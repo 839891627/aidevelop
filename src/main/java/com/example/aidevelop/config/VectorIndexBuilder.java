@@ -27,13 +27,27 @@ public class VectorIndexBuilder {
     @Value("classpath:knowledge/*.pdf")
     private Resource[] pdfResources;
 
+    private final RagProperties ragProperties;
+
+    public VectorIndexBuilder(RagProperties ragProperties) {
+        this.ragProperties = ragProperties;
+    }
+
     public void buildIndex(SimpleVectorStore vectorStore) {
         try {
             List<Document> allDocuments = new ArrayList<>();
             loadTextDocuments(allDocuments);
             loadPdfDocuments(allDocuments);
 
-            TokenTextSplitter textSplitter = new TokenTextSplitter();
+            // 切分策略说明见 docs/11-embedding-and-chunking.md
+            RagProperties.Chunking chunking = ragProperties.getChunking();
+            TokenTextSplitter textSplitter = TokenTextSplitter.builder()
+                .withChunkSize(chunking.getChunkSize())
+                .withMinChunkSizeChars(chunking.getMinChunkSizeChars())
+                .withMinChunkLengthToEmbed(chunking.getMinChunkLengthToEmbed())
+                .withMaxNumChunks(chunking.getMaxNumChunks())
+                .withKeepSeparator(chunking.isKeepSeparator())
+                .build();
             List<Document> splitDocuments = textSplitter.apply(allDocuments);
 
             log.info("知识库文档切分完成，共 {} 个片段", splitDocuments.size());

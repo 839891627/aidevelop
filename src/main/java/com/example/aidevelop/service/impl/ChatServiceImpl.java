@@ -8,7 +8,7 @@ import com.example.aidevelop.model.entity.Message;
 import com.example.aidevelop.model.entity.MessageRole;
 import com.example.aidevelop.repository.ConversationRepository;
 import com.example.aidevelop.service.ChatService;
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatOptions;
@@ -23,11 +23,12 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
 
-    private final ChatClient chatClient;
-    private final ConversationRepository conversationRepository;
+    @Resource
+    private ChatClient chatClient;
+    @Resource
+    private ConversationRepository conversationRepository;
 
     @Override
     public ChatResponse chat(ChatRequest request) {
@@ -39,11 +40,11 @@ public class ChatServiceImpl implements ChatService {
 
             // 2. 添加用户消息到历史
             Message userMessage = new Message(
-                UUID.randomUUID().toString(),
-                MessageRole.USER,
-                request.getMessage(),
-                LocalDateTime.now(),
-                null
+                    UUID.randomUUID().toString(),
+                    MessageRole.USER,
+                    request.getMessage(),
+                    LocalDateTime.now(),
+                    null
             );
             conversation.addMessage(userMessage);
 
@@ -58,18 +59,18 @@ public class ChatServiceImpl implements ChatService {
                 promptSpec = promptSpec.options(runtimeOptions);
             }
             org.springframework.ai.chat.model.ChatResponse aiResponse = promptSpec.user(prompt)
-                .call()
-                .chatResponse();
+                    .call()
+                    .chatResponse();
 
             String responseContent = aiResponse.getResult().getOutput().getContent();
 
             // 5. 添加 AI 响应到历史
             Message assistantMessage = new Message(
-                UUID.randomUUID().toString(),
-                MessageRole.ASSISTANT,
-                responseContent,
-                LocalDateTime.now(),
-                aiResponse.getMetadata().getModel()
+                    UUID.randomUUID().toString(),
+                    MessageRole.ASSISTANT,
+                    responseContent,
+                    LocalDateTime.now(),
+                    aiResponse.getMetadata().getModel()
             );
             conversation.addMessage(assistantMessage);
 
@@ -79,12 +80,12 @@ public class ChatServiceImpl implements ChatService {
             long responseTime = System.currentTimeMillis() - startTime;
 
             return ChatResponse.builder()
-                .conversationId(conversation.getConversationId())
-                .message(responseContent)
-                .model(aiResponse.getMetadata().getModel())
-                .tokensUsed(Math.toIntExact(aiResponse.getMetadata().getUsage().getTotalTokens()))
-                .responseTime(responseTime)
-                .build();
+                    .conversationId(conversation.getConversationId())
+                    .message(responseContent)
+                    .model(aiResponse.getMetadata().getModel())
+                    .tokensUsed(Math.toIntExact(aiResponse.getMetadata().getUsage().getTotalTokens()))
+                    .responseTime(responseTime)
+                    .build();
 
         } catch (Exception e) {
             log.error("AI 服务调用失败", e);
@@ -102,11 +103,11 @@ public class ChatServiceImpl implements ChatService {
 
             // 添加用户消息
             Message userMessage = new Message(
-                UUID.randomUUID().toString(),
-                MessageRole.USER,
-                request.getMessage(),
-                LocalDateTime.now(),
-                null
+                    UUID.randomUUID().toString(),
+                    MessageRole.USER,
+                    request.getMessage(),
+                    LocalDateTime.now(),
+                    null
             );
             conversation.addMessage(userMessage);
 
@@ -125,32 +126,32 @@ public class ChatServiceImpl implements ChatService {
             }
 
             promptSpec.user(prompt)
-                .stream()
-                .content()
-                .doOnNext(chunk -> {
-                    fullResponse.append(chunk);
-                    sendSseChunk(emitter, chunk);
-                    log.trace("接收到流式数据块: {}", chunk);
-                })
-                .doOnComplete(() -> {
-                    // 流式响应完成后，保存完整响应到历史
-                    Message assistantMessage = new Message(
-                        UUID.randomUUID().toString(),
-                        MessageRole.ASSISTANT,
-                        fullResponse.toString(),
-                        LocalDateTime.now(),
-                        null
-                    );
-                    conversation.addMessage(assistantMessage);
-                    conversationRepository.save(conversation);
-                    emitter.complete();
-                    log.debug("流式响应完成，已保存对话历史");
-                })
-                .doOnError(error -> {
-                    log.error("流式响应出错", error);
-                    emitter.completeWithError(error);
-                })
-                .subscribe();
+                    .stream()
+                    .content()
+                    .doOnNext(chunk -> {
+                        fullResponse.append(chunk);
+                        sendSseChunk(emitter, chunk);
+                        log.trace("接收到流式数据块: {}", chunk);
+                    })
+                    .doOnComplete(() -> {
+                        // 流式响应完成后，保存完整响应到历史
+                        Message assistantMessage = new Message(
+                                UUID.randomUUID().toString(),
+                                MessageRole.ASSISTANT,
+                                fullResponse.toString(),
+                                LocalDateTime.now(),
+                                null
+                        );
+                        conversation.addMessage(assistantMessage);
+                        conversationRepository.save(conversation);
+                        emitter.complete();
+                        log.debug("流式响应完成，已保存对话历史");
+                    })
+                    .doOnError(error -> {
+                        log.error("流式响应出错", error);
+                        emitter.completeWithError(error);
+                    })
+                    .subscribe();
 
             return emitter;
         } catch (Exception e) {
@@ -171,7 +172,7 @@ public class ChatServiceImpl implements ChatService {
     private Conversation getOrCreateConversation(String conversationId) {
         if (conversationId != null && !conversationId.isEmpty()) {
             return conversationRepository.findById(conversationId)
-                .orElseGet(() -> createNewConversation(conversationId));
+                    .orElseGet(() -> createNewConversation(conversationId));
         }
         return createNewConversation(null);
     }
@@ -179,7 +180,7 @@ public class ChatServiceImpl implements ChatService {
     private Conversation createNewConversation(String conversationId) {
         Conversation conversation = new Conversation();
         conversation.setConversationId(
-            conversationId != null ? conversationId : UUID.randomUUID().toString()
+                conversationId != null ? conversationId : UUID.randomUUID().toString()
         );
         conversation.setCreatedAt(LocalDateTime.now());
         conversation.setUpdatedAt(LocalDateTime.now());
@@ -199,12 +200,12 @@ public class ChatServiceImpl implements ChatService {
         }
 
         return conversation.getMessages().stream()
-            .filter(m -> m.getRole() != MessageRole.SYSTEM)
-            .map(m -> {
-                String roleLabel = m.getRole() == MessageRole.USER ? "用户" : "助手";
-                return roleLabel + ": " + m.getContent();
-            })
-            .collect(Collectors.joining("\n")) + "\n助手: ";
+                .filter(m -> m.getRole() != MessageRole.SYSTEM)
+                .map(m -> {
+                    String roleLabel = m.getRole() == MessageRole.USER ? "用户" : "助手";
+                    return roleLabel + ": " + m.getContent();
+                })
+                .collect(Collectors.joining("\n")) + "\n助手: ";
     }
 
     private void sendSseChunk(SseEmitter emitter, String chunk) {
@@ -217,8 +218,8 @@ public class ChatServiceImpl implements ChatService {
 
     private OpenAiChatOptions buildRuntimeOptions(ChatRequest request) {
         boolean hasRuntimeOptions = StringUtils.hasText(request.getModel())
-            || request.getTemperature() != null
-            || request.getMaxTokens() != null;
+                || request.getTemperature() != null
+                || request.getMaxTokens() != null;
         if (!hasRuntimeOptions) {
             return null;
         }

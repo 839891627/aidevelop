@@ -1,5 +1,6 @@
 package com.example.aidevelop.service.function;
 
+import com.example.aidevelop.config.AiFunction;
 import com.example.aidevelop.model.entity.Loan;
 import com.example.aidevelop.repository.LoanRepository;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -10,12 +11,9 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.function.Function;
 
-/**
- * 借款查询功能（演示版）
- * 用于 AI Function Calling，让 AI 能够查询用户的借款信息
- */
 @Slf4j
 @Component
+@AiFunction
 @Description("查询用户的借款记录，支持按用户编号、状态等条件查询")
 public class LoanQueryFunction implements Function<LoanQueryFunction.Request, LoanQueryFunction.Response> {
 

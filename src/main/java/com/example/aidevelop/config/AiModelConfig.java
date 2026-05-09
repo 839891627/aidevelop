@@ -13,20 +13,31 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
+import java.util.Map;
+import java.util.function.Function;
+
+/**
+ * AI 模型核心配置：组装 ChatClient（LLM + 系统提示词 + Function Calling + RAG）
+ */
 @Slf4j
 @Configuration
 public class AiModelConfig {
 
     private final RagProperties ragProperties;
     private final PromptService promptService;
+    private final Map<String, Function<?, ?>> aiFunctions;
 
-    public AiModelConfig(RagProperties ragProperties, PromptService promptService) {
+    public AiModelConfig(RagProperties ragProperties,
+                         PromptService promptService,
+                         @AiFunction Map<String, Function<?, ?>> aiFunctions) {
         this.ragProperties = ragProperties;
         this.promptService = promptService;
+        this.aiFunctions = aiFunctions;
     }
 
     /**
-     * OpenAI 配置 - 当 profile 为 openai 时使用
+     * 构建 ChatClient Bean（仅 openai profile 生效）
+     * 整合：系统提示词 + Function Calling（自动扫描 @AiFunction） + RAG Advisor
      */
     @Bean
     @Profile("openai")
@@ -34,14 +45,18 @@ public class AiModelConfig {
                                            @Qualifier("vectorStore") ObjectProvider<VectorStore> vectorStoreProvider) {
         log.info("初始化 ChatClient，使用提供商: OpenAI (DeepSeek)");
 
+        String[] functions = aiFunctions.keySet().toArray(new String[0]);
+        log.info("自动注册 Function Calling 函数: {}", String.join(", ", functions));
+
         ChatClient.Builder builder = ChatClient.builder(chatModel)
             .defaultSystem(promptService.getSystemPrompt())
-            .defaultFunctions("loanQueryFunction", "repaymentQueryFunction", "riskAssessmentFunction");
+            .defaultFunctions(functions);
 
+        // 条件装配 RAG：启用时注入 QuestionAnswerAdvisor 实现检索增强
         if (ragProperties.isEnabled()) {
             VectorStore vectorStore = vectorStoreProvider.getIfAvailable();
             if (vectorStore != null) {
-                SearchRequest searchRequest = SearchRequest.defaults()
+                SearchRequest searchRequest = SearchRequest.builder()
                     .topK(ragProperties.getTopK())
                     .similarityThreshold(ragProperties.getSimilarityThreshold())
                     .build();

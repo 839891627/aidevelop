@@ -16,7 +16,9 @@
       "Bash(javap:*)",
       "Bash(export:*)",
       "Bash(tree:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(xargs -I{} jar tf {})",
+      "Bash(awk '{print $5, $NF}')"
     ]
   }
 }
