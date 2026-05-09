@@ -1,0 +1,52 @@
+src/main/java/com/example/aidevelop/service/function/LoanQueryFunction.java
+  d18b4d31665b27d9 3,16
+src/main/java/com/example/aidevelop/service/function/RepaymentQueryFunction.java
+  d18b4d31665b27d9 3,16
+docs/11-embedding-and-chunking.md
+  d18b4d31665b27d9 1-150
+src/main/java/com/example/aidevelop/config/RagProperties.java
+  d18b4d31665b27d9 15-24
+src/main/java/com/example/aidevelop/service/impl/ChatServiceImpl.java
+  h_0e7e73f3ca1668 11,28-31
+src/main/resources/application.yml
+  d18b4d31665b27d9 102-107
+src/main/java/com/example/aidevelop/AiDevelopApplication.java
+  d18b4d31665b27d9 5,9-10
+src/main/java/com/example/aidevelop/config/VectorStoreConfig.java
+  d18b4d31665b27d9 8,11-12,26,40,42,44-45,47,50-68
+src/main/java/com/example/aidevelop/service/function/RiskAssessmentFunction.java
+  d18b4d31665b27d9 3,20
+src/main/java/com/example/aidevelop/config/VectorIndexBuilder.java
+  d18b4d31665b27d9 30-35,42-50
+src/main/java/com/example/aidevelop/config/AiModelConfig.java
+  d18b4d31665b27d9 16-21,28,30-32,35,39-40,48-50,53,55
+  h_0e7e73f3ca1668 59
+src/main/java/com/example/aidevelop/config/AiFunction.java
+  d18b4d31665b27d9 1-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0-codex",
+  "base_commit_sha": "8c01cc91ab8ee60194a5174f2507750fd3bbfa69",
+  "prompts": {
+    "d18b4d31665b27d9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b5dd8474-8031-48d4-a55c-a048e029118b",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "jinliang.cao",
+      "messages": [],
+      "total_additions": 300,
+      "total_deletions": 224,
+      "accepted_lines": 254,
+      "overriden_lines": 0,
+      "messages_url": "https://codeaiapi.xinfei-inc.cn/cas/177a4c1c3e8c4cbbc38e589052f6481b77ea4c032df52b2a8ed9b144c49f59d9"
+    }
+  },
+  "humans": {
+    "h_0e7e73f3ca1668": {
+      "author": "jinliang.cao"
+    }
+  }
+}
