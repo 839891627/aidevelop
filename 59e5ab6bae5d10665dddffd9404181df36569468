@@ -1,0 +1,200 @@
+src/main/java/com/example/aidevelop/service/rag/BM25Service.java
+  46cf7bd0d810f969 37,50-54,99,103-119,147-148
+src/main/java/com/example/aidevelop/controller/RagController.java
+  3ec36612db09bb25 1-11,16-22,24-31,33,35,37-41,43,45,47-52,55-60,63-68,70,72-109
+  7f67e61f9fa9ca03 12-15,23,32,34,36,42,44,46,53-54,61-62,69,71
+src/main/java/com/example/aidevelop/config/CacheConfig.java
+  3ec36612db09bb25 5,24-41,52-53,55,69-70,72,86-87,89,104
+src/main/java/com/example/aidevelop/config/VectorIndexBuilder.java
+  3ec36612db09bb25 1-118
+src/main/resources/application.yml
+  d18b4d31665b27d9 7-9
+  3ec36612db09bb25 19,28,30-31,35,73-75,77,88-92,94,98-101,103-109,125,127,129-130,132-133,135-136
+  h_0e7e73f3ca1668 29,34,36,76
+docs/02-chat-basics.md
+  7f67e61f9fa9ca03 5,150,187-193
+docs/07-rag-advanced.md
+  7f67e61f9fa9ca03 125,165,243,267
+docs/AI_AGENT_COMPLETE_GUIDE.md
+  3ec36612db09bb25 745
+  78ec070d96391f77 1-744,746-879
+src/main/java/com/example/aidevelop/config/OpenAiConfigValidator.java
+  3ec36612db09bb25 1-43
+src/main/java/com/example/aidevelop/service/rag/RagEvaluationService.java
+  h_0e7e73f3ca1668 11-13,18,20
+src/main/java/com/example/aidevelop/config/RagPipelineProperties.java
+  78ec070d96391f77 55-82
+docs/04-prompt-engineering.md
+  3ec36612db09bb25 111
+src/main/java/com/example/aidevelop/exception/GlobalExceptionHandler.java
+  3ec36612db09bb25 8,34,41-46
+pom.xml
+  3ec36612db09bb25 78
+  7f67e61f9fa9ca03 65,68,167
+  78ec070d96391f77 24,140-146
+src/main/resources/application-openai.yml
+  3ec36612db09bb25 4-14,16
+  d18b4d31665b27d9 18
+docs/00-ai-agent-system-blueprint.md
+  78ec070d96391f77 1-234
+src/main/java/com/example/aidevelop/service/rag/RagPipelineService.java
+  78ec070d96391f77 9-10,32
+docs/ALL_IN_ONE_KNOWLEDGE_BASE_OBSIDIAN.md
+  7f67e61f9fa9ca03 362,552-930,1921-2219
+  3ec36612db09bb25 377-423,947-1454,3321
+docs/03-multi-llm.md
+  3ec36612db09bb25 47,73,78-80,83,88,140-141,186,190-192,196,210,217,231-232,242,253,275,368,391,408
+  7f67e61f9fa9ca03 22,29,48,50,90,95-96,98-100,103,278-279,393,402,406
+src/main/java/com/example/aidevelop/service/rag/RagOrchestrationService.java
+  3ec36612db09bb25 1-2,12,14-18,103,107,116,121,134,148
+  h_0e7e73f3ca1668 3-11,13,19-102,104-106,108-115,117-120,122-133,135-147
+src/main/java/com/example/aidevelop/controller/ModelController.java
+  3ec36612db09bb25 23-25,42
+src/main/java/com/example/aidevelop/config/CorsConfig.java
+  3ec36612db09bb25 12-14,16-17
+src/main/java/com/example/aidevelop/repository/ConversationRepository.java
+  7f67e61f9fa9ca03 12-16
+src/main/java/com/example/aidevelop/service/cost/AiCostCalculator.java
+  3ec36612db09bb25 3,18-30,42,79,86
+docs/01-quick-start.md
+  3ec36612db09bb25 35,60,80-81
+src/main/java/com/example/aidevelop/controller/ChatDebugController.java
+  78ec070d96391f77 1-167
+src/main/java/com/example/aidevelop/config/AiModelConfig.java
+  3ec36612db09bb25 11,34-57
+  7f67e61f9fa9ca03 6
+docs/06-rag-basics.md
+  7f67e61f9fa9ca03 152
+src/main/java/com/example/aidevelop/service/impl/ChatServiceImpl.java
+  7f67e61f9fa9ca03 14,16,52,56-60,115,122-127,215-234,236
+  78ec070d96391f77 17,19,96-98,132,146,151-153,155,158-159,209-214,235
+src/main/java/com/example/aidevelop/model/dto/chat/ChatResponse.java
+  3ec36612db09bb25 22
+src/main/java/com/example/aidevelop/service/ChatService.java
+  78ec070d96391f77 5,20
+src/main/java/com/example/aidevelop/model/dto/chat/ChatRequest.java
+  7f67e61f9fa9ca03 4-7,9,21,24-25,29-30,34-35
+docs/ALL_IN_ONE_KNOWLEDGE_BASE_OBSIDIAN_LITE.md
+  78ec070d96391f77 1-188
+docs/README.md
+  7f67e61f9fa9ca03 3,51,53-55
+  78ec070d96391f77 37-38,47-48
+src/main/java/com/example/aidevelop/interceptor/AiCallLoggerAspect.java
+  3ec36612db09bb25 11,39-42,77,81,219,221-223,234-235
+docs/AI_LEARNING_PATH.md
+  3ec36612db09bb25 171
+src/main/java/com/example/aidevelop/controller/ChatController.java
+  78ec070d96391f77 19,59
+  7f67e61f9fa9ca03 22-24,42,57
+README.md
+  h_0e7e73f3ca1668 84
+  7f67e61f9fa9ca03 15,40-45,67-70,145-165
+  78ec070d96391f77 167,171-174,201
+  3ec36612db09bb25 55
+src/main/java/com/example/aidevelop/config/SwaggerConfig.java
+  3ec36612db09bb25 27
+src/main/java/com/example/aidevelop/config/RagProperties.java
+  3ec36612db09bb25 17-20
+src/main/java/com/example/aidevelop/config/VectorStoreConfig.java
+  3ec36612db09bb25 10,21,28-33,36,39,52,55-57
+docs/10-agent-loop-design.md
+  78ec070d96391f77 1-166
+docs/ALL_IN_ONE_KNOWLEDGE_BASE.md
+  7f67e61f9fa9ca03 344,534-912,1903-2201
+  3ec36612db09bb25 359-405,929-1436,3303
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0-codex",
+  "base_commit_sha": "59e5ab6bae5d10665dddffd9404181df36569468",
+  "prompts": {
+    "3ec36612db09bb25": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ab44ecff-1962-4c44-82ed-dd9b39aa9b2b",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "jinliang.cao",
+      "messages": [],
+      "total_additions": 1370,
+      "total_deletions": 10499,
+      "accepted_lines": 582,
+      "overriden_lines": 34,
+      "messages_url": "https://codeaiapi.xinfei-inc.cn/cas/21503950f7e4ca151fef95bee4e9c6479157893329f342491654b4077cae4cf4"
+    },
+    "46cf7bd0d810f969": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "a95685e9-72a3-4779-b2b0-fdc305eab22b",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "jinliang.cao",
+      "messages": [],
+      "total_additions": 29,
+      "total_deletions": 5,
+      "accepted_lines": 26,
+      "overriden_lines": 0,
+      "messages_url": "https://codeaiapi.xinfei-inc.cn/cas/bca3a6f5017edbe343f638955b41abf0946e7065a9168e4eafc1e945e24a189c"
+    },
+    "78ec070d96391f77": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ab948976-e2ba-4118-b83e-9177b5e40f53",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "jinliang.cao",
+      "messages": [],
+      "total_additions": 1950,
+      "total_deletions": 401,
+      "accepted_lines": 1711,
+      "overriden_lines": 0,
+      "messages_url": "https://codeaiapi.xinfei-inc.cn/cas/67de884e1ab2fe782e29eeecfe4f368d686941e6721b2ec349166e37c4d3f4b7"
+    },
+    "7f67e61f9fa9ca03": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "0485294c-484c-4d42-932e-ab5d64b44cb0",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "jinliang.cao",
+      "messages": [],
+      "total_additions": 221,
+      "total_deletions": 144,
+      "accepted_lines": 187,
+      "overriden_lines": 0,
+      "messages_url": "https://codeaiapi.xinfei-inc.cn/cas/d8b2eb642fb53a0fa70bec8337614a56329f4c28d317f6127e8b6137472803d8"
+    },
+    "9d67529e392b39c5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "839d15e2-3ab5-4225-a0bc-1476ceaea179",
+        "model": "<synthetic>"
+      },
+      "human_author": "jinliang.cao",
+      "messages": [],
+      "total_additions": 392,
+      "total_deletions": 0,
+      "accepted_lines": 0,
+      "overriden_lines": 0
+    },
+    "d18b4d31665b27d9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b5dd8474-8031-48d4-a55c-a048e029118b",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "jinliang.cao",
+      "messages": [],
+      "total_additions": 4,
+      "total_deletions": 4,
+      "accepted_lines": 4,
+      "overriden_lines": 0,
+      "messages_url": "https://codeaiapi.xinfei-inc.cn/cas/91d53464eecb6f77bd21daaf798737a9d053dfa9ea3b249c19b4e7473a179364"
+    }
+  },
+  "humans": {
+    "h_0e7e73f3ca1668": {
+      "author": "jinliang.cao"
+    }
+  }
+}
