@@ -13,7 +13,6 @@ import java.util.List;
 /**
  * Swagger/OpenAPI + Knife4j 配置
  * 访问地址：http://localhost:8080/doc.html (Knife4j)
- *         http://localhost:8080/swagger-ui.html (标准 Swagger UI)
  */
 @Configuration
 public class SwaggerConfig {
@@ -25,7 +24,7 @@ public class SwaggerConfig {
                 .title("AI Chat Assistant API")
                 .description("基于 Spring Boot + Spring AI 的智能对话助手系统 API 文档\n\n" +
                     "**功能说明：**\n" +
-                    "- 支持多个 LLM 提供商（OpenAI、Anthropic Claude、DeepSeek 等）\n" +
+                    "- 支持多个 LLM 提供商（OpenAI 兼容模型、DeepSeek 等）\n" +
                     "- 支持普通聊天和流式聊天两种模式\n" +
                     "- 支持多轮对话，自动管理对话历史\n" +
                     "- 实时流式输出，提供打字机效果\n\n" +

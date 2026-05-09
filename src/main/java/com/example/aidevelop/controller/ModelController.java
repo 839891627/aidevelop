@@ -20,6 +20,9 @@ import java.util.List;
 @Tag(name = "模型管理", description = "AI 模型信息查询")
 public class ModelController {
 
+    @Value("${spring.ai.openai.chat.options.model}")
+    private String chatModel;
+
     @Value("${spring.profiles.active:openai}")
     private String activeProfile;
 
@@ -36,8 +39,7 @@ public class ModelController {
     @Operation(summary = "获取所有可用模型", description = "返回系统支持的所有 AI 模型列表")
     public List<ModelInfo> listModels() {
         return List.of(
-            ModelInfo.builder().provider("openai").model("gpt-4-turbo-preview").build(),
-            ModelInfo.builder().provider("anthropic").model("claude-3-5-sonnet").build()
+            ModelInfo.builder().provider("openai").model(chatModel).build()
         );
     }
 }

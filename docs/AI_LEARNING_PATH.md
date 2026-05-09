@@ -168,7 +168,7 @@
 - [Prompt Engineering Guide](https://www.promptingguide.ai/zh)
 - [DeepLearning.AI 免费课程](https://www.deeplearning.ai/)
 - [OpenAI API 文档](https://platform.openai.com/docs)
-- [Anthropic 文档](https://docs.anthropic.com/)
+- [OpenAI API 文档](https://platform.openai.com/docs/overview)
 
 ---
 

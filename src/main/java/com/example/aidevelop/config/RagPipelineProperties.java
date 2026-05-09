@@ -52,4 +52,32 @@ public class RagPipelineProperties {
      * 问题词列表（包含这些词的查询启用重排序）
      */
     private String[] questionWords = {"怎么办", "如何", "怎么", "为什么", "是什么", "哪些", "如何处理"};
+
+    public boolean isEnableQueryRewrite() {
+        return enableQueryRewrite;
+    }
+
+    public boolean isEnableQueryExpansion() {
+        return enableQueryExpansion;
+    }
+
+    public boolean isEnableHybridSearch() {
+        return enableHybridSearch;
+    }
+
+    public boolean isEnableRerank() {
+        return enableRerank;
+    }
+
+    public boolean isAutoMode() {
+        return autoMode;
+    }
+
+    public int getComplexQueryLength() {
+        return complexQueryLength;
+    }
+
+    public String[] getQuestionWords() {
+        return questionWords;
+    }
 }

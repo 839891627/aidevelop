@@ -2,7 +2,7 @@
 
 本节讲解如何使用 Spring AI 构建完整的 AI 对话功能，包括阻塞式调用、流式响应、对话历史管理和前端交互。
 
-技术栈：Spring Boot 3.3.5 + Spring AI 1.0.0-M5 + WebFlux（SSE 流式输出）
+技术栈：Spring Boot 3.3.5 + Spring AI 1.0.0-M5 + Spring MVC（SSE 流式输出）
 
 ---
 
@@ -147,7 +147,7 @@ public class ChatResponse {
 
 ## 4. 流式响应实现
 
-`ChatServiceImpl.streamChat()` 方法返回 `Flux<String>`（响应式流），实现逐字输出。
+`ChatServiceImpl.streamChat()` 方法返回 `SseEmitter`，实现逐字输出。
 
 ### 关键代码
 
@@ -184,7 +184,13 @@ public Flux<String> streamChat(@Valid @RequestBody ChatRequest request) {
 }
 ```
 
-`MediaType.TEXT_EVENT_STREAM_VALUE` 告诉浏览器这是 SSE 响应。Spring WebFlux 自动将 `Flux<String>` 转换为 SSE 格式（`data: chunk\n\n`）。
+`MediaType.TEXT_EVENT_STREAM_VALUE` 告诉浏览器这是 SSE 响应。服务端使用 `SseEmitter` 持续发送 `data` 事件给客户端。
+
+### Chat 链路与高级 RAG 链路
+
+- `ChatController` 的 `/api/chat` 是主对话链路，可按配置启用内置 `QuestionAnswerAdvisor`（基础 RAG）。
+- 高级 RAG（混合检索、重排、评估）由 `RagController` 的 `/api/rag/*` 接口提供。
+- 这样可以将“对话体验”与“检索策略实验”分离，降低学习和维护成本。
 
 ### 流式 vs 阻塞式对比
 

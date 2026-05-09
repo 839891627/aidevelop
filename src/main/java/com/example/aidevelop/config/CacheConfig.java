@@ -2,6 +2,7 @@ package com.example.aidevelop.config;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
@@ -20,6 +21,24 @@ import java.util.concurrent.TimeUnit;
 @EnableCaching  // 启用 Spring Cache 注解
 public class CacheConfig {
 
+    @Value("${app.cache.ai-response.max-size:1000}")
+    private long aiResponseMaxSize;
+
+    @Value("${app.cache.ai-response.ttl:30}")
+    private long aiResponseTtlMinutes;
+
+    @Value("${app.cache.vector-search.max-size:500}")
+    private long vectorSearchMaxSize;
+
+    @Value("${app.cache.vector-search.ttl:60}")
+    private long vectorSearchTtlMinutes;
+
+    @Value("${app.cache.function-call.max-size:2000}")
+    private long functionCallMaxSize;
+
+    @Value("${app.cache.function-call.ttl:10}")
+    private long functionCallTtlMinutes;
+
     /**
      * AI 响应缓存配置
      * - 容量: 1000 条
@@ -30,10 +49,10 @@ public class CacheConfig {
     public CacheManager aiResponseCacheManager() {
         CaffeineCacheManager cacheManager = new CaffeineCacheManager();
         cacheManager.setCaffeine(Caffeine.newBuilder()
-                .maximumSize(1000)
-                .expireAfterWrite(30, TimeUnit.MINUTES)
+                .maximumSize(aiResponseMaxSize)
+                .expireAfterWrite(aiResponseTtlMinutes, TimeUnit.MINUTES)
         );
-        System.out.println("AI 响应缓存已初始化: 最大1000条, 30分钟过期");
+        log.info("AI 响应缓存已初始化: 最大{}条, {}分钟过期", aiResponseMaxSize, aiResponseTtlMinutes);
         return cacheManager;
     }
 
@@ -47,10 +66,10 @@ public class CacheConfig {
     public CacheManager vectorSearchCacheManager() {
         CaffeineCacheManager cacheManager = new CaffeineCacheManager();
         cacheManager.setCaffeine(Caffeine.newBuilder()
-                .maximumSize(500)
-                .expireAfterWrite(1, TimeUnit.HOURS)
+                .maximumSize(vectorSearchMaxSize)
+                .expireAfterWrite(vectorSearchTtlMinutes, TimeUnit.MINUTES)
         );
-        System.out.println("向量检索缓存已初始化: 最大500条, 1小时过期");
+        log.info("向量检索缓存已初始化: 最大{}条, {}分钟过期", vectorSearchMaxSize, vectorSearchTtlMinutes);
         return cacheManager;
     }
 
@@ -64,10 +83,10 @@ public class CacheConfig {
     public CacheManager functionCallCacheManager() {
         CaffeineCacheManager cacheManager = new CaffeineCacheManager();
         cacheManager.setCaffeine(Caffeine.newBuilder()
-                .maximumSize(2000)
-                .expireAfterWrite(10, TimeUnit.MINUTES)
+                .maximumSize(functionCallMaxSize)
+                .expireAfterWrite(functionCallTtlMinutes, TimeUnit.MINUTES)
         );
-        System.out.println("函数调用缓存已初始化: 最大2000条, 10分钟过期");
+        log.info("函数调用缓存已初始化: 最大{}条, {}分钟过期", functionCallMaxSize, functionCallTtlMinutes);
         return cacheManager;
     }
 
@@ -82,7 +101,7 @@ public class CacheConfig {
                 .maximumSize(10000)
                 .expireAfterWrite(30, TimeUnit.MINUTES)
         );
-        System.out.println("默认缓存已初始化: 最大10000条, 30分钟过期");
+        log.info("默认缓存已初始化: 最大10000条, 30分钟过期");
         return cacheManager;
     }
 }

@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 public class BM25Service {
 
     private final VectorStore vectorStore;
+    private volatile boolean indexInitialized = false;
 
     // BM25 参数
     private static final double K1 = 1.2;  // 词频饱和度参数
@@ -46,7 +47,11 @@ public class BM25Service {
 
     public BM25Service(VectorStore vectorStore) {
         this.vectorStore = vectorStore;
-        initializeIndex();
+        this.documentInfos = new ArrayList<>();
+        this.avgDocumentLength = 0;
+        this.documentFrequency = new HashMap<>();
+        // 改为懒加载，避免应用启动时触发远程 Embedding 调用
+        // （当混合检索关闭时，BM25 不会实际使用）
     }
 
     /**
@@ -91,10 +96,27 @@ public class BM25Service {
                 documentInfos.size(), (int) avgDocumentLength);
 
         } catch (Exception e) {
-            log.error("BM25 索引初始化失败", e);
+            log.warn("BM25 索引初始化失败，将降级为空索引：{}", e.getMessage());
             this.documentInfos = new ArrayList<>();
             this.avgDocumentLength = 0;
             this.documentFrequency = new HashMap<>();
+        } finally {
+            this.indexInitialized = true;
+        }
+    }
+
+    /**
+     * 懒加载初始化，避免启动时触发外部调用
+     */
+    private void ensureIndexInitialized() {
+        if (indexInitialized) {
+            return;
+        }
+
+        synchronized (this) {
+            if (!indexInitialized) {
+                initializeIndex();
+            }
         }
     }
 
@@ -122,6 +144,8 @@ public class BM25Service {
      * @return 文档列表及其 BM25 分数
      */
     public List<BM25Result> search(String query, int topK) {
+        ensureIndexInitialized();
+
         if (documentInfos.isEmpty()) {
             log.warn("BM25 索引为空，返回空结果");
             return new ArrayList<>();

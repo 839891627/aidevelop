@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -35,6 +36,10 @@ public class AiCallLoggerAspect {
 
     private final AiCallLogRepository aiCallLogRepository;
     private final AiCostCalculator costCalculator;
+    @Value("${spring.ai.openai.chat.options.model}")
+    private String configuredChatModel;
+    @Value("${spring.ai.ollama.embedding.options.model}")
+    private String configuredEmbeddingModel;
 
     /**
      * 拦截 ChatModel.call() 方法
@@ -69,11 +74,11 @@ public class AiCallLoggerAspect {
             Object target = joinPoint.getTarget();
             if (target instanceof ChatModel) {
                 ChatModel chatModel = (ChatModel) target;
-                modelName = getModelNameFromModel(chatModel.getClass().getSimpleName());
+                modelName = getModelNameFromModel(chatModel.getClass().getSimpleName(), modelType);
                 provider = getProviderFromModel(chatModel.getClass().getSimpleName());
             } else if (target instanceof EmbeddingModel) {
                 EmbeddingModel embeddingModel = (EmbeddingModel) target;
-                modelName = getModelNameFromModel(embeddingModel.getClass().getSimpleName());
+                modelName = getModelNameFromModel(embeddingModel.getClass().getSimpleName(), modelType);
                 provider = getProviderFromModel(embeddingModel.getClass().getSimpleName());
             }
 
@@ -211,13 +216,11 @@ public class AiCallLoggerAspect {
     /**
      * 从模型类名推断模型名称
      */
-    private String getModelNameFromModel(String className) {
+    private String getModelNameFromModel(String className, ModelType modelType) {
         if (className.contains("OpenAi")) {
-            return "deepseek-chat";
-        } else if (className.contains("ZhiPuAi")) {
-            return "embedding-2";
-        } else if (className.contains("Anthropic")) {
-            return "claude-3-sonnet";
+            return modelType == ModelType.EMBEDDING ? configuredEmbeddingModel : configuredChatModel;
+        } else if (className.contains("Ollama")) {
+            return configuredEmbeddingModel;
         }
         return "unknown";
     }
@@ -228,10 +231,8 @@ public class AiCallLoggerAspect {
     private String getProviderFromModel(String className) {
         if (className.contains("OpenAi")) {
             return "OPENAI";
-        } else if (className.contains("ZhiPuAi")) {
-            return "ZHIPUAI";
-        } else if (className.contains("Anthropic")) {
-            return "ANTHROPIC";
+        } else if (className.contains("Ollama")) {
+            return "OLLAMA";
         }
         return "UNKNOWN";
     }

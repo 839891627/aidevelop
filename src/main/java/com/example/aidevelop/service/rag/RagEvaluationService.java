@@ -8,14 +8,16 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * RAG 系统评估服务
- *
+ * <p>
  * 功能：评估 RAG 系统的检索效果，计算各种评估指标
- *
+ * <p>
  * 评估指标：
  * - 召回率（Recall）：检索到的相关文档占所有相关文档的比例
  * - 精确率（Precision）：检索到的文档中真正相关的比例
@@ -39,9 +41,9 @@ public class RagEvaluationService {
     /**
      * 评估单个查询的检索效果
      *
-     * @param query 查询文本
+     * @param query          查询文本
      * @param relevantDocIds 相关文档ID列表（应该被检索到的文档）
-     * @param topK 检索返回的文档数量
+     * @param topK           检索返回的文档数量
      * @return 评估结果
      */
     public EvaluationMetrics evaluate(String query, List<String> relevantDocIds, int topK) {
@@ -53,8 +55,8 @@ public class RagEvaluationService {
 
         // 2. 获取检索到的文档ID
         Set<String> retrievedDocIds = retrievedDocs.stream()
-            .map(this::getDocumentId)
-            .collect(Collectors.toSet());
+                .map(this::getDocumentId)
+                .collect(Collectors.toSet());
 
         // 3. 计算各种指标
         double recall = calculateRecall(retrievedDocIds, relevantDocIds);
@@ -65,20 +67,20 @@ public class RagEvaluationService {
 
         // 4. 构建评估结果
         EvaluationMetrics metrics = new EvaluationMetrics(
-            query,
-            topK,
-            recall,
-            precision,
-            f1,
-            mrr,
-            ndcg,
-            retrievedDocs.size(),
-            relevantDocIds.size(),
-            buildDetailedInfo(retrievedDocs, relevantDocIds, retrievedDocIds)
+                query,
+                topK,
+                recall,
+                precision,
+                f1,
+                mrr,
+                ndcg,
+                retrievedDocs.size(),
+                relevantDocIds.size(),
+                buildDetailedInfo(retrievedDocs, relevantDocIds, retrievedDocIds)
         );
 
         log.info("评估完成 - 召回率: {:.2f}, 精确率: {:.2f}, F1: {:.2f}, MRR: {:.2f}, NDCG: {:.2f}",
-            recall, precision, f1, mrr, ndcg);
+                recall, precision, f1, mrr, ndcg);
 
         return metrics;
     }
@@ -88,8 +90,8 @@ public class RagEvaluationService {
      */
     private List<Document> retrieveDocuments(String query, int topK) {
         SearchRequest searchRequest = SearchRequest.query(query)
-            .withTopK(topK)
-            .withSimilarityThreshold(similarityThreshold);
+                .withTopK(topK)
+                .withSimilarityThreshold(similarityThreshold);
 
         return vectorStore.similaritySearch(searchRequest);
     }
@@ -104,8 +106,8 @@ public class RagEvaluationService {
         }
 
         long retrievedRelevant = relevantDocIds.stream()
-            .filter(retrievedDocIds::contains)
-            .count();
+                .filter(retrievedDocIds::contains)
+                .count();
 
         return (double) retrievedRelevant / relevantDocIds.size();
     }
@@ -120,8 +122,8 @@ public class RagEvaluationService {
         }
 
         long retrievedRelevant = relevantDocIds.stream()
-            .filter(retrievedDocIds::contains)
-            .count();
+                .filter(retrievedDocIds::contains)
+                .count();
 
         return (double) retrievedRelevant / retrievedDocIds.size();
     }
@@ -203,10 +205,10 @@ public class RagEvaluationService {
             boolean isRelevant = relevantDocIds.contains(docId);
 
             sb.append(String.format("  [%d] ID=%s, 相关=%s, 内容=%s\n",
-                i + 1,
-                docId,
-                isRelevant ? "✓" : "✗",
-                doc.getContent().substring(0, Math.min(50, doc.getContent().length()))
+                    i + 1,
+                    docId,
+                    isRelevant ? "✓" : "✗",
+                    doc.getContent().substring(0, Math.min(50, doc.getContent().length()))
             ));
         }
 
@@ -237,7 +239,7 @@ public class RagEvaluationService {
      * 批量评估多个查询
      *
      * @param queries 查询列表及其相关文档
-     * @param topK 检索返回的文档数量
+     * @param topK    检索返回的文档数量
      * @return 批量评估结果
      */
     public BatchEvaluationResult batchEvaluate(List<QueryWithRelevantDocs> queries, int topK) {
@@ -262,18 +264,18 @@ public class RagEvaluationService {
         double avgNDCG = allMetrics.stream().mapToDouble(EvaluationMetrics::ndcg).average().orElse(0);
 
         BatchEvaluationResult result = new BatchEvaluationResult(
-            queries.size(),
-            topK,
-            avgRecall,
-            avgPrecision,
-            avgF1,
-            avgMRR,
-            avgNDCG,
-            allMetrics
+                queries.size(),
+                topK,
+                avgRecall,
+                avgPrecision,
+                avgF1,
+                avgMRR,
+                avgNDCG,
+                allMetrics
         );
 
         log.info("批量评估完成 - 平均召回率: {:.2f}, 平均精确率: {:.2f}, 平均F1: {:.2f}",
-            avgRecall, avgPrecision, avgF1);
+                avgRecall, avgPrecision, avgF1);
 
         return result;
     }
@@ -282,24 +284,25 @@ public class RagEvaluationService {
      * 查询及其相关文档
      */
     public record QueryWithRelevantDocs(
-        String query,
-        List<String> relevantDocIds
-    ) {}
+            String query,
+            List<String> relevantDocIds
+    ) {
+    }
 
     /**
      * 评估指标
      */
     public record EvaluationMetrics(
-        String query,
-        int topK,
-        double recall,           // 召回率
-        double precision,        // 精确率
-        double f1,               // F1分数
-        double mrr,              // 平均倒数排名
-        double ndcg,             // 归一化折损累计增益
-        int retrievedCount,      // 检索到的文档数
-        int relevantCount,       // 相关文档总数
-        String detailedInfo      // 详细信息
+            String query,
+            int topK,
+            double recall,           // 召回率
+            double precision,        // 精确率
+            double f1,               // F1分数
+            double mrr,              // 平均倒数排名
+            double ndcg,             // 归一化折损累计增益
+            int retrievedCount,      // 检索到的文档数
+            int relevantCount,       // 相关文档总数
+            String detailedInfo      // 详细信息
     ) {
         /**
          * 是否达到目标指标
@@ -313,13 +316,14 @@ public class RagEvaluationService {
      * 批量评估结果
      */
     public record BatchEvaluationResult(
-        int totalQueries,
-        int topK,
-        double avgRecall,
-        double avgPrecision,
-        double avgF1,
-        double avgMRR,
-        double avgNDCG,
-        List<EvaluationMetrics> allMetrics
-    ) {}
+            int totalQueries,
+            int topK,
+            double avgRecall,
+            double avgPrecision,
+            double avgF1,
+            double avgMRR,
+            double avgNDCG,
+            List<EvaluationMetrics> allMetrics
+    ) {
+    }
 }

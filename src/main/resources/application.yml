@@ -1,74 +1,57 @@
 spring:
   application:
     name: ai-chat-assistant
-
-  # 多环境配置支持 - 默认使用 OpenAI
   profiles:
     active: openai
-
-  # 数据库配置
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/ai_develop}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 10
       minimum-idle: 5
       connection-timeout: 30000
-
-  # JPA 配置
   jpa:
     database-platform: org.hibernate.dialect.MySQLDialect
     show-sql: true
     hibernate:
-      ddl-auto: none  # 不自动创建表，使用已有表结构
+      ddl-auto: none
     properties:
       hibernate:
         format_sql: true
         use_sql_comments: true
-
-  # AI 通用配置
   ai:
     retry:
       max-attempts: 3
       backoff-delay: 1000
-    # 智谱 AI 配置 (用于 RAG 向量化)
-    zhipuai:
-      api-key: ${ZHIPUAI_API_KEY:}
-      # 不需要设置 base-url，Spring AI 已有默认配置
+    ollama:
+      base-url: ${OLLAMA_BASE_URL}
+      chat:
+        enabled: false
       embedding:
         enabled: true
+        model: ${EMBEDDING_MODEL}
+        options:
+          model: ${EMBEDDING_MODEL}
 
-  # Knife4j 配置
-  webflux:
-    base-path: /
-  mvc:
-    pathmatch:
-      matching-strategy: ant_path_matcher
-
-# SpringDoc OpenAPI 配置
 springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
     enabled: true
-  # Knife4j 增强配置
   show-actuator: false
   use-fqn: true
 
-# Knife4j 配置
 knife4j:
   enable: true
   production: false
   basic:
     enable: false
-  # 增强功能配置
   documents:
     - name: 项目说明
       locations: classpath:knife4j/project.md
-  # 左侧菜单配置
   settings:
     language: zh_CN
     enable-swagger-models: true
@@ -87,6 +70,11 @@ knife4j:
 server:
   port: 8080
 
+vector:
+  store:
+    # 切换 embedding 模型后，请使用新的向量库文件路径（避免向量维度不一致）
+    path: ${VECTOR_STORE_PATH}
+
 logging:
   level:
     root: INFO
@@ -96,26 +84,29 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   file:
     name: logs/aidevelop.log
-
-# 应用自定义配置
 app:
+  ai:
+    pricing:
+      chat-input: 0.001
+      chat-output: 0.002
+      embedding-input: 0.0
   chat:
-    max-history-size: 10  # 最大历史消息数
+    max-history-size: 10
     default-temperature: 0.7
     default-max-tokens: 1000
-    # RAG 检索配置
     rag:
-      similarity-threshold: 0.2  # 相似度阈值 (0.0-1.0)，ZhipuAI 建议设为 0.2 以匹配大段文本
-      top-k: 5                   # 检索返回的文档数量
-      # RAG 管道配置（组合使用多种技巧）
+      # false: 纯聊天模式，不走向量检索；true: 启用 RAG（会调用 embedding）
+      enabled: true
+      similarity-threshold: 0.2
+      top-k: 5
       pipeline:
-        enable-query-rewrite: true      # 启用查询重写
-        enable-query-expansion: true    # 启用查询扩展
-        enable-hybrid-search: false     # 启用混合检索（默认关闭，速度慢）
-        enable-rerank: true            # 启用重排序（默认关闭，速度慢）
-        auto-mode: true                 # 自动模式：根据查询特点选择最佳策略
-        complex-query-length: 10        # 复杂查询长度阈值
-        question-words:                 # 问题词列表（包含这些词启用重排序）
+        enable-query-rewrite: true
+        enable-query-expansion: true
+        enable-hybrid-search: false
+        enable-rerank: true
+        auto-mode: true
+        complex-query-length: 10
+        question-words:
           - 怎么办
           - 如何
           - 怎么
@@ -123,30 +114,23 @@ app:
           - 是什么
           - 哪些
           - 如何处理
-
-  # 提示词管理配置
   prompts:
     enabled: true
     base-path: classpath:prompts/
     system-prompt: system/default.txt
     rag-qa-prompt: rag/qa.txt
     function-calling-prompt: function/calling.txt
-
-  # 成本追踪配置
   cost-tracking:
     enabled: true
-    log-all-calls: true  # 是否记录所有AI调用
-
-  # 缓存配置
+    log-all-calls: true
   cache:
-    enabled: true  # 是否启用缓存
+    enabled: true
     ai-response:
-      max-size: 1000  # AI响应缓存最大条数
-      ttl: 30  # 过期时间（分钟）
+      max-size: 1000
+      ttl: 30
     vector-search:
-      max-size: 500  # 向量检索缓存最大条数
-      ttl: 60  # 过期时间（分钟）
+      max-size: 500
+      ttl: 60
     function-call:
-      max-size: 2000  # 函数调用缓存最大条数
-      ttl: 10  # 过期时间（分钟）
-
+      max-size: 2000
+      ttl: 10

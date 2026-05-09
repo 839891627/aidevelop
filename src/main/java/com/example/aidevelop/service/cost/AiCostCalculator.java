@@ -1,5 +1,6 @@
 package com.example.aidevelop.service.cost;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -14,30 +15,19 @@ import java.util.Map;
 @Component
 public class AiCostCalculator {
 
-    /**
-     * 模型定价表（单位：元/千tokens）
-     * DeepSeek: https://api.deepseek.com/pricing
-     * 智谱AI: https://open.bigmodel.cn/pricing
-     */
-    private static final Map<String, ModelPricing> PRICING_TABLE = new HashMap<>();
+    private final Map<String, ModelPricing> pricingTable = new HashMap<>();
 
-    static {
-        // DeepSeek 定价（2025年1月）
-        // 输入: ¥1/百万tokens ≈ ¥0.001/千tokens
-        // 输出: ¥2/百万tokens ≈ ¥0.002/千tokens
-        PRICING_TABLE.put("deepseek-chat", new ModelPricing(
-            new BigDecimal("0.001"),  // 输入定价
-            new BigDecimal("0.002")   // 输出定价
-        ));
-
-        // 智谱AI Embedding 定价
-        // embedding-2: ¥0.0007/千tokens
-        PRICING_TABLE.put("embedding-2", new ModelPricing(
-            new BigDecimal("0.0007"),  // 只有输入定价
-            new BigDecimal("0.0007")   // 输出与输入相同
-        ));
-
-        // 可以继续添加其他模型...
+    public AiCostCalculator(
+        @Value("${spring.ai.openai.chat.options.model}") String chatModel,
+        @Value("${spring.ai.ollama.embedding.options.model}") String embeddingModel,
+        @Value("${app.ai.pricing.chat-input:0.001}") BigDecimal chatInputPrice,
+        @Value("${app.ai.pricing.chat-output:0.002}") BigDecimal chatOutputPrice,
+        @Value("${app.ai.pricing.embedding-input:0.0}") BigDecimal embeddingInputPrice
+    ) {
+        // 聊天模型定价（元/千tokens）
+        pricingTable.put(chatModel, new ModelPricing(chatInputPrice, chatOutputPrice));
+        // 向量模型定价（通常仅输入计费）
+        pricingTable.put(embeddingModel, new ModelPricing(embeddingInputPrice, embeddingInputPrice));
     }
 
     /**
@@ -49,7 +39,7 @@ public class AiCostCalculator {
      * @return 成本（元）
      */
     public BigDecimal calculateCost(String modelName, int promptTokens, int completionTokens) {
-        ModelPricing pricing = PRICING_TABLE.get(modelName);
+        ModelPricing pricing = pricingTable.get(modelName);
 
         if (pricing == null) {
             // 未知模型，返回0
@@ -86,14 +76,14 @@ public class AiCostCalculator {
      * 获取模型定价信息
      */
     public ModelPricing getModelPricing(String modelName) {
-        return PRICING_TABLE.get(modelName);
+        return pricingTable.get(modelName);
     }
 
     /**
      * 检查模型是否在定价表中
      */
     public boolean isModelSupported(String modelName) {
-        return PRICING_TABLE.containsKey(modelName);
+        return pricingTable.containsKey(modelName);
     }
 
     /**

@@ -32,7 +32,7 @@
 | 智谱AI | glm-4-flash | 对话（默认） |
 | 智谱AI | embedding-3 | 文本嵌入 |
 | DeepSeek | deepseek-chat | 对话（openai profile） |
-| Anthropic | claude-3-5-sonnet | 对话（anthropic profile） |
+| OpenAI Compatible (GLM) | glm-4.5-flash | 对话（openai profile） |
 
 ## 3. 环境准备
 
@@ -57,7 +57,7 @@ export ZHIPUAI_API_KEY=your-zhipuai-key
 export OPENAI_API_KEY=your-deepseek-key
 export OPENAI_BASE_URL=https://api.deepseek.com
 # 或
-export ANTHROPIC_API_KEY=your-anthropic-key
+export OPENAI_API_KEY=your-openai-compatible-key
 ```
 
 ### 创建数据库
@@ -77,8 +77,8 @@ mvn spring-boot:run
 # 使用 DeepSeek
 mvn spring-boot:run -Dspring-boot.run.profiles=openai
 
-# 使用 Claude
-mvn spring-boot:run -Dspring-boot.run.profiles=anthropic
+# 使用 OpenAI Compatible（GLM）
+mvn spring-boot:run -Dspring-boot.run.profiles=openai
 ```
 
 ## 5. 访问页面

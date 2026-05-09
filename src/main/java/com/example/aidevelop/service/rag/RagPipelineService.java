@@ -2,11 +2,12 @@ package com.example.aidevelop.service.rag;
 
 import com.example.aidevelop.config.RagPipelineProperties;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.List;
@@ -26,9 +27,9 @@ import java.util.List;
  * 4. 返回检索结果
  */
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class RagPipelineService {
+    private static final Logger log = LoggerFactory.getLogger(RagPipelineService.class);
 
     private final QueryRewriteService queryRewriteService;
     private final QueryExpansionService queryExpansionService;

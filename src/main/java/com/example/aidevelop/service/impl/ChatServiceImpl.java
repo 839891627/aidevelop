@@ -11,9 +11,12 @@ import com.example.aidevelop.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
+import org.springframework.util.StringUtils;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -46,11 +49,15 @@ public class ChatServiceImpl implements ChatService {
 
             // 3. 构建提示词（包含历史消息）
             String prompt = buildPromptWithHistory(conversation);
+            OpenAiChatOptions runtimeOptions = buildRuntimeOptions(request);
 
             // 4. 调用 AI 模型
             log.debug("发送请求到 AI 模型: {}", request.getMessage());
-            org.springframework.ai.chat.model.ChatResponse aiResponse = chatClient.prompt()
-                .user(prompt)
+            var promptSpec = chatClient.prompt();
+            if (runtimeOptions != null) {
+                promptSpec = promptSpec.options(runtimeOptions);
+            }
+            org.springframework.ai.chat.model.ChatResponse aiResponse = promptSpec.user(prompt)
                 .call()
                 .chatResponse();
 
@@ -86,7 +93,9 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
-    public Flux<String> streamChat(ChatRequest request) {
+    public SseEmitter streamChat(ChatRequest request) {
+        SseEmitter emitter = new SseEmitter(120_000L);
+
         try {
             // 获取或创建对话
             Conversation conversation = getOrCreateConversation(request.getConversationId());
@@ -103,18 +112,24 @@ public class ChatServiceImpl implements ChatService {
 
             // 构建提示词
             String prompt = buildPromptWithHistory(conversation);
+            OpenAiChatOptions runtimeOptions = buildRuntimeOptions(request);
 
             // 流式调用
             log.debug("开始流式响应: {}", request.getMessage());
 
             StringBuilder fullResponse = new StringBuilder();
 
-            return chatClient.prompt()
-                .user(prompt)
+            var promptSpec = chatClient.prompt();
+            if (runtimeOptions != null) {
+                promptSpec = promptSpec.options(runtimeOptions);
+            }
+
+            promptSpec.user(prompt)
                 .stream()
                 .content()
                 .doOnNext(chunk -> {
                     fullResponse.append(chunk);
+                    sendSseChunk(emitter, chunk);
                     log.trace("接收到流式数据块: {}", chunk);
                 })
                 .doOnComplete(() -> {
@@ -128,15 +143,20 @@ public class ChatServiceImpl implements ChatService {
                     );
                     conversation.addMessage(assistantMessage);
                     conversationRepository.save(conversation);
+                    emitter.complete();
                     log.debug("流式响应完成，已保存对话历史");
                 })
                 .doOnError(error -> {
                     log.error("流式响应出错", error);
-                });
+                    emitter.completeWithError(error);
+                })
+                .subscribe();
 
+            return emitter;
         } catch (Exception e) {
             log.error("流式聊天启动失败", e);
-            return Flux.error(new AiServiceException("流式聊天启动失败: " + e.getMessage(), e));
+            emitter.completeWithError(new AiServiceException("流式聊天启动失败: " + e.getMessage(), e));
+            return emitter;
         }
     }
 
@@ -185,5 +205,34 @@ public class ChatServiceImpl implements ChatService {
                 return roleLabel + ": " + m.getContent();
             })
             .collect(Collectors.joining("\n")) + "\n助手: ";
+    }
+
+    private void sendSseChunk(SseEmitter emitter, String chunk) {
+        try {
+            emitter.send(SseEmitter.event().data(chunk));
+        } catch (IOException | IllegalStateException e) {
+            throw new AiServiceException("流式数据发送失败", e);
+        }
+    }
+
+    private OpenAiChatOptions buildRuntimeOptions(ChatRequest request) {
+        boolean hasRuntimeOptions = StringUtils.hasText(request.getModel())
+            || request.getTemperature() != null
+            || request.getMaxTokens() != null;
+        if (!hasRuntimeOptions) {
+            return null;
+        }
+
+        OpenAiChatOptions.Builder builder = OpenAiChatOptions.builder();
+        if (StringUtils.hasText(request.getModel())) {
+            builder.model(request.getModel().trim());
+        }
+        if (request.getTemperature() != null) {
+            builder.temperature(request.getTemperature());
+        }
+        if (request.getMaxTokens() != null) {
+            builder.maxTokens(request.getMaxTokens());
+        }
+        return builder.build();
     }
 }

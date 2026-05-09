@@ -14,6 +14,11 @@ import org.springframework.stereotype.Component;
 public class RagProperties {
 
     /**
+     * 是否启用 RAG 检索增强
+     */
+    private boolean enabled = true;
+
+    /**
      * 相似度阈值，用于过滤检索结果
      * 范围：0.0 - 1.0
      * 说明：ZhipuAI 对于"大段文本+短查询"的场景，分数通常较低 (0.2-0.3)，

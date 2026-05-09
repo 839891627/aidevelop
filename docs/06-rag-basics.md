@@ -149,7 +149,7 @@ List<Document> results = vectorStore.similaritySearch(request);
 基础检索接口：
 
 ```
-GET /api/chat/search?query=xxx&type=规则&topK=5
+GET /api/rag/search?query=xxx&type=规则&topK=5
 ```
 
 - `query`: 查询文本

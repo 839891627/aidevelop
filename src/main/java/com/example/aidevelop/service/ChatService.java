@@ -2,7 +2,7 @@ package com.example.aidevelop.service;
 
 import com.example.aidevelop.model.dto.chat.ChatRequest;
 import com.example.aidevelop.model.dto.chat.ChatResponse;
-import reactor.core.publisher.Flux;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * 聊天服务接口
@@ -17,7 +17,7 @@ public interface ChatService {
     /**
      * 流式聊天（Server-Sent Events）
      */
-    Flux<String> streamChat(ChatRequest request);
+    SseEmitter streamChat(ChatRequest request);
 
     /**
      * 清空对话历史

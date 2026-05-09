@@ -19,14 +19,14 @@
 
 ### Spring AI 的 Provider 抽象
 
-Spring AI 的核心设计：所有 LLM 提供商都实现相同的 `ChatModel` 接口。无论底层是 OpenAI、Anthropic 还是智谱 AI，上层代码通过 `ChatClient` 调用时完全一致。
+Spring AI 的核心设计：所有 LLM 提供商都实现相同的 `ChatModel` 接口。无论底层是 OpenAI 兼容模型还是其他提供商，上层代码通过 `ChatClient` 调用时完全一致。
 
 ```
 ChatController -> ChatService -> ChatClient -> ChatModel（接口）
                                                   |
                                     +-------------+-------------+
                                     |             |             |
-                              OpenAiChatModel  AnthropicChatModel  ZhipuAiChatModel
+                              OpenAiChatModel                 其他 ChatModel 实现
 ```
 
 切换 LLM 只需要更换 `ChatModel` 的实现 Bean，业务代码无需任何修改。
@@ -44,10 +44,10 @@ Spring Profile 是一种条件化配置机制。在 `AiModelConfig` 中，每个
 | 提供商 | 配置文件 | Profile | Chat Model | Embedding Model | 用途 |
 |---|---|---|---|---|---|
 | DeepSeek（通过 OpenAI 兼容接口） | `application-openai.yml` | `openai` | `deepseek-chat` | - | 对话（默认） |
-| Anthropic Claude | `application-anthropic.yml` | `anthropic` | `claude-3-5-sonnet-20241022` | - | 对话 |
-| 智谱 AI | `application.yml`（zhipuai 段） | default（始终加载） | `glm-4-flash` | `embedding-3` | RAG 向量化 |
+| OpenAI Compatible（GLM） | `application-openai.yml` | `openai` | `glm-4.5-flash` | - | 对话 |
+| Ollama | `application.yml`（ollama 段） | default（始终加载） | - | `nomic-embed-text` | RAG 向量化 |
 
-注意：智谱 AI 始终加载，因为它的 Embedding 模型用于 RAG 向量化，与对话模型解耦。向量存储 `VectorStoreConfig` 通过 `@Qualifier("zhiPuAiEmbeddingModel")` 显式指定使用智谱 AI 的 Embedding。
+注意：Ollama Embedding 始终加载，用于 RAG 文档向量化，与对话模型解耦。
 
 ---
 
@@ -70,35 +70,37 @@ spring:
 
 DeepSeek 提供 OpenAI 兼容接口，所以使用 Spring AI 的 `spring-ai-openai-spring-boot-starter`，只需将 `base-url` 指向 DeepSeek 的 API 地址（通过环境变量 `OPENAI_BASE_URL` 配置）。
 
-### application-anthropic.yml（Claude）
+### application-openai.yml（GLM）
 
 ```yaml
 spring:
   ai:
-    anthropic:
-      api-key: ${ANTHROPIC_API_KEY}             # 从环境变量读取 Anthropic API Key
-      base-url: https://api.anthropic.com       # Anthropic 官方 API 地址
+    openai:
+      api-key: ${OPENAI_API_KEY}                # 从环境变量读取 OpenAI 兼容 API Key
+      base-url: ${OPENAI_BASE_URL}              # OpenAI 兼容接口地址（可配置为 GLM）
       chat:
         options:
-          model: claude-3-5-sonnet-20241022     # Claude 3.5 Sonnet 模型
+          model: ${OPENAI_CHAT_MODEL:glm-4.5-flash}  # 默认 GLM 模型
           temperature: 0.7
           max-tokens: 1000
 ```
 
-Anthropic 有独立的 Spring AI starter：`spring-ai-anthropic-spring-boot-starter`，配置前缀为 `spring.ai.anthropic`。
+项目当前使用 OpenAI 兼容 starter，配置前缀为 `spring.ai.openai`。
 
-### application.yml 中的智谱 AI 配置
+### application.yml 中的 Ollama Embedding 配置
 
 ```yaml
 spring:
   ai:
-    zhipuai:
-      api-key: ${ZHIPUAI_API_KEY:}
+    ollama:
+      base-url: http://localhost:11434
       embedding:
-        enabled: true              # 只启用 Embedding 功能
+        enabled: true
+        options:
+          model: nomic-embed-text
 ```
 
-智谱 AI 在本项目中不用于对话，只用于 Embedding（将文档向量化供 RAG 检索使用）。`spring-ai-zhipuai-spring-boot-starter` 会自动创建 `zhiPuAiEmbeddingModel` Bean。
+Ollama 在本项目中不用于对话，只用于 Embedding（将文档向量化供 RAG 检索使用）。
 
 ### application.yml 中的 Profile 默认值
 
@@ -135,8 +137,8 @@ public class AiModelConfig {
     @Bean @Profile("openai")
     public ChatClient chatClientForOpenAI(...) { ... }
 
-    @Bean @Profile("anthropic")
-    public ChatClient chatClientForAnthropic(...) { ... }
+    @Bean @Profile("openai")
+    public ChatClient chatClientForOpenAI(...) { ... }
 }
 ```
 
@@ -181,17 +183,17 @@ public ChatClient chatClientForOpenAI(
 
 `@Qualifier("openAiChatModel")` 显式指定使用 OpenAI 的 ChatModel Bean，避免多个 ChatModel 实现时冲突。
 
-### Anthropic Profile 的 ChatClient
+### OpenAI Profile 的 ChatClient
 
 ```java
 @Bean
-@Profile("anthropic")
-public ChatClient chatClientForAnthropic(
-        @Qualifier("anthropicChatModel") ChatModel chatModel,  // Anthropic 的 ChatModel
+@Profile("openai")
+public ChatClient chatClientForOpenAI(
+        @Qualifier("openAiChatModel") ChatModel chatModel,  // OpenAI 兼容的 ChatModel
         @Qualifier("vectorStore") VectorStore vectorStore,
         ChatMemory chatMemory) {
 
-    log.info("初始化 ChatClient，使用提供商: Anthropic Claude，启用对话记忆功能");
+    log.info("初始化 ChatClient，使用提供商: OpenAI Compatible(GLM)，启用对话记忆功能");
 
     // 注意：此处硬编码了 RAG 参数和系统提示词
     SearchRequest searchRequest = SearchRequest.defaults()
@@ -205,14 +207,14 @@ public ChatClient chatClientForAnthropic(
 }
 ```
 
-注意 Anthropic Profile 的系统提示词是内联的（hardcoded 在代码中），而 OpenAI Profile 通过 `promptService.getSystemPrompt()` 从外部文件加载。这是两种不同的提示词管理方式，实际项目中应统一使用外部文件管理。
+当前 OpenAI Profile 统一通过 `promptService.getSystemPrompt()` 从外部文件加载系统提示词。
 
 ### Bean 命名与冲突处理
 
 当多个 LLM starter 同时引入时，Spring 容器中会存在多个 `ChatModel` Bean。Spring AI 使用 `@Qualifier` 注解区分：
 
 - `openAiChatModel` - 由 `spring-ai-openai-spring-boot-starter` 自动创建
-- `anthropicChatModel` - 由 `spring-ai-anthropic-spring-boot-starter` 自动创建
+- `openAiChatModel` - 由 OpenAI 兼容 starter 自动创建
 
 只有与当前 Profile 匹配的 `ChatClient` Bean 会被创建，因此不会冲突。
 
@@ -226,8 +228,8 @@ public ChatClient chatClientForAnthropic(
 # 使用 DeepSeek（默认，等价于不加 -D 参数）
 mvn spring-boot:run -Dspring-boot.run.profiles=openai
 
-# 使用 Claude
-mvn spring-boot:run -Dspring-boot.run.profiles=anthropic
+# 使用 OpenAI Compatible（GLM）
+mvn spring-boot:run -Dspring-boot.run.profiles=openai
 
 # 使用默认配置（application.yml 中的 spring.profiles.active=openai）
 mvn spring-boot:run
@@ -237,7 +239,7 @@ mvn spring-boot:run
 
 ```bash
 # 设置环境变量
-export SPRING_PROFILES_ACTIVE=anthropic
+export SPRING_PROFILES_ACTIVE=openai
 mvn spring-boot:run
 ```
 
@@ -248,7 +250,7 @@ mvn spring-boot:run
 ```yaml
 spring:
   profiles:
-    active: anthropic    # 改为 anthropic
+    active: openai
 ```
 
 ### 验证当前使用的模型
@@ -270,11 +272,11 @@ spring:
 export OPENAI_API_KEY="sk-xxx"
 export OPENAI_BASE_URL="https://api.deepseek.com"
 
-# Anthropic
+# OpenAI Compatible（GLM）
 export ANTHROPIC_API_KEY="sk-ant-xxx"
 
-# 智谱 AI（Embedding 用）
-export ZHIPUAI_API_KEY="xxx"
+# Ollama（Embedding 用，本地服务）
+export OLLAMA_BASE_URL="http://localhost:11434"
 ```
 
 ---
@@ -363,7 +365,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=tongyi
 
 ### 实验 1：比较不同模型对同一问题的回答质量
 
-分别用 `openai` 和 `anthropic` Profile 启动应用，发送以下测试问题并对比回答：
+使用 `openai` Profile 启动应用，发送以下测试问题并验证回答效果：
 
 1. "逾期超过90天的客户应该如何处理？"（规则类问题，测试 RAG 能力）
 2. "请计算客户 CUST001 的总欠款金额"（数据查询，测试 Function Calling）
@@ -386,9 +388,9 @@ mvn spring-boot:run -Dspring-boot.run.profiles=tongyi
 | 场景 | 推荐模型 | 理由 |
 |---|---|---|
 | 简单问答（FAQ） | glm-4-flash / deepseek-chat | 成本低，响应快 |
-| 复杂推理（风险评估） | claude-3-5-sonnet | 推理能力强 |
+| 复杂推理（风险评估） | glm-4.5-flash | 推理能力强 |
 | 代码生成 | ? | 实际测试后填写 |
-| 大批量 Embedding | 智谱 embedding-3 | 国产模型，中文向量化效果好 |
+| 大批量 Embedding | Ollama nomic-embed-text | 本地部署、隐私友好 |
 
 ---
 
@@ -397,13 +399,13 @@ mvn spring-boot:run -Dspring-boot.run.profiles=tongyi
 | 文件 | 关注点 |
 |---|---|
 | `src/main/java/.../config/AiModelConfig.java` | @Profile 条件化 Bean、ChatClient 构建、Advisor 配置 |
-| `src/main/java/.../config/VectorStoreConfig.java` | 向量库初始化、@Qualifier("zhiPuAiEmbeddingModel") 指定 Embedding 模型 |
+| `src/main/java/.../config/VectorStoreConfig.java` | 向量库初始化、Ollama Embedding 模型绑定 |
 | `src/main/java/.../config/RagProperties.java` | RAG 参数配置类（similarityThreshold, topK） |
 | `src/main/java/.../config/PromptProperties.java` | 提示词文件路径配置 |
 | `src/main/java/.../service/prompt/PromptService.java` | 提示词加载服务（从文件读取系统提示词） |
-| `src/main/resources/application.yml` | 公共配置 + 智谱 AI Embedding + 默认 Profile |
+| `src/main/resources/application.yml` | 公共配置 + Ollama Embedding + 默认 Profile |
 | `src/main/resources/application-openai.yml` | DeepSeek 配置（OpenAI 兼容接口） |
-| `src/main/resources/application-anthropic.yml` | Anthropic Claude 配置 |
+| `src/main/resources/application-openai.yml` | OpenAI 兼容（GLM）配置 |
 | `src/main/resources/prompts/system/default.txt` | 系统提示词文件 |
 | `pom.xml` | spring-ai-bom 版本管理、各 LLM starter 依赖 |
 

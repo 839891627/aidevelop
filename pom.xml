@@ -21,6 +21,7 @@
     <properties>
         <java.version>17</java.version>
         <spring-ai.version>1.0.0-M5</spring-ai.version>
+        <lombok.version>1.18.38</lombok.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -43,12 +44,6 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- Spring Boot WebFlux (for SSE streaming) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webflux</artifactId>
-        </dependency>
-
         <!-- Spring Boot Validation -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -67,15 +62,10 @@
             <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
         </dependency>
 
-        <!-- Spring AI Anthropic (Claude) -->
+        <!-- Spring AI Ollama（本地 embedding） -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-anthropic-spring-boot-starter</artifactId>
-        </dependency>
-        <!-- Spring AI Zhipu AI (智谱 AI - 用于 RAG 向量化) -->
-        <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-zhipuai-spring-boot-starter</artifactId>
+            <artifactId>spring-ai-ollama-spring-boot-starter</artifactId>
         </dependency>
 
         <!-- Spring AI PDF Document Reader (支持读取 PDF 文档) -->
@@ -84,21 +74,13 @@
             <artifactId>spring-ai-pdf-document-reader</artifactId>
         </dependency>
 
-        <!-- SpringDoc OpenAPI (Swagger 3.0) -->
-        <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>2.4.0</version>
-        </dependency>
 
-        <!-- 暂时注释 Knife4j，与 SpringDoc 2.4.0 不兼容 -->
-        <!--
+        <!-- Knife4j OpenAPI3（内置增强文档 UI，入口 /doc.html） -->
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
             <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
             <version>4.5.0</version>
         </dependency>
-        -->
 
         <!-- Spring Boot Data JPA -->
         <dependency>
@@ -155,6 +137,13 @@
                 <configuration>
                     <source>17</source>
                     <target>17</target>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
 
@@ -175,12 +164,7 @@
     </build>
 
     <repositories>
-        <!-- Maven Central Repository -->
-        <repository>
-            <id>central</id>
-            <url>https://repo.maven.apache.org/maven2</url>
-        </repository>
-        <!-- Spring AI 需要 Spring Milestones 仓库 -->
+        <!-- Spring AI 1.0.0-M5 位于 Milestone 仓库 -->
         <repository>
             <id>spring-milestones</id>
             <name>Spring Milestones</name>
@@ -188,14 +172,6 @@
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
-        </repository>
-        <repository>
-            <id>spring-snapshots</id>
-            <name>Spring Snapshots</name>
-            <url>https://repo.spring.io/snapshot</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
         </repository>
     </repositories>
 

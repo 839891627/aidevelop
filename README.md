@@ -12,7 +12,7 @@ Java 开发者学习 AI Agent 开发的实战项目 | 基于 Spring Boot 3.3 + S
 
 | 模块 | 功能 | 说明 |
 |------|------|------|
-| **基础对话** | 多 LLM 支持 | 智谱 AI / OpenAI / Anthropic，通过 Profile 切换 |
+| **基础对话** | 多 LLM 支持 | OpenAI 兼容模型（默认 deepseek-chat） |
 | | 流式响应 | SSE 实时打字机效果 |
 | | 对话历史 | 滑动窗口管理，控制上下文长度 |
 | **Function Calling** | 贷款查询 | AI 自动调用后端函数查询贷款信息 |
@@ -37,6 +37,12 @@ Java 开发者学习 AI Agent 开发的实战项目 | 基于 Spring Boot 3.3 + S
 - **数据库**: MySQL (JPA + Hibernate)
 - **构建工具**: Maven 3.9+
 
+### 依赖稳定性策略
+
+- Spring AI 当前锁定为 `1.0.0-M5`（与现有代码 API 保持兼容）。
+- Maven 仓库仅保留 `spring-milestones`，移除 `snapshot` 仓库，避免拉取不稳定快照包。
+- 后续升级到 Spring AI 1.0 GA 建议单独开迁移分支处理 API 变更。
+
 ---
 
 ## 快速开始
@@ -46,7 +52,7 @@ Java 开发者学习 AI Agent 开发的实战项目 | 基于 Spring Boot 3.3 + S
 - Java 17+
 - Maven 3.6+
 - MySQL 数据库
-- AI 模型 API Key（智谱 AI / OpenAI / Anthropic）
+- AI 模型 API Key（智谱 AI / OpenAI 兼容）
 
 ### 启动步骤
 
@@ -58,8 +64,10 @@ export DB_URL=jdbc:mysql://localhost:3306/ai_develop
 export DB_USERNAME=root
 export DB_PASSWORD=your-password
 
-# AI 模型（至少配置一个）
-export ZHIPUAI_API_KEY=your-zhipuai-key
+# AI 模型（对话模型）
+export OPENAI_API_KEY=your-openai-compatible-key
+export OPENAI_BASE_URL=https://api.deepseek.com
+export OPENAI_CHAT_MODEL=deepseek-chat
 ```
 
 2. **启动应用**
@@ -73,7 +81,7 @@ mvn spring-boot:run
 | 页面 | 地址 |
 |------|------|
 | 聊天界面 | http://localhost:8080/index.html |
-| 成本管理 | http://localhost:8080/cost.html |
+| 成本管理 | http://localhost:8080/index.html |
 | Swagger 文档 | http://localhost:8080/swagger-ui.html |
 | 健康检查 | http://localhost:8080/health |
 
@@ -134,17 +142,36 @@ src/main/java/com/example/aidevelop/
 | POST | `/api/chat/stream` | 流式聊天（SSE） |
 | DELETE | `/api/chat/{conversationId}` | 清空对话历史 |
 
-### RAG 检索
+### RAG 检索（高级管线）
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/api/chat/search?query=xxx` | 向量检索 |
-| GET | `/api/chat/hybrid-search?query=xxx` | 混合检索（向量+BM25） |
-| GET | `/api/chat/rerank-search?query=xxx` | 重排序检索 |
-| GET | `/api/chat/pipeline?query=xxx` | 智能 RAG 管道 |
-| GET | `/api/chat/query-expansion?query=xxx` | 查询扩展调试 |
-| GET | `/api/chat/query-rewrite?query=xxx` | 查询重写调试 |
-| POST | `/api/chat/evaluate` | RAG 系统评估 |
+| GET | `/api/rag/search?query=xxx` | 向量检索 |
+| GET | `/api/rag/hybrid-search?query=xxx` | 混合检索（向量+BM25） |
+| GET | `/api/rag/rerank-search?query=xxx` | 重排序检索 |
+| GET | `/api/rag/pipeline?query=xxx` | 智能 RAG 管道 |
+| POST | `/api/rag/evaluate` | RAG 系统评估 |
+
+### Chat 链路与 RAG 链路说明
+
+- `/api/chat`：对话主链路，使用 `ChatClient`，并可通过配置启用内置 `QuestionAnswerAdvisor`（基础 RAG）。
+- `/api/rag`：高级 RAG 实验链路，提供查询扩展、查询重写、混合检索、重排与评估等独立能力。
+- 建议学习顺序：先掌握 `/api/chat`，再深入 `/api/rag`。
+
+### 对话历史持久化边界
+
+- 当前 `ConversationRepository` 为内存实现（`ConcurrentHashMap`），适合教学和本地开发。
+- 应用重启后会话历史会丢失，不属于生产持久化方案。
+- 若要用于生产，建议替换为 Redis / MySQL 等持久化存储。
+
+### 调试接口（仅 `dev` Profile）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/chat/debug/vector-store` | 向量库状态概览 |
+| GET | `/api/chat/debug/test-search?query=xxx` | 检索分数调试（可选内容预览） |
+| GET | `/api/chat/debug/query-expansion?query=xxx` | 查询扩展调试 |
+| GET | `/api/chat/debug/query-rewrite?query=xxx` | 查询重写调试 |
 
 ### 成本统计
 
@@ -171,6 +198,7 @@ src/main/java/com/example/aidevelop/
 | [06-rag-basics](docs/06-rag-basics.md) | RAG 基础、向量检索、知识库 | ★★★ |
 | [07-rag-advanced](docs/07-rag-advanced.md) | 查询重写、混合检索、重排序、管道 | ★★★ |
 | [08-cost-and-observability](docs/08-cost-and-observability.md) | 成本管理、AOP 日志、缓存 | ★★ |
+| [10-agent-loop-design](docs/10-agent-loop-design.md) | 从 Chat+RAG 升级到 Agent Loop 的实施设计 | ★★★★ |
 | [AI_LEARNING_PATH](docs/AI_LEARNING_PATH.md) | 4 周学习路线图 | - |
 
 详见 [docs/README.md](docs/README.md)。
