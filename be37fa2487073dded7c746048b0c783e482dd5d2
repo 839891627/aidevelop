@@ -1,0 +1,55 @@
+src/main/java/com/example/aidevelop/service/function/LoanQueryFunction.java
+  989bdd93591120dd 26-51,53,87-89,91-96
+src/main/resources/application.yml
+  989bdd93591120dd 17,83-88,129-160
+src/main/java/com/example/aidevelop/service/IntentRoutingService.java
+  989bdd93591120dd 1-126
+src/main/java/com/example/aidevelop/service/impl/ChatServiceImpl.java
+  989bdd93591120dd 11,15,17-19,33,37-40,67-68,136-137,264-290
+src/main/java/com/example/aidevelop/config/RouteProperties.java
+  989bdd93591120dd 1-67
+src/main/java/com/example/aidevelop/config/AiModelConfig.java
+  989bdd93591120dd 7-8,13,22-23,33,43,46,48,60-64
+api-debug.http
+  379893c5de2427a2 1-180
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0-codex",
+  "base_commit_sha": "be37fa2487073dded7c746048b0c783e482dd5d2",
+  "prompts": {
+    "379893c5de2427a2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c5086a90-ff02-4dd7-b3da-9781ae07740f",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "jinliang.cao",
+      "messages": [],
+      "total_additions": 180,
+      "total_deletions": 0,
+      "accepted_lines": 180,
+      "overriden_lines": 0,
+      "messages_url": "https://codeaiapi.xinfei-inc.cn/cas/60f566464fdba1c90c12396f70f97c016395febecf5faa1ad21e40fa840deb4e"
+    },
+    "989bdd93591120dd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3a337e3d-ecb7-4e95-b441-8403f8f45a24",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "jinliang.cao",
+      "messages": [],
+      "total_additions": 346,
+      "total_deletions": 86,
+      "accepted_lines": 301,
+      "overriden_lines": 0,
+      "messages_url": "https://codeaiapi.xinfei-inc.cn/cas/c99501990ca107faa83f0ada988fbcd4c40badf266166565f68b30b4f46cf894"
+    }
+  },
+  "humans": {
+    "h_0e7e73f3ca1668": {
+      "author": "jinliang.cao"
+    }
+  }
+}
