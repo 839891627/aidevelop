@@ -18,7 +18,15 @@
       "Bash(tree:*)",
       "Bash(wc:*)",
       "Bash(xargs -I{} jar tf {})",
-      "Bash(awk '{print $5, $NF}')"
+      "Bash(awk '{print $5, $NF}')",
+      "WebSearch",
+      "WebFetch(domain:docs.langchain4j.dev)",
+      "Bash(jar tf *)",
+      "Read(//private/tmp/**)",
+      "Bash(jar xf *)",
+      "Bash(ls org/springframework/ai/chat/memory/ org/springframework/ai/chat/client/advisor/MessageChatMemoryAdvisor.java org/springframework/ai/chat/client/advisor/AbstractChatMemoryAdvisor.java)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

@@ -63,7 +63,7 @@ public class ChatController {
 
     /**
      * 清空对话历史
-     * DELETE /api/chat/{conversationId}
+     * DELETE /api/chat/{conversationIa}
      */
     @DeleteMapping("/{conversationId}")
     @Operation(
