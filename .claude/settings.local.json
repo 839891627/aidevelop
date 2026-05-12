@@ -26,7 +26,16 @@
       "Bash(jar xf *)",
       "Bash(ls org/springframework/ai/chat/memory/ org/springframework/ai/chat/client/advisor/MessageChatMemoryAdvisor.java org/springframework/ai/chat/client/advisor/AbstractChatMemoryAdvisor.java)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(rm /Users/arvin/java/aidevelop/docs/09-ai-form-filling-demo.md)",
+      "Bash(rm /Users/arvin/java/aidevelop/src/main/java/com/example/aidevelop/controller/LoanFormController.java)",
+      "Bash(rm /Users/arvin/java/aidevelop/src/main/java/com/example/aidevelop/service/LoanFormService.java)",
+      "Bash(rm -rf /Users/arvin/java/aidevelop/src/main/java/com/example/aidevelop/model/dto/loanform)",
+      "Bash(rm /Users/arvin/java/aidevelop/src/main/resources/static/loan-form.html)",
+      "Bash(./mvnw compile *)",
+      "Bash(rm /Users/arvin/java/aidevelop/docs/AI_AGENT_COMPLETE_GUIDE.md)",
+      "Bash(rm /Users/arvin/java/aidevelop/docs/AI_LEARNING_PATH.md)",
+      "Bash(rm /Users/arvin/java/aidevelop/docs/00-ai-agent-system-blueprint.md)"
     ]
   }
 }

@@ -122,21 +122,13 @@ app:
           - 如何处理
   prompts:
     enabled: true
-    base-path: classpath:prompts/
-    system-prompt: system/default.txt
-    rag-qa-prompt: rag/qa.txt
-    function-calling-prompt: function/calling.txt
+    registry-enabled: true
+    env: dev
+  tools:
+    enabled:
+      - loanQueryFunction
+      - repaymentQueryFunction
+      - riskAssessmentFunction
   cost-tracking:
     enabled: true
     log-all-calls: true
-  cache:
-    enabled: true
-    ai-response:
-      max-size: 1000
-      ttl: 30
-    vector-search:
-      max-size: 500
-      ttl: 60
-    function-call:
-      max-size: 2000
-      ttl: 10

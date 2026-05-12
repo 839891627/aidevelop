@@ -18,22 +18,12 @@ public class PromptProperties {
     private boolean enabled = true;
 
     /**
-     * 提示词文件路径前缀
+     * 是否启用 Prompt Registry（数据库版本化管理）。
      */
-    private String basePath = "classpath:prompts/";
+    private boolean registryEnabled = true;
 
     /**
-     * System 提示词文件名
+     * Prompt 生效环境（dev/staging/prod）。
      */
-    private String systemPrompt = "system/default.txt";
-
-    /**
-     * RAG QA 提示词文件名
-     */
-    private String ragQaPrompt = "rag/qa.txt";
-
-    /**
-     * Function Calling 提示词文件名
-     */
-    private String functionCallingPrompt = "function/calling.txt";
+    private String env = "dev";
 }

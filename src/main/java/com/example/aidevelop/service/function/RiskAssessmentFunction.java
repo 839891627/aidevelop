@@ -1,11 +1,11 @@
 package com.example.aidevelop.service.function;
 
-import com.example.aidevelop.config.AiFunction;
 import com.example.aidevelop.model.entity.Loan;
 import com.example.aidevelop.model.entity.RepaymentRecord;
 import com.example.aidevelop.repository.LoanRepository;
 import com.example.aidevelop.repository.RepaymentRecordRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.context.annotation.Description;
 import org.springframework.stereotype.Component;
 
@@ -13,13 +13,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.function.Function;
 
 @Slf4j
 @Component
-@AiFunction
 @Description("评估用户的借款风险，分析逾期情况和还款能力")
-public class RiskAssessmentFunction implements Function<RiskAssessmentFunction.Request, RiskAssessmentFunction.Response> {
+public class RiskAssessmentFunction implements AiToolProvider {
 
     private final LoanRepository loanRepository;
     private final RepaymentRecordRepository repaymentRecordRepository;
@@ -29,8 +27,8 @@ public class RiskAssessmentFunction implements Function<RiskAssessmentFunction.R
         this.repaymentRecordRepository = repaymentRecordRepository;
     }
 
-    @Override
-    public Response apply(Request request) {
+    @Tool(name = "riskAssessmentFunction", description = "评估用户借款风险，返回风险等级和建议")
+    public Response assessRisk(Request request) {
         log.info("执行风险评估: userNo={}", request.userNo());
 
         // 1. 查询用户的借款记录

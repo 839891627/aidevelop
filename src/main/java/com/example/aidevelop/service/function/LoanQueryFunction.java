@@ -1,21 +1,19 @@
 package com.example.aidevelop.service.function;
 
-import com.example.aidevelop.config.AiFunction;
 import com.example.aidevelop.model.entity.Loan;
 import com.example.aidevelop.repository.LoanRepository;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Description;
+import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.function.Function;
 
 @Slf4j
 @Component
-@AiFunction
 @Description("查询用户的借款记录，支持按用户编号、状态等条件查询")
-public class LoanQueryFunction implements Function<LoanQueryFunction.Request, LoanQueryFunction.Response> {
+public class LoanQueryFunction implements AiToolProvider {
 
     private final LoanRepository loanRepository;
 
@@ -23,8 +21,8 @@ public class LoanQueryFunction implements Function<LoanQueryFunction.Request, Lo
         this.loanRepository = loanRepository;
     }
 
-    @Override
-    public Response apply(Request request) {
+    @Tool(name = "loanQueryFunction", description = "查询用户借款记录，支持按 userNo 和 status 过滤")
+    public Response queryLoanRecords(Request request) {
         log.info("执行借款查询: userNo={}, status={}", request.userNo(), request.status());
 
         List<Loan> loans;

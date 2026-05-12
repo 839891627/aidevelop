@@ -89,9 +89,11 @@ public class RagEvaluationService {
      * 执行检索
      */
     private List<Document> retrieveDocuments(String query, int topK) {
-        SearchRequest searchRequest = SearchRequest.query(query)
-                .withTopK(topK)
-                .withSimilarityThreshold(similarityThreshold);
+        SearchRequest searchRequest = SearchRequest.builder()
+                .query(query)
+                .topK(topK)
+                .similarityThreshold(similarityThreshold)
+                .build();
 
         return vectorStore.similaritySearch(searchRequest);
     }
@@ -208,7 +210,7 @@ public class RagEvaluationService {
                     i + 1,
                     docId,
                     isRelevant ? "✓" : "✗",
-                    doc.getContent().substring(0, Math.min(50, doc.getContent().length()))
+                    doc.getText().substring(0, Math.min(50, doc.getText().length()))
             ));
         }
 
@@ -230,7 +232,7 @@ public class RagEvaluationService {
         }
 
         // 使用内容的前50个字符的哈希作为ID
-        String content = doc.getContent();
+        String content = doc.getText();
         String contentPrefix = content.substring(0, Math.min(50, content.length()));
         return String.valueOf(contentPrefix.hashCode());
     }

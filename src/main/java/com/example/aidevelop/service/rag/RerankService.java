@@ -90,9 +90,11 @@ public class RerankService {
      */
     private List<Document> vectorRetrieve(String query, int topN) {
         try {
-            SearchRequest searchRequest = SearchRequest.query(query)
-                .withTopK(topN)
-                .withSimilarityThreshold(0.0);  // 降低阈值，召回更多
+            SearchRequest searchRequest = SearchRequest.builder()
+                .query(query)
+                .topK(topN)
+                .similarityThreshold(0.0)  // 降低阈值，召回更多
+                .build();
 
             return vectorStore.similaritySearch(searchRequest);
         } catch (Exception e) {
@@ -149,8 +151,8 @@ public class RerankService {
         for (int i = 0; i < candidates.size(); i++) {
             Document doc = candidates.get(i);
             sb.append(String.format("### [%d] ", i + 1));
-            sb.append(doc.getContent().substring(0, Math.min(200, doc.getContent().length())));
-            if (doc.getContent().length() > 200) {
+            sb.append(doc.getText().substring(0, Math.min(200, doc.getText().length())));
+            if (doc.getText().length() > 200) {
                 sb.append("...");
             }
             sb.append("\n\n");
@@ -253,7 +255,7 @@ public class RerankService {
         original.stream().limit(3).forEach(doc ->
             log.debug("  - score={}, content={}",
                 doc.getScore(),
-                doc.getContent().substring(0, Math.min(50, doc.getContent().length()))
+                doc.getText().substring(0, Math.min(50, doc.getText().length()))
             )
         );
 
@@ -263,7 +265,7 @@ public class RerankService {
                 result.rerankScore(),
                 result.getVectorScore(),
                 result.reranked(),
-                result.document().getContent().substring(0, Math.min(50, result.document().getContent().length()))
+                result.document().getText().substring(0, Math.min(50, result.document().getText().length()))
             )
         );
     }

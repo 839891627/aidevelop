@@ -36,9 +36,11 @@ public class RagOrchestrationService {
         String expandedQuery = queryExpansionService.expandQuery(query);
         log.info("查询扩展: {} -> {}", query, expandedQuery);
 
-        SearchRequest searchRequest = SearchRequest.query(expandedQuery)
-                .withTopK(searchTopK)
-                .withSimilarityThreshold(ragProperties.getSimilarityThreshold());
+        SearchRequest searchRequest = SearchRequest.builder()
+                .query(expandedQuery)
+                .topK(searchTopK)
+                .similarityThreshold(ragProperties.getSimilarityThreshold())
+                .build();
 
         List<Document> documents = vectorStore.similaritySearch(searchRequest);
         log.info("检索到 {} 个文档片段（过滤前）", documents.size());
@@ -57,7 +59,7 @@ public class RagOrchestrationService {
         }
 
         return documents.stream()
-                .map(doc -> new SearchResultDTO(doc.getContent(), doc.getMetadata(), doc.getScore()))
+                .map(doc -> new SearchResultDTO(doc.getText(), doc.getMetadata(), doc.getScore()))
                 .collect(Collectors.toList());
     }
 
@@ -69,7 +71,7 @@ public class RagOrchestrationService {
                 .map(result -> {
                     var source = HybridSearchResultDTO.determineSource(result.getVectorRank(), result.getBm25Rank());
                     return new HybridSearchResultDTO(
-                            result.getDocument().getContent(),
+                            result.getDocument().getText(),
                             result.getDocument().getMetadata(),
                             result.getFinalScore(),
                             result.getVectorRank(),
@@ -87,7 +89,7 @@ public class RagOrchestrationService {
 
         return rerankResults.stream()
                 .map(result -> new RerankSearchResultDTO(
-                        result.document().getContent(),
+                        result.document().getText(),
                         result.document().getMetadata(),
                         result.rerankScore(),
                         result.getVectorScore(),
@@ -102,7 +104,7 @@ public class RagOrchestrationService {
         var pipelineResult = ragPipelineService.search(query, conversationId, topK);
 
         List<PipelineSearchResultDTO.DocumentResult> documentResults = pipelineResult.getDocuments().stream()
-                .map(doc -> new PipelineSearchResultDTO.DocumentResult(doc.getContent(), doc.getMetadata(), doc.getScore()))
+                .map(doc -> new PipelineSearchResultDTO.DocumentResult(doc.getText(), doc.getMetadata(), doc.getScore()))
                 .collect(Collectors.toList());
 
         return new PipelineSearchResultDTO(

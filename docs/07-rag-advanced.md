@@ -69,7 +69,7 @@ LLM 只返回重写后的查询文本，不做任何解释。
 **调试接口：**
 
 ```
-GET /api/chat/query-rewrite?query=它支持提前还款吗&conversationId=xxx
+GET /api/chat/debug/query-rewrite?query=它支持提前还款吗&conversationId=xxx
 ```
 
 返回 `RewriteDetail`，包含原始查询、重写结果、是否改变、改变原因。

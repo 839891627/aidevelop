@@ -47,6 +47,7 @@ public class ChatServiceImpl implements ChatService {
                     null
             );
             conversation.addMessage(userMessage);
+            conversationRepository.save(conversation);
 
             // 3. 构建提示词（包含历史消息）
             String prompt = buildPromptWithHistory(conversation);
@@ -62,7 +63,7 @@ public class ChatServiceImpl implements ChatService {
                     .call()
                     .chatResponse();
 
-            String responseContent = aiResponse.getResult().getOutput().getContent();
+            String responseContent = aiResponse.getResult().getOutput().getText();
 
             // 5. 添加 AI 响应到历史
             Message assistantMessage = new Message(
@@ -100,6 +101,7 @@ public class ChatServiceImpl implements ChatService {
         try {
             // 获取或创建对话
             Conversation conversation = getOrCreateConversation(request.getConversationId());
+            sendConversationMeta(emitter, conversation.getConversationId());
 
             // 添加用户消息
             Message userMessage = new Message(
@@ -110,6 +112,7 @@ public class ChatServiceImpl implements ChatService {
                     null
             );
             conversation.addMessage(userMessage);
+            conversationRepository.save(conversation);
 
             // 构建提示词
             String prompt = buildPromptWithHistory(conversation);
@@ -213,6 +216,17 @@ public class ChatServiceImpl implements ChatService {
             emitter.send(SseEmitter.event().data(chunk));
         } catch (IOException | IllegalStateException e) {
             throw new AiServiceException("流式数据发送失败", e);
+        }
+    }
+
+    private void sendConversationMeta(SseEmitter emitter, String conversationId) {
+        try {
+            String escapedId = conversationId.replace("\"", "\\\"");
+            emitter.send(SseEmitter.event()
+                    .name("meta")
+                    .data("{\"conversationId\":\"" + escapedId + "\"}"));
+        } catch (IOException | IllegalStateException e) {
+            throw new AiServiceException("流式元数据发送失败", e);
         }
     }
 

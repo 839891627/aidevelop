@@ -44,7 +44,7 @@ Spring Profile 是一种条件化配置机制。在 `AiModelConfig` 中，每个
 | 提供商 | 配置文件 | Profile | Chat Model | Embedding Model | 用途 |
 |---|---|---|---|---|---|
 | DeepSeek（通过 OpenAI 兼容接口） | `application-openai.yml` | `openai` | `deepseek-chat` | - | 对话（默认） |
-| OpenAI Compatible（GLM） | `application-openai.yml` | `openai` | `glm-4.5-flash` | - | 对话 |
+| OpenAI Compatible（自定义） | `application-openai.yml` | `openai` | `${OPENAI_CHAT_MODEL}` | - | 对话 |
 | Ollama | `application.yml`（ollama 段） | default（始终加载） | - | `nomic-embed-text` | RAG 向量化 |
 
 注意：Ollama Embedding 始终加载，用于 RAG 文档向量化，与对话模型解耦。
@@ -59,33 +59,18 @@ Spring Profile 是一种条件化配置机制。在 `AiModelConfig` 中，每个
 spring:
   ai:
     openai:
-      api-key: ${OPENAI_API_KEY}               # 从环境变量读取 API Key
-      base-url: ${OPENAI_BASE_URL:https://api.openai.com}  # DeepSeek 使用兼容接口，需替换 base-url
+      api-key: ${OPENAI_API_KEY}
+      base-url: ${OPENAI_BASE_URL}
       chat:
         options:
-          model: deepseek-chat                  # DeepSeek 对话模型名称
-          temperature: 0.7                      # 温度参数：越高越随机，0.7 是平衡值
-          max-tokens: 1000                      # 单次响应最大 Token 数
-```
-
-DeepSeek 提供 OpenAI 兼容接口，所以使用 Spring AI 的 `spring-ai-openai-spring-boot-starter`，只需将 `base-url` 指向 DeepSeek 的 API 地址（通过环境变量 `OPENAI_BASE_URL` 配置）。
-
-### application-openai.yml（GLM）
-
-```yaml
-spring:
-  ai:
-    openai:
-      api-key: ${OPENAI_API_KEY}                # 从环境变量读取 OpenAI 兼容 API Key
-      base-url: ${OPENAI_BASE_URL}              # OpenAI 兼容接口地址（可配置为 GLM）
-      chat:
-        options:
-          model: ${OPENAI_CHAT_MODEL:glm-4.5-flash}  # 默认 GLM 模型
+          model: ${OPENAI_CHAT_MODEL}
           temperature: 0.7
           max-tokens: 1000
 ```
 
-项目当前使用 OpenAI 兼容 starter，配置前缀为 `spring.ai.openai`。
+DeepSeek 提供 OpenAI 兼容接口，所以使用 Spring AI 的 `spring-ai-openai-spring-boot-starter`，只需将 `base-url` 指向 DeepSeek 的 API 地址（通过环境变量 `OPENAI_BASE_URL` 配置）。
+
+项目当前使用 OpenAI 兼容 starter，配置前缀为 `spring.ai.openai`。如需切换为其他兼容模型，只需修改 `OPENAI_BASE_URL` 与 `OPENAI_CHAT_MODEL`。
 
 ### application.yml 中的 Ollama Embedding 配置
 
@@ -118,40 +103,7 @@ spring:
 
 `AiModelConfig.java` 是多 LLM 切换的核心配置类。
 
-### 类结构
-
-```java
-@Slf4j
-@Configuration
-public class AiModelConfig {
-
-    private final RagProperties ragProperties;   // RAG 参数（从 yml 读取）
-    private final PromptService promptService;    // 提示词管理服务
-
-    // 构造器注入
-    public AiModelConfig(RagProperties ragProperties, PromptService promptService) { ... }
-
-    @Bean
-    public ChatMemory chatMemory() { ... }       // 全局共享的对话记忆
-
-    @Bean @Profile("openai")
-    public ChatClient chatClientForOpenAI(...) { ... }
-
-    @Bean @Profile("openai")
-    public ChatClient chatClientForOpenAI(...) { ... }
-}
-```
-
-### 共享的 ChatMemory Bean
-
-```java
-@Bean
-public ChatMemory chatMemory() {
-    return new InMemoryChatMemory();  // 内存实现的对话记忆
-}
-```
-
-`ChatMemory` 不绑定 Profile，所有 Profile 的 `ChatClient` 共享同一个实例。`InMemoryChatMemory` 是 Spring AI 提供的内存实现，重启后丢失。`MessageChatMemoryAdvisor` 会自动从这里存取历史消息。
+`AiModelConfig` 当前只在 `openai` profile 下装配一个 `ChatClient`，核心能力为：系统提示词、Function Calling、可选 `QuestionAnswerAdvisor`（基础 RAG）。
 
 ### OpenAI Profile 的 ChatClient
 
@@ -159,62 +111,41 @@ public ChatMemory chatMemory() {
 @Bean
 @Profile("openai")
 public ChatClient chatClientForOpenAI(
-        @Qualifier("openAiChatModel") ChatModel chatModel,     // Spring AI 自动创建的 OpenAI ChatModel
-        @Qualifier("vectorStore") VectorStore vectorStore,
-        ChatMemory chatMemory) {
+        @Qualifier("openAiChatModel") ChatModel chatModel,
+        @Qualifier("vectorStore") ObjectProvider<VectorStore> vectorStoreProvider) {
 
-    log.info("初始化 ChatClient，使用提供商: OpenAI (DeepSeek)，启用对话记忆功能");
+    log.info("初始化 ChatClient，使用提供商: OpenAI (DeepSeek)");
 
     SearchRequest searchRequest = SearchRequest.defaults()
             .topK(ragProperties.getTopK())
             .similarityThreshold(ragProperties.getSimilarityThreshold())
             .build();
 
-    return ChatClient.builder(chatModel)
-            .defaultSystem(promptService.getSystemPrompt())    // 外部文件管理提示词
-            .defaultAdvisors(
-                new MessageChatMemoryAdvisor(chatMemory),
-                new QuestionAnswerAdvisor(vectorStore, searchRequest)
-            )
+    ChatClient.Builder builder = ChatClient.builder(chatModel)
+            .defaultSystem(promptService.getSystemPrompt())    // Prompt Registry 生效提示词
             .defaultFunctions("loanQueryFunction", "repaymentQueryFunction", "riskAssessmentFunction")
-            .build();
+    ;
+
+    if (ragProperties.isEnabled()) {
+        VectorStore vectorStore = vectorStoreProvider.getIfAvailable();
+        if (vectorStore != null) {
+            builder.defaultAdvisors(new QuestionAnswerAdvisor(vectorStore, searchRequest));
+        }
+    }
+
+    return builder.build();
 }
 ```
 
 `@Qualifier("openAiChatModel")` 显式指定使用 OpenAI 的 ChatModel Bean，避免多个 ChatModel 实现时冲突。
 
-### OpenAI Profile 的 ChatClient
-
-```java
-@Bean
-@Profile("openai")
-public ChatClient chatClientForOpenAI(
-        @Qualifier("openAiChatModel") ChatModel chatModel,  // OpenAI 兼容的 ChatModel
-        @Qualifier("vectorStore") VectorStore vectorStore,
-        ChatMemory chatMemory) {
-
-    log.info("初始化 ChatClient，使用提供商: OpenAI Compatible(GLM)，启用对话记忆功能");
-
-    // 注意：此处硬编码了 RAG 参数和系统提示词
-    SearchRequest searchRequest = SearchRequest.defaults()
-            .topK(5).similarityThreshold(0.3).build();
-
-    return ChatClient.builder(chatModel)
-            .defaultSystem(""" ... """)    // 内联的系统提示词
-            .defaultAdvisors(...)
-            .defaultFunctions(...)
-            .build();
-}
-```
-
-当前 OpenAI Profile 统一通过 `promptService.getSystemPrompt()` 从外部文件加载系统提示词。
+当前 openai profile 统一通过 `promptService.getSystemPrompt()` 从 Prompt Registry 读取生效系统提示词。
 
 ### Bean 命名与冲突处理
 
 当多个 LLM starter 同时引入时，Spring 容器中会存在多个 `ChatModel` Bean。Spring AI 使用 `@Qualifier` 注解区分：
 
 - `openAiChatModel` - 由 `spring-ai-openai-spring-boot-starter` 自动创建
-- `openAiChatModel` - 由 OpenAI 兼容 starter 自动创建
 
 只有与当前 Profile 匹配的 `ChatClient` Bean 会被创建，因此不会冲突。
 
@@ -226,9 +157,6 @@ public ChatClient chatClientForOpenAI(
 
 ```bash
 # 使用 DeepSeek（默认，等价于不加 -D 参数）
-mvn spring-boot:run -Dspring-boot.run.profiles=openai
-
-# 使用 OpenAI Compatible（GLM）
 mvn spring-boot:run -Dspring-boot.run.profiles=openai
 
 # 使用默认配置（application.yml 中的 spring.profiles.active=openai）
@@ -258,7 +186,7 @@ spring:
 启动应用后，日志中会打印：
 
 ```
-初始化 ChatClient，使用提供商: OpenAI (DeepSeek)，启用对话记忆功能
+初始化 ChatClient，使用提供商: OpenAI (DeepSeek)
 ```
 
 或通过阻塞式聊天接口查看响应中的 `model` 字段。
@@ -272,8 +200,8 @@ spring:
 export OPENAI_API_KEY="sk-xxx"
 export OPENAI_BASE_URL="https://api.deepseek.com"
 
-# OpenAI Compatible（GLM）
-export ANTHROPIC_API_KEY="sk-ant-xxx"
+# OpenAI Compatible（例如 GLM）
+export OPENAI_CHAT_MODEL="glm-4.5-flash"
 
 # Ollama（Embedding 用，本地服务）
 export OLLAMA_BASE_URL="http://localhost:11434"
@@ -317,35 +245,11 @@ spring:
 
 如果使用 OpenAI 兼容接口，则复用 `application-openai.yml` 格式，只修改 `base-url` 和 `model`。
 
-### 步骤 3：添加 AiModelConfig 方法
+### 步骤 3：添加 AiModelConfig 方法（可选）
 
-在 `AiModelConfig.java` 中添加：
+若接入的是 OpenAI 兼容接口，通常不需要新增 `ChatClient` 方法，只要调整 `OPENAI_BASE_URL` 和 `OPENAI_CHAT_MODEL` 即可。
 
-```java
-@Bean
-@Profile("tongyi")
-public ChatClient chatClientForTongyi(
-        @Qualifier("tongyiChatModel") ChatModel chatModel,
-        @Qualifier("vectorStore") VectorStore vectorStore,
-        ChatMemory chatMemory) {
-
-    log.info("初始化 ChatClient，使用提供商: 通义千问");
-
-    SearchRequest searchRequest = SearchRequest.defaults()
-            .topK(ragProperties.getTopK())
-            .similarityThreshold(ragProperties.getSimilarityThreshold())
-            .build();
-
-    return ChatClient.builder(chatModel)
-            .defaultSystem(promptService.getSystemPrompt())
-            .defaultAdvisors(
-                new MessageChatMemoryAdvisor(chatMemory),
-                new QuestionAnswerAdvisor(vectorStore, searchRequest)
-            )
-            .defaultFunctions("loanQueryFunction", "repaymentQueryFunction", "riskAssessmentFunction")
-            .build();
-}
-```
+仅当接入“非 OpenAI 兼容”的专用 starter 时，才需要在 `AiModelConfig` 中新增对应 profile 的 `ChatClient` Bean。
 
 ### 步骤 4：测试
 
@@ -404,9 +308,8 @@ mvn spring-boot:run -Dspring-boot.run.profiles=tongyi
 | `src/main/java/.../config/PromptProperties.java` | 提示词文件路径配置 |
 | `src/main/java/.../service/prompt/PromptService.java` | 提示词加载服务（从文件读取系统提示词） |
 | `src/main/resources/application.yml` | 公共配置 + Ollama Embedding + 默认 Profile |
-| `src/main/resources/application-openai.yml` | DeepSeek 配置（OpenAI 兼容接口） |
-| `src/main/resources/application-openai.yml` | OpenAI 兼容（GLM）配置 |
-| `src/main/resources/prompts/system/default.txt` | 系统提示词文件 |
+| `src/main/resources/application-openai.yml` | OpenAI 兼容配置（DeepSeek/GLM 等） |
+| `sql/prompt_registry.sql` | Prompt 注册表结构 |
 | `pom.xml` | spring-ai-bom 版本管理、各 LLM starter 依赖 |
 
 路径中的 `...` 代表 `com/example/aidevelop`。

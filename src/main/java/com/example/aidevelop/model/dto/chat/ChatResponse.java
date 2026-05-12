@@ -19,7 +19,7 @@ public class ChatResponse {
     @Schema(description = "AI 返回的消息内容", example = "Spring AI 是 Spring 官方推出的 AI 应用开发框架...")
     private String message;
 
-    @Schema(description = "使用的模型名称", example = "glm-4.5-flash")
+    @Schema(description = "使用的模型名称", example = "deepseek-v4-flash")
     private String model;
 
     @Schema(description = "本次对话消耗的 token 数", example = "256")

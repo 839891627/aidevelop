@@ -1,7 +1,6 @@
 # 从 Chat+RAG 到 Agent Loop 设计文档
 
 ## 1. 背景与目标
-
 当前项目已经具备：
 - 多模型对话（普通 + 流式）
 - Function Calling（贷款/还款/风控）

@@ -37,7 +37,7 @@ public class VectorStoreConfig {
             file.getParentFile().mkdirs();
         }
 
-        vectorStoreInstance = new SimpleVectorStore(embeddingModel);
+        vectorStoreInstance = SimpleVectorStore.builder(embeddingModel).build();
 
         // 已有向量库文件则直接加载（毫秒级），否则留给启动后异步构建
         if (file.exists()) {

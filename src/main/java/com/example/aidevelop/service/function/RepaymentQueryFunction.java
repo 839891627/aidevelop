@@ -1,21 +1,19 @@
 package com.example.aidevelop.service.function;
 
-import com.example.aidevelop.config.AiFunction;
 import com.example.aidevelop.model.entity.RepaymentRecord;
 import com.example.aidevelop.repository.RepaymentRecordRepository;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.context.annotation.Description;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.function.Function;
 
 @Slf4j
 @Component
-@AiFunction
 @Description("查询用户的还款记录，支持按用户编号、状态等条件查询")
-public class RepaymentQueryFunction implements Function<RepaymentQueryFunction.Request, RepaymentQueryFunction.Response> {
+public class RepaymentQueryFunction implements AiToolProvider {
 
     private final RepaymentRecordRepository repaymentRecordRepository;
 
@@ -23,8 +21,8 @@ public class RepaymentQueryFunction implements Function<RepaymentQueryFunction.R
         this.repaymentRecordRepository = repaymentRecordRepository;
     }
 
-    @Override
-    public Response apply(Request request) {
+    @Tool(name = "repaymentQueryFunction", description = "查询用户还款记录，支持按 userNo 和 status 过滤")
+    public Response queryRepaymentRecords(Request request) {
         log.info("执行还款查询: userNo={}, status={}", request.userNo(), request.status());
 
         List<RepaymentRecord> records;

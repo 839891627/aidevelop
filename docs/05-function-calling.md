@@ -113,7 +113,6 @@ public ChatClient chatClient(ChatModel chatModel, ...) {
     return ChatClient.builder(chatModel)
         .defaultSystem(promptService.getSystemPrompt())
         .defaultAdvisors(
-            new MessageChatMemoryAdvisor(chatMemory),
             new QuestionAnswerAdvisor(vectorStore)
         )
         .defaultFunctions(

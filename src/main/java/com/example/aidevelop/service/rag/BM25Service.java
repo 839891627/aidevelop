@@ -65,9 +65,11 @@ public class BM25Service {
             // 1. 从向量库获取所有文档
             // 使用通配符查询来获取所有文档
             var allDocs = vectorStore.similaritySearch(
-                org.springframework.ai.vectorstore.SearchRequest.query(".")
-                    .withTopK(1000)  // 假设不超过1000个文档片段
-                    .withSimilarityThreshold(0.0)
+                org.springframework.ai.vectorstore.SearchRequest.builder()
+                    .query(".")
+                    .topK(1000)  // 假设不超过1000个文档片段
+                    .similarityThreshold(0.0)
+                    .build()
             );
 
             if (allDocs.isEmpty()) {
@@ -280,7 +282,7 @@ public class BM25Service {
 
         DocumentInfo(Document document) {
             this.document = document;
-            this.termFrequency = calculateTermFrequency(document.getContent());
+            this.termFrequency = calculateTermFrequency(document.getText());
         }
 
         /**

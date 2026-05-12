@@ -47,9 +47,11 @@ public class ChatDebugController {
             @Parameter(description = "返回文档内容片段", required = false)
             @RequestParam(defaultValue = "false") boolean includeContent
     ) {
-        SearchRequest searchRequest = SearchRequest.query(query)
-                .withTopK(ragProperties.getTopK())
-                .withSimilarityThreshold(ragProperties.getSimilarityThreshold());
+        SearchRequest searchRequest = SearchRequest.builder()
+                .query(query)
+                .topK(ragProperties.getTopK())
+                .similarityThreshold(ragProperties.getSimilarityThreshold())
+                .build();
 
         List<Document> documents = vectorStore.similaritySearch(searchRequest);
         log.info("调试检索 - query: {}, docs: {}", query, documents.size());
@@ -59,9 +61,9 @@ public class ChatDebugController {
                         doc.getScore(),
                         doc.getMetadata().get("type"),
                         doc.getMetadata().get("filename"),
-                        doc.getContent().length(),
-                        doc.getContent().contains(query),
-                        includeContent ? shortenContent(doc.getContent()) : null
+                        doc.getText().length(),
+                        doc.getText().contains(query),
+                        includeContent ? shortenContent(doc.getText()) : null
                 ))
                 .sorted((a, b) -> Double.compare(b.score(), a.score()))
                 .toList();
@@ -70,9 +72,11 @@ public class ChatDebugController {
     @GetMapping("/vector-store")
     @Operation(summary = "向量库状态", description = "返回向量库文档数量和类型分布，不返回完整文档内容")
     public VectorStoreDebugSummary vectorStoreDebug() {
-        SearchRequest allDocsRequest = SearchRequest.query(".")
-                .withTopK(ragProperties.getTopK())
-                .withSimilarityThreshold(ragProperties.getSimilarityThreshold());
+        SearchRequest allDocsRequest = SearchRequest.builder()
+                .query(".")
+                .topK(ragProperties.getTopK())
+                .similarityThreshold(ragProperties.getSimilarityThreshold())
+                .build();
 
         List<Document> allDocs = vectorStore.similaritySearch(allDocsRequest);
 
@@ -87,7 +91,7 @@ public class ChatDebugController {
                 .map(doc -> new DocumentBrief(
                         doc.getMetadata().get("type"),
                         doc.getMetadata().get("filename"),
-                        doc.getContent().length()
+                        doc.getText().length()
                 ))
                 .toList();
 

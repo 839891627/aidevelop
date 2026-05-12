@@ -196,7 +196,7 @@ public class AiCallLoggerAspect {
                 if (response.getResults() != null) {
                     response.getResults().forEach(r -> {
                         if (r.getOutput() != null) {
-                            text.append(r.getOutput().getContent());
+                            text.append(r.getOutput().getText());
                         }
                     });
                 }

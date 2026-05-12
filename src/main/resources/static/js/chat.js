@@ -125,6 +125,31 @@ class ChatApp {
             let fullText = '';
             let chunkCount = 0;
             let extractedCount = 0;
+            const processEventBlock = (eventBlock) => {
+                const parsed = this.parseSseEvent(eventBlock);
+                if (!parsed) {
+                    return;
+                }
+
+                if (parsed.event === 'meta') {
+                    try {
+                        const meta = JSON.parse(parsed.data);
+                        if (meta.conversationId) {
+                            this.conversationId = meta.conversationId;
+                        }
+                    } catch (e) {
+                        console.warn('[流式模式] 解析 meta 事件失败:', e);
+                    }
+                    return;
+                }
+
+                if (parsed.data) {
+                    fullText += parsed.data;
+                    extractedCount++;
+                    this.renderMarkdown(contentDiv, fullText);
+                    this.scrollToBottom();
+                }
+            };
 
             while (true) {
                 const { done, value } = await reader.read();
@@ -143,48 +168,16 @@ class ChatApp {
 
                 buffer += chunk;
 
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
-
-                for (const line of lines) {
-                    if (!line.trim()) {
-                        continue;
-                    }
-
-                    let content = null;
-                    if (line.startsWith('data: ')) {
-                        content = line.slice(6);
-                    } else if (line.startsWith('data:')) {
-                        content = line.slice(5);
-                    }
-
-                    if (content !== null) {
-                        fullText += content;
-                        extractedCount++;
-
-                        // 实时渲染Markdown
-                        this.renderMarkdown(contentDiv, fullText);
-                        this.scrollToBottom();
-                    }
+                const eventBlocks = buffer.split('\n\n');
+                buffer = eventBlocks.pop() || '';
+                for (const eventBlock of eventBlocks) {
+                    processEventBlock(eventBlock);
                 }
             }
 
             // 处理缓冲区中剩余的内容
             if (buffer.trim()) {
-                const lines = buffer.split('\n');
-                for (const line of lines) {
-                    if (!line.trim()) continue;
-
-                    if (line.startsWith('data: ')) {
-                        const content = line.slice(6);
-                        fullText += content;
-                        extractedCount++;
-                    } else if (line.startsWith('data:')) {
-                        const content = line.slice(5);
-                        fullText += content;
-                        extractedCount++;
-                    }
-                }
+                processEventBlock(buffer);
             }
 
             console.log('[流式模式] 总共提取到', extractedCount, '个数据块');
@@ -196,8 +189,6 @@ class ChatApp {
             } else {
                 contentDiv.textContent = '未收到响应数据，请检查网络连接或稍后重试。';
             }
-
-            this.conversationId = requestBody.conversationId || this.conversationId;
 
         } catch (error) {
             console.error('[流式模式] 发生错误:', error);
@@ -348,6 +339,36 @@ class ChatApp {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    parseSseEvent(eventBlock) {
+        if (!eventBlock || !eventBlock.trim()) {
+            return null;
+        }
+
+        let eventName = 'message';
+        const dataLines = [];
+
+        for (const rawLine of eventBlock.split('\n')) {
+            const line = rawLine.replace(/\r$/, '');
+            if (!line) {
+                continue;
+            }
+            if (line.startsWith('event:')) {
+                eventName = line.slice(6).trim() || 'message';
+            } else if (line.startsWith('data:')) {
+                dataLines.push(line.slice(5).replace(/^ /, ''));
+            }
+        }
+
+        if (dataLines.length === 0) {
+            return null;
+        }
+
+        return {
+            event: eventName,
+            data: dataLines.join('\n')
+        };
     }
 }
 

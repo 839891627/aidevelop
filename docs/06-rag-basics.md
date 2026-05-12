@@ -35,13 +35,13 @@ Retrieval-Augmented Generation，即"检索增强生成"。核心思路是先从
 
 将文本转换为高维数值向量（如 1024 维浮点数组），使语义相近的文本在向量空间中距离也相近。
 
-本项目使用 **智谱 AI embedding-3 模型**，理由：
+本项目使用 **Ollama `nomic-embed-text`**（本地 embedding）：
 
-- 中文语义理解优于 OpenAI 的 text-embedding 模型
-- 价格低，适合学习和开发阶段
-- 无需额外配置，Spring AI 的 ZhipuAI starter 直接支持
+- 文档入库与在线检索都使用同一 embedding 模型，避免向量空间不一致
+- 本地部署，适合学习和离线调试
+- 切换 embedding 模型时需要重建向量库文件
 
-在 Spring AI 中，通过 `EmbeddingModel` 接口统一调用，项目使用 `@Qualifier("zhiPuAiEmbeddingModel")` 指定。
+在 Spring AI 中，通过 `EmbeddingModel` 接口统一调用，项目使用 `@Qualifier("ollamaEmbeddingModel")` 指定。
 
 ## 4. 文档加载与处理 (VectorStoreConfig)
 
@@ -83,16 +83,10 @@ classpath:knowledge/*.txt + *.pdf
 ```java
 @Bean
 public VectorStore vectorStore(
-    @Qualifier("zhiPuAiEmbeddingModel") EmbeddingModel embeddingModel
+    @Qualifier("ollamaEmbeddingModel") EmbeddingModel embeddingModel
 ) {
     SimpleVectorStore vectorStore = new SimpleVectorStore(embeddingModel);
-    if (vectorStoreFile.exists()) {
-        vectorStore.load(vectorStoreFile);       // 已有缓存，直接加载
-    } else {
-        List<Document> docs = loadAndSplitDocuments();  // 加载、分块
-        vectorStore.add(docs);                          // 向量化并存入
-        vectorStore.save(vectorStoreFile);              // 持久化
-    }
+    // 已有文件则加载，否则启动后异步构建并持久化
     return vectorStore;
 }
 ```
@@ -133,7 +127,7 @@ app:
       top-k: 5                    # 返回 Top-K 文档
 ```
 
-`similarityThreshold` 的值设为 0.2 而非更高的原因：ZhipuAI 对"长文本片段 vs 短查询"的相似度分数通常偏低（0.2-0.3 范围），阈值过高会导致召回不足。
+`similarityThreshold` 的值设为 0.2，目的是在中文业务文档场景下优先保证召回率，避免阈值过高导致漏召回。
 
 ### 6.3 SearchRequest 构建模式
 

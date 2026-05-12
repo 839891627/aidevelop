@@ -206,9 +206,11 @@ public class RagPipelineService {
      * 向量检索
      */
     private List<Document> vectorSearch(String query, int topK) {
-        SearchRequest searchRequest = SearchRequest.query(query)
-            .withTopK(topK)
-            .withSimilarityThreshold(0.2);  // 固定阈值
+        SearchRequest searchRequest = SearchRequest.builder()
+            .query(query)
+            .topK(topK)
+            .similarityThreshold(0.2)  // 固定阈值
+            .build();
 
         return vectorStore.similaritySearch(searchRequest);
     }

@@ -29,10 +29,9 @@
 
 | 提供商 | 模型 | 用途 |
 |--------|------|------|
-| 智谱AI | glm-4-flash | 对话（默认） |
-| 智谱AI | embedding-3 | 文本嵌入 |
-| DeepSeek | deepseek-chat | 对话（openai profile） |
-| OpenAI Compatible (GLM) | glm-4.5-flash | 对话（openai profile） |
+| DeepSeek (OpenAI Compatible) | deepseek-chat | 对话（默认） |
+| OpenAI Compatible | 自定义 `OPENAI_CHAT_MODEL` | 对话（openai profile） |
+| Ollama | nomic-embed-text | 文本嵌入（RAG） |
 
 ## 3. 环境准备
 
@@ -51,13 +50,17 @@ export DB_URL=jdbc:mysql://localhost:3306/ai_develop?useSSL=false&serverTimezone
 export DB_USERNAME=root
 export DB_PASSWORD=your-password
 
-# AI 模型（至少配一个）
-export ZHIPUAI_API_KEY=your-zhipuai-key
-# 或
+# AI 模型（对话）
 export OPENAI_API_KEY=your-deepseek-key
 export OPENAI_BASE_URL=https://api.deepseek.com
-# 或
-export OPENAI_API_KEY=your-openai-compatible-key
+export OPENAI_CHAT_MODEL=deepseek-chat
+
+# Ollama（embedding，RAG 必需）
+export OLLAMA_BASE_URL=http://localhost:11434
+export EMBEDDING_MODEL=nomic-embed-text
+
+# 向量库持久化路径
+export VECTOR_STORE_PATH=./data/vector-store-ollama.json
 ```
 
 ### 创建数据库
@@ -66,18 +69,12 @@ export OPENAI_API_KEY=your-openai-compatible-key
 CREATE DATABASE ai_develop DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-JPA 会自动创建表（`spring.jpa.hibernate.ddl-auto=update`）。
+请先执行 `sql/demo_tables.sql`、`sql/ai_cost_tracking.sql`、`sql/chat_memory.sql` 和 `sql/prompt_registry.sql` 初始化业务表、成本日志表、会话消息表与 Prompt 注册表。
 
 ## 4. 启动项目
 
 ```bash
-# 使用智谱AI（默认）
-mvn spring-boot:run
-
-# 使用 DeepSeek
-mvn spring-boot:run -Dspring-boot.run.profiles=openai
-
-# 使用 OpenAI Compatible（GLM）
+# 使用默认配置（application.yml: openai profile）
 mvn spring-boot:run -Dspring-boot.run.profiles=openai
 ```
 
@@ -126,9 +123,10 @@ src/main/java/com/example/aidevelop/
 │   └── SwaggerConfig.java      #   Swagger 配置
 ├── controller/                 # REST 控制器
 │   ├── ChatController.java     #   聊天 + RAG 检索 API
+│   ├── RagController.java      #   RAG 检索 API
 │   ├── AiCostController.java   #   成本统计 API
 │   ├── PromptController.java   #   Prompt 管理 API
-│   ├── ModelController.java    #   模型信息 API
+│   ├── ChatDebugController.java #  聊天调试 API
 │   └── HealthController.java   #   健康检查
 ├── model/
 │   ├── dto/chat/               #   聊天请求/响应 DTO
@@ -174,7 +172,7 @@ Communications link failure
 API key is required
 ```
 
-检查：环境变量是否正确设置。智谱AI 需要 `ZHIPUAI_API_KEY`。
+检查：环境变量是否正确设置。对话模型需要 `OPENAI_API_KEY`，RAG 需要 `OLLAMA_BASE_URL` 和 `EMBEDDING_MODEL`。
 
 ### 端口被占用
 

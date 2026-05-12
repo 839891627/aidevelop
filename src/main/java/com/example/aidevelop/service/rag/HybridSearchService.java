@@ -79,7 +79,7 @@ public class HybridSearchService {
                     result.getFinalScore(),
                     result.getVectorRank(),
                     result.getBm25Rank(),
-                    result.getDocument().getContent().substring(0, Math.min(50, result.getDocument().getContent().length()))
+                    result.getDocument().getText().substring(0, Math.min(50, result.getDocument().getText().length()))
                 )
             );
         }
@@ -92,9 +92,11 @@ public class HybridSearchService {
      */
     private List<Document> vectorSearch(String query, int topK) {
         try {
-            SearchRequest searchRequest = SearchRequest.query(query)
-                .withTopK(topK)
-                .withSimilarityThreshold(ragProperties.getSimilarityThreshold());
+            SearchRequest searchRequest = SearchRequest.builder()
+                .query(query)
+                .topK(topK)
+                .similarityThreshold(ragProperties.getSimilarityThreshold())
+                .build();
 
             List<Document> results = vectorStore.similaritySearch(searchRequest);
 
@@ -236,7 +238,7 @@ public class HybridSearchService {
         }
 
         // 使用内容哈希作为ID
-        return String.valueOf(doc.getContent().hashCode());
+        return String.valueOf(doc.getText().hashCode());
     }
 
     /**

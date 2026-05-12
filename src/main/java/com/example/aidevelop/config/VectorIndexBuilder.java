@@ -39,7 +39,7 @@ public class VectorIndexBuilder {
             loadTextDocuments(allDocuments);
             loadPdfDocuments(allDocuments);
 
-            // 切分策略说明见 docs/11-embedding-and-chunking.md
+            // 切分策略说明见 docs/09-embedding-and-chunking.md
             RagProperties.Chunking chunking = ragProperties.getChunking();
             TokenTextSplitter textSplitter = TokenTextSplitter.builder()
                 .withChunkSize(chunking.getChunkSize())

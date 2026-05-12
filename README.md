@@ -52,7 +52,8 @@ Java 开发者学习 AI Agent 开发的实战项目 | 基于 Spring Boot 3.3 + S
 - Java 17+
 - Maven 3.6+
 - MySQL 数据库
-- AI 模型 API Key（智谱 AI / OpenAI 兼容）
+- OpenAI 兼容模型 API Key（如 DeepSeek）
+- 本地 Ollama（用于 embedding）
 
 ### 启动步骤
 
@@ -68,21 +69,38 @@ export DB_PASSWORD=your-password
 export OPENAI_API_KEY=your-openai-compatible-key
 export OPENAI_BASE_URL=https://api.deepseek.com
 export OPENAI_CHAT_MODEL=deepseek-chat
+
+# AI 模型（embedding，RAG 必需）
+export OLLAMA_BASE_URL=http://localhost:11434
+export EMBEDDING_MODEL=nomic-embed-text
+
+# 向量库持久化文件
+export VECTOR_STORE_PATH=./data/vector-store-ollama.json
 ```
 
-2. **启动应用**
+2. **初始化数据库**
+
+```bash
+mysql -u root -p < sql/demo_tables.sql
+mysql -u root -p < sql/ai_cost_tracking.sql
+mysql -u root -p < sql/chat_memory.sql
+mysql -u root -p < sql/prompt_registry.sql
+```
+
+3. **启动应用**
 
 ```bash
 mvn spring-boot:run
 ```
 
-3. **访问页面**
+4. **访问页面**
 
 | 页面 | 地址 |
 |------|------|
 | 聊天界面 | http://localhost:8080/index.html |
-| 成本管理 | http://localhost:8080/index.html |
+| 成本管理 | http://localhost:8080/cost.html |
 | Swagger 文档 | http://localhost:8080/swagger-ui.html |
+| Knife4j 文档 | http://localhost:8080/doc.html |
 | 健康检查 | http://localhost:8080/health |
 
 ---
@@ -99,9 +117,10 @@ src/main/java/com/example/aidevelop/
 │   ├── VectorStoreConfig.java  # 向量库配置
 │   └── SwaggerConfig.java      # Swagger 配置
 ├── controller/                 # REST 控制器
-│   ├── ChatController.java     # 聊天 + RAG 检索 API
+│   ├── ChatController.java     # 聊天 API
+│   ├── RagController.java      # RAG 检索 API
 │   ├── AiCostController.java   # 成本统计 API
-│   ├── ModelController.java    # 模型信息 API
+│   ├── ChatDebugController.java # 聊天调试 API
 │   ├── PromptController.java   # Prompt 管理 API
 │   └── HealthController.java   # 健康检查
 ├── model/
@@ -160,9 +179,9 @@ src/main/java/com/example/aidevelop/
 
 ### 对话历史持久化边界
 
-- 当前 `ConversationRepository` 为内存实现（`ConcurrentHashMap`），适合教学和本地开发。
-- 应用重启后会话历史会丢失，不属于生产持久化方案。
-- 若要用于生产，建议替换为 Redis / MySQL 等持久化存储。
+- 当前 `ConversationRepository` 已基于 MySQL `chat_message` 表做消息级持久化。
+- 应用重启后会话历史可保留；删除会话会清理该 `conversationId` 下全部消息。
+- 仍建议结合业务量增加 TTL/归档策略，避免长期无限增长。
 
 ### 调试接口（仅 `dev` Profile）
 
@@ -198,8 +217,10 @@ src/main/java/com/example/aidevelop/
 | [06-rag-basics](docs/06-rag-basics.md) | RAG 基础、向量检索、知识库 | ★★★ |
 | [07-rag-advanced](docs/07-rag-advanced.md) | 查询重写、混合检索、重排序、管道 | ★★★ |
 | [08-cost-and-observability](docs/08-cost-and-observability.md) | 成本管理、AOP 日志、缓存 | ★★ |
-| [10-agent-loop-design](docs/10-agent-loop-design.md) | 从 Chat+RAG 升级到 Agent Loop 的实施设计 | ★★★★ |
-| [AI_LEARNING_PATH](docs/AI_LEARNING_PATH.md) | 4 周学习路线图 | - |
+| [09-embedding-and-chunking](docs/09-embedding-and-chunking.md) | Embedding 与分块策略 | ★★★ |
+| [10-chat-memory](docs/10-chat-memory.md) | Chat Memory 持久化与流式会话续聊 | ★★★ |
+| [design/agent-loop](docs/design/agent-loop.md) | Agent Loop 设计草案（未实现） | 设计稿 |
+| [design/enterprise-ai-evolution-todo](docs/design/enterprise-ai-evolution-todo.md) | 企业级 AI 系统演进 TODO（Embedding 暂缓升级） | 设计稿 |
 
 详见 [docs/README.md](docs/README.md)。
 
