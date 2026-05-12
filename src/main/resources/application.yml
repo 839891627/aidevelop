@@ -14,7 +14,7 @@ spring:
       connection-timeout: 30000
   jpa:
     database-platform: org.hibernate.dialect.MySQLDialect
-    show-sql: true
+    show-sql: false
     hibernate:
       ddl-auto: none
     properties:
@@ -80,6 +80,12 @@ logging:
     root: INFO
     com.example.aidevelop: DEBUG
     org.springframework.ai: DEBUG
+    # LLM 交互链路日志（Spring AI -> OpenAI API -> HTTP Client）
+    org.springframework.ai.chat.client: DEBUG
+    org.springframework.ai.openai: DEBUG
+    org.springframework.web.reactive.function.client.ExchangeFunctions: TRACE
+    reactor.netty.http.client: DEBUG
+    org.hibernate: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   file:
@@ -120,6 +126,38 @@ app:
           - 是什么
           - 哪些
           - 如何处理
+    routing:
+      business-id-pattern: "(LOAN\\d+|REPAY\\d+|CUST\\d+|ORDER\\d+)"
+      tool-intent-keywords:
+        - 查询订单
+        - 订单
+        - 借款记录
+        - 还款记录
+        - 风险评估
+        - 用户编号
+      rag-intent-keywords:
+        - 规则
+        - 政策
+        - 产品手册
+        - 利率
+        - 额度
+        - 期限
+        - 申请条件
+        - 流程
+      tool-only-tool-names:
+        - loanQueryFunction
+        - repaymentQueryFunction
+        - riskAssessmentFunction
+      hybrid-tool-names:
+        - loanQueryFunction
+        - repaymentQueryFunction
+        - riskAssessmentFunction
+      rag-only-top-k: 5
+      rag-only-similarity-threshold: 0.2
+      hybrid-top-k: 3
+      hybrid-similarity-threshold: 0.25
+      max-tool-calls: 3
+      timeout-ms: 30000
   prompts:
     enabled: true
     registry-enabled: true

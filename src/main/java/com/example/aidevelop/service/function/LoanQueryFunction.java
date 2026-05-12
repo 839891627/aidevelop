@@ -9,6 +9,7 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -21,8 +22,35 @@ public class LoanQueryFunction implements AiToolProvider {
         this.loanRepository = loanRepository;
     }
 
+    @Tool(name = "queryLoanByBizSerial", description = "通过订单编号查询记录")
+    public Response queryLoanByBizSerial(BizSerialRequest request) {
+        log.info("通过订单编号查询记录: bizSerial={}", request.bizSerial());
+
+        Optional<Loan> loan = loanRepository.findByBizSerial(request.bizSerial());
+
+        // 1. 查询单条记录
+        List<Loan> loans = loan.isPresent() 
+            ? List.of(loan.get()) 
+            : List.of();
+
+        log.info("查询到 {} 条借款记录", loans.size());
+
+        return new Response(
+                loan.map(Loan::getUserNo).orElse(null),
+                loans.size(),
+                loans.stream().map(item -> new LoanInfo(
+                        item.getBizSerial(),
+                        item.getUserNo(),
+                        item.getProductCode(),
+                        item.getLoanAmt(),
+                        item.getFeeRate(),
+                        item.getStatus(),
+                        item.getLoanSuccessTime()
+                )).toList()
+        );
+    }
     @Tool(name = "loanQueryFunction", description = "查询用户借款记录，支持按 userNo 和 status 过滤")
-    public Response queryLoanRecords(Request request) {
+    public Response queryLoanRecords(UserStatusRequest request) {
         log.info("执行借款查询: userNo={}, status={}", request.userNo(), request.status());
 
         List<Loan> loans;
@@ -56,9 +84,16 @@ public class LoanQueryFunction implements AiToolProvider {
      * 请求参数
      */
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record Request(
-        String userNo,
+    public record BizSerialRequest(
+        String bizSerial
+    ) {}
 
+    /**
+     * 请求参数
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record UserStatusRequest(
+        String userNo,
         String status
     ) {}
 

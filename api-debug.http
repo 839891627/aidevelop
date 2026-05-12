@@ -1,0 +1,180 @@
+### ===========================
+### 聊天接口 ChatController
+### ===========================
+
+### 普通聊天（阻塞式）
+POST http://localhost:8080/api/chat
+Content-Type: application/json
+
+{
+  "message": "你好，介绍一下 Spring AI 的核心功能",
+  "conversationId": null,
+  "model": null,
+  "temperature": 0.7,
+  "maxTokens": 1000
+}
+
+### 普通聊天 - 带指定模型
+POST http://localhost:8080/api/chat
+Content-Type: application/json
+
+{
+  "message": "帮我解释一下什么是 RAG",
+  "conversationId": "test-conv-001",
+  "model": "deepseek-chat",
+  "temperature": 0.5,
+  "maxTokens": 2000
+}
+
+### 流式聊天（SSE）
+POST http://localhost:8080/api/chat/stream
+Content-Type: application/json
+Accept: text/event-stream
+
+{
+  "message": "用 Java 写一个快速排序算法",
+  "conversationId": null,
+  "temperature": 0.3,
+  "maxTokens": 2000
+}
+
+### 清空对话历史
+DELETE http://localhost:8080/api/chat/test-conv-001
+
+### ===========================
+### RAG 检索接口 RagController
+### ===========================
+
+### 知识库检索
+GET http://localhost:8080/api/rag/search?query=逾期处理&type=规则&topK=5
+
+### 知识库检索 - 不指定类型
+GET http://localhost:8080/api/rag/search?query=贷款利率计算&topK=3
+
+### 混合检索
+GET http://localhost:8080/api/rag/hybrid-search?query=M1阶段的征信上报&topK=5
+
+### 重排序检索
+GET http://localhost:8080/api/rag/rerank-search?query=客户逾期了怎么办&topK=5
+
+### 智能 RAG 管道检索
+GET http://localhost:8080/api/rag/pipeline?query=客户逾期了怎么办&topK=5
+
+### 智能 RAG 管道检索 - 带对话ID
+GET http://localhost:8080/api/rag/pipeline?query=还款方式有哪些&conversationId=test-conv-001&topK=3
+
+### RAG 系统评估
+POST http://localhost:8080/api/rag/evaluate
+Content-Type: application/json
+
+{
+  "query": "逾期处理流程",
+  "relevantDocIds": ["doc-001", "doc-002", "doc-003"],
+  "topK": 5,
+  "minTargetRecall": 0.8,
+  "minTargetPrecision": 0.75
+}
+
+### ===========================
+### 聊天调试接口 ChatDebugController
+### ===========================
+
+### 测试检索相似度
+GET http://localhost:8080/api/chat/debug/test-search?query=逾期催收&includeContent=true
+
+### 测试检索相似度 - 不含内容
+GET http://localhost:8080/api/chat/debug/test-search?query=贷款审批流程&includeContent=false
+
+### 向量库状态
+GET http://localhost:8080/api/chat/debug/vector-store
+
+### 查询扩展调试
+GET http://localhost:8080/api/chat/debug/query-expansion?query=逾期了怎么办
+
+### 查询重写调试
+GET http://localhost:8080/api/chat/debug/query-rewrite?query=怎么还款&conversationId=test-conv-001
+
+### 查询重写调试 - 无对话上下文
+GET http://localhost:8080/api/chat/debug/query-rewrite?query=利率是多少
+
+### ===========================
+### 提示词管理 PromptController
+### ===========================
+
+### 获取 System 提示词
+GET http://localhost:8080/api/prompts/system
+
+### 获取 RAG QA 提示词
+GET http://localhost:8080/api/prompts/rag/qa
+
+### 获取 Function Calling 提示词
+GET http://localhost:8080/api/prompts/function/calling
+
+### 获取提示词状态
+GET http://localhost:8080/api/prompts/status
+
+### 创建 Prompt 草稿版本
+POST http://localhost:8080/api/prompts/registry/drafts
+Content-Type: application/json
+
+{
+  "promptKey": "system-prompt",
+  "env": "dev",
+  "content": "你是一个专业的贷款助手，帮助用户解答贷款相关问题。请用简洁专业的语言回答。",
+  "variablesJson": "{\"maxTokens\": 2000}",
+  "modelScope": "deepseek-chat",
+  "operator": "debug-user"
+}
+
+### 发布 Prompt 版本
+POST http://localhost:8080/api/prompts/registry/publish
+Content-Type: application/json
+
+{
+  "promptKey": "system-prompt",
+  "env": "dev",
+  "version": 1,
+  "operator": "debug-user",
+  "remark": "首次发布系统提示词"
+}
+
+### 回滚 Prompt 版本
+POST http://localhost:8080/api/prompts/registry/rollback
+Content-Type: application/json
+
+{
+  "promptKey": "system-prompt",
+  "env": "dev",
+  "version": 1,
+  "operator": "debug-user",
+  "remark": "回滚到v1版本"
+}
+
+### 查询当前生效 Prompt
+GET http://localhost:8080/api/prompts/registry/active?promptKey=system-prompt&env=dev
+
+### 查询 Prompt 历史版本
+GET http://localhost:8080/api/prompts/registry/versions?promptKey=system-prompt&env=dev
+
+### ===========================
+### 成本统计 AiCostController
+### ===========================
+
+### 今日成本统计
+GET http://localhost:8080/api/cost/today
+
+### 本周成本统计
+GET http://localhost:8080/api/cost/week
+
+### 本月成本统计
+GET http://localhost:8080/api/cost/month
+
+### 指定时间范围成本统计
+GET http://localhost:8080/api/cost/range?start=2026-05-01T00:00:00&end=2026-05-12T23:59:59
+
+### ===========================
+### 健康检查 HealthController
+### ===========================
+
+### 健康检查
+GET http://localhost:8080/health

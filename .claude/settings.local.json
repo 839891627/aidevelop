@@ -35,7 +35,9 @@
       "Bash(./mvnw compile *)",
       "Bash(rm /Users/arvin/java/aidevelop/docs/AI_AGENT_COMPLETE_GUIDE.md)",
       "Bash(rm /Users/arvin/java/aidevelop/docs/AI_LEARNING_PATH.md)",
-      "Bash(rm /Users/arvin/java/aidevelop/docs/00-ai-agent-system-blueprint.md)"
+      "Bash(rm /Users/arvin/java/aidevelop/docs/00-ai-agent-system-blueprint.md)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 *)"
     ]
   }
 }

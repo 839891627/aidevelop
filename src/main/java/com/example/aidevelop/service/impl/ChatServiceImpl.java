@@ -8,10 +8,15 @@ import com.example.aidevelop.model.entity.Message;
 import com.example.aidevelop.model.entity.MessageRole;
 import com.example.aidevelop.repository.ConversationRepository;
 import com.example.aidevelop.service.ChatService;
+import com.example.aidevelop.service.IntentRoutingService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.vectorstore.SearchRequest;
+import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -25,10 +30,14 @@ import java.util.stream.Collectors;
 @Service
 public class ChatServiceImpl implements ChatService {
 
-    @Resource
+    @Resource(name = "chatClientForOpenAI")
     private ChatClient chatClient;
     @Resource
     private ConversationRepository conversationRepository;
+    @Resource
+    private IntentRoutingService intentRoutingService;
+    @Resource
+    private ObjectProvider<VectorStore> vectorStoreProvider;
 
     @Override
     public ChatResponse chat(ChatRequest request) {
@@ -55,7 +64,8 @@ public class ChatServiceImpl implements ChatService {
 
             // 4. 调用 AI 模型
             log.debug("发送请求到 AI 模型: {}", request.getMessage());
-            var promptSpec = chatClient.prompt();
+            IntentRoutingService.RoutePlan routePlan = intentRoutingService.plan(request.getMessage());
+            var promptSpec = preparePromptSpec(routePlan);
             if (runtimeOptions != null) {
                 promptSpec = promptSpec.options(runtimeOptions);
             }
@@ -123,7 +133,8 @@ public class ChatServiceImpl implements ChatService {
 
             StringBuilder fullResponse = new StringBuilder();
 
-            var promptSpec = chatClient.prompt();
+            IntentRoutingService.RoutePlan routePlan = intentRoutingService.plan(request.getMessage());
+            var promptSpec = preparePromptSpec(routePlan);
             if (runtimeOptions != null) {
                 promptSpec = promptSpec.options(runtimeOptions);
             }
@@ -249,5 +260,33 @@ public class ChatServiceImpl implements ChatService {
             builder.maxTokens(request.getMaxTokens());
         }
         return builder.build();
+    }
+
+    private ChatClient.ChatClientRequestSpec preparePromptSpec(IntentRoutingService.RoutePlan routePlan) {
+        log.debug("意图路由结果: type={}, rag={}, tools={}, reason={}",
+            routePlan.routeType(), routePlan.ragEnabled(), routePlan.allowedToolNames(), routePlan.reason());
+
+        ChatClient.ChatClientRequestSpec promptSpec = chatClient.prompt();
+
+        if (!routePlan.allowedToolNames().isEmpty()) {
+            promptSpec = promptSpec.toolNames(routePlan.allowedToolNames().toArray(new String[0]));
+        }
+
+        if (routePlan.ragEnabled()) {
+            VectorStore vectorStore = vectorStoreProvider.getIfAvailable();
+            if (vectorStore != null) {
+                SearchRequest searchRequest = SearchRequest.builder()
+                    .topK(routePlan.ragTopK())
+                    .similarityThreshold(routePlan.ragSimilarityThreshold())
+                    .build();
+                promptSpec = promptSpec.advisors(QuestionAnswerAdvisor.builder(vectorStore)
+                    .searchRequest(searchRequest)
+                    .build());
+            } else {
+                log.warn("路由要求启用 RAG，但未找到 VectorStore，自动降级为非 RAG");
+            }
+        }
+
+        return promptSpec;
     }
 }
