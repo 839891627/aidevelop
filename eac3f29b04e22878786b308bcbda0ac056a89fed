@@ -1,0 +1,146 @@
+src/main/java/com/example/aidevelop/service/function/LoanQueryFunction.java
+  989bdd93591120dd 8,16,24-25
+README.md
+  989bdd93591120dd 55-56,72-87,90,96,101,103,120-121,123,182-184,220-223
+src/main/java/com/example/aidevelop/controller/PromptController.java
+  989bdd93591120dd 3-7,11,14,16,18,29,38-41,43-47,57-60,62-66,76-79,81-85,130-262
+  32a92e126a6951b9 37,42,56,61,75,80,97,106,118
+src/main/java/com/example/aidevelop/model/entity/PromptTemplateEntity.java
+  989bdd93591120dd 1,3-13,16,18-24,26-28,30-31,33-34,36-52,54-55,57-58,60-64,67-69
+src/main/java/com/example/aidevelop/interceptor/AiCallLoggerAspect.java
+  989bdd93591120dd 199
+src/main/java/com/example/aidevelop/config/PromptProperties.java
+  989bdd93591120dd 21,23,26,28
+src/main/java/com/example/aidevelop/config/VectorIndexBuilder.java
+  989bdd93591120dd 42
+src/main/java/com/example/aidevelop/service/rag/HybridSearchService.java
+  989bdd93591120dd 82,95-99,241
+src/main/java/com/example/aidevelop/service/function/RepaymentQueryFunction.java
+  989bdd93591120dd 7,16,24-25
+sql/chat_memory.sql
+  989bdd93591120dd 1-17
+docs/04-prompt-engineering.md
+  989bdd93591120dd 12,16,30,36-41,49,53-56,62-76,78-81,117,119,125-135,139,141,151,179-180,183-184,186-187
+docs/01-quick-start.md
+  989bdd93591120dd 32-34,53,56-63,72,77,126,129,175
+src/main/java/com/example/aidevelop/config/AiModelConfig.java
+  989bdd93591120dd 3,7,17-19,31-32,36-37,40-41,46,53,55-61,71-73,85-108
+  32a92e126a6951b9 4,30,35,39
+src/main/java/com/example/aidevelop/model/entity/ChatMessageEntity.java
+  989bdd93591120dd 1-45
+src/main/java/com/example/aidevelop/config/VectorStoreConfig.java
+  989bdd93591120dd 40
+docs/README.md
+  e022bc4467c3e16c 3-15,17-18,20-21,45-54,65-69,71-75,77-84,86-90
+  989bdd93591120dd 16,19,55-60,70,76,85,91
+src/main/java/com/example/aidevelop/controller/ChatDebugController.java
+  989bdd93591120dd 50-54,64-66,75-79,94
+src/main/java/com/example/aidevelop/service/rag/RerankService.java
+  989bdd93591120dd 93-97,154-155,258,268
+src/main/java/com/example/aidevelop/repository/PromptPublishLogRepository.java
+  989bdd93591120dd 1-9
+src/main/java/com/example/aidevelop/service/function/RiskAssessmentFunction.java
+  989bdd93591120dd 8,20,30-31
+src/main/java/com/example/aidevelop/repository/ChatMessageRepository.java
+  989bdd93591120dd 1-20
+src/main/java/com/example/aidevelop/service/function/AiToolProvider.java
+  989bdd93591120dd 1-8
+src/main/java/com/example/aidevelop/service/rag/RagEvaluationService.java
+  989bdd93591120dd 92-96,213,235
+src/main/resources/static/js/chat.js
+  989bdd93591120dd 128-152,171-174,180,343-371
+src/main/java/com/example/aidevelop/repository/ConversationRepository.java
+  989bdd93591120dd 3,5-10,12,14-15,18,23,25-29,31-38,43-48,52-58,61,63,66,68-105
+src/main/java/com/example/aidevelop/repository/PromptTemplateRepository.java
+  989bdd93591120dd 1-22
+docs/03-multi-llm.md
+  989bdd93591120dd 47,62-63,66,71-73,106,114-115,117,124-125,127,129-134,136,140-142,189,203-204,248,250,252,311-312
+docs/07-rag-advanced.md
+  989bdd93591120dd 72
+src/main/resources/application.yml
+  989bdd93591120dd 125-131
+docs/06-rag-basics.md
+  989bdd93591120dd 38,40-42,44,86,89,130
+docs/10-chat-memory.md
+  989bdd93591120dd 1-127
+sql/prompt_registry.sql
+  989bdd93591120dd 1-104
+docs/02-chat-basics.md
+  989bdd93591120dd 60,88,179,196,242,244,246,307,309,357
+src/main/java/com/example/aidevelop/service/impl/ChatServiceImpl.java
+  989bdd93591120dd 50,66,104,115,222-229
+src/main/java/com/example/aidevelop/service/rag/RagOrchestrationService.java
+  989bdd93591120dd 39-43,62,74,92,107
+src/main/java/com/example/aidevelop/model/dto/chat/ChatResponse.java
+  h_0e7e73f3ca1668 22
+src/main/java/com/example/aidevelop/service/prompt/PromptRegistryService.java
+  32a92e126a6951b9 17,24-27,120-121,125,129,132-134,136,139-155
+  989bdd93591120dd 4-10,14,22-23,28-30,33-34,36-76,79-119,158-159
+docs/design/enterprise-ai-evolution-todo.md
+  989bdd93591120dd 1-156
+src/main/java/com/example/aidevelop/model/entity/PromptPublishLogEntity.java
+  989bdd93591120dd 1-11,14,16-19,21-23,25-26,28-29,31-32,34-35,37-38,40-41,43-47,49-51
+src/main/java/com/example/aidevelop/service/rag/RagPipelineService.java
+  989bdd93591120dd 209-213
+src/main/java/com/example/aidevelop/config/ToolsProperties.java
+  989bdd93591120dd 3-5,7-8,11,13-23
+pom.xml
+  h_0e7e73f3ca1668 23
+  989bdd93591120dd 56,62,71-82
+src/main/java/com/example/aidevelop/service/rag/BM25Service.java
+  989bdd93591120dd 68-72,285
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0-codex",
+  "base_commit_sha": "eac3f29b04e22878786b308bcbda0ac056a89fed",
+  "prompts": {
+    "32a92e126a6951b9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "804793c2-cf7c-4024-89a8-d6d1ce208f1a",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "jinliang.cao",
+      "messages": [],
+      "total_additions": 67,
+      "total_deletions": 95,
+      "accepted_lines": 60,
+      "overriden_lines": 0,
+      "messages_url": "https://codeaiapi.xinfei-inc.cn/cas/ee28b545344efd44e6b957c24c0ba4fb729d7185f1876e9fa5c36726c6aeea00"
+    },
+    "989bdd93591120dd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3a337e3d-ecb7-4e95-b441-8403f8f45a24",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "jinliang.cao",
+      "messages": [],
+      "total_additions": 1546,
+      "total_deletions": 719,
+      "accepted_lines": 1410,
+      "overriden_lines": 0,
+      "messages_url": "https://codeaiapi.xinfei-inc.cn/cas/e3bcffb8c642dc2b5a76ea3a2facb026f195e98ea5ce171813f53b5ebb08b39d"
+    },
+    "e022bc4467c3e16c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6902ec2e-8ae7-4f3d-9025-8d935f0b0a5a",
+        "model": "claude-opus-4-6"
+      },
+      "human_author": "jinliang.cao",
+      "messages": [],
+      "total_additions": 55,
+      "total_deletions": 26,
+      "accepted_lines": 50,
+      "overriden_lines": 0,
+      "messages_url": "https://codeaiapi.xinfei-inc.cn/cas/6ffebd472408082d7a0caa0d7fdcadc4ef71c56993ba393aa3c48209f29f7d8a"
+    }
+  },
+  "humans": {
+    "h_0e7e73f3ca1668": {
+      "author": "jinliang.cao"
+    }
+  }
+}
