@@ -1,0 +1,83 @@
+src/test/java/com/example/aidevelop/agent/tool/ToolRouterTest.java
+  3edd2501ee2b9a75 1-71
+docs/README.md
+  3edd2501ee2b9a75 78,82,89
+src/main/java/com/example/aidevelop/agent/controller/AgentController.java
+  3edd2501ee2b9a75 1-31
+src/main/java/com/example/aidevelop/agent/tool/AgentTool.java
+  3edd2501ee2b9a75 1-13
+src/main/java/com/example/aidevelop/agent/model/ToolCall.java
+  3edd2501ee2b9a75 1-14
+README.md
+  3edd2501ee2b9a75 32,165-170,229
+src/main/java/com/example/aidevelop/agent/tool/ToolRouter.java
+  3edd2501ee2b9a75 1-48
+src/main/resources/application.yml
+  3edd2501ee2b9a75 161-193
+src/main/java/com/example/aidevelop/agent/model/AgentStep.java
+  3edd2501ee2b9a75 1-41
+src/main/java/com/example/aidevelop/agent/tool/RiskAssessmentAgentTool.java
+  3edd2501ee2b9a75 1-37
+src/main/java/com/example/aidevelop/config/AgentProperties.java
+  3edd2501ee2b9a75 1-122
+src/main/java/com/example/aidevelop/agent/service/AgentService.java
+  3edd2501ee2b9a75 1-9
+src/main/java/com/example/aidevelop/agent/tool/RagSearchAgentTool.java
+  3edd2501ee2b9a75 1-55
+src/main/java/com/example/aidevelop/agent/tool/RepaymentQueryAgentTool.java
+  3edd2501ee2b9a75 1-38
+src/main/java/com/example/aidevelop/agent/model/AgentResponse.java
+  3edd2501ee2b9a75 1-38
+src/main/java/com/example/aidevelop/agent/tool/LoanQueryAgentTool.java
+  3edd2501ee2b9a75 1-38
+src/main/java/com/example/aidevelop/agent/service/AgentLoopService.java
+  3edd2501ee2b9a75 1-675
+src/test/java/com/example/aidevelop/agent/service/AgentLoopServiceTest.java
+  3edd2501ee2b9a75 1-250
+src/main/java/com/example/aidevelop/agent/model/AgentRequest.java
+  3edd2501ee2b9a75 1-26
+src/test/java/com/example/aidevelop/agent/controller/AgentControllerIntegrationTest.java
+  3edd2501ee2b9a75 1-66
+src/main/java/com/example/aidevelop/agent/model/AgentActionType.java
+  3edd2501ee2b9a75 1-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0-codex",
+  "base_commit_sha": "1b698af7fc289f68b0c71cba52cb9cbbb055f326",
+  "prompts": {
+    "3edd2501ee2b9a75": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "d8ca50ca-9000-45ad-b7fa-4d823728d67d",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "jinliang.cao",
+      "messages": [],
+      "total_additions": 1712,
+      "total_deletions": 89,
+      "accepted_lines": 1628,
+      "overriden_lines": 0,
+      "messages_url": "https://codeaiapi.xinfei-inc.cn/cas/4dfbd5b3985210203858a404f9b7993acb2b48f9c42526936ebf97670696733b"
+    },
+    "429f2211f5833fd2": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "f1606041-4eb0-4167-b84e-c4fa2c53c3d6",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "jinliang.cao",
+      "messages": [],
+      "total_additions": 933,
+      "total_deletions": 38,
+      "accepted_lines": 0,
+      "overriden_lines": 0,
+      "messages_url": "https://codeaiapi.xinfei-inc.cn/cas/5a0c7e3df81df677fde5b6c2d24568a5b819d89fac96941a3e10461290009e43"
+    }
+  },
+  "humans": {
+    "h_0e7e73f3ca1668": {
+      "author": "jinliang.cao"
+    }
+  }
+}
