@@ -158,6 +158,39 @@ app:
       hybrid-similarity-threshold: 0.25
       max-tool-calls: 3
       timeout-ms: 30000
+    agent:
+      enabled: true
+      max-steps: 3
+      timeout-ms: 15000
+      tool-max-retries: 1
+      retry-backoff-ms: 200
+      reflect-enabled: true
+      replan-enabled: true
+      max-replan-rounds: 1
+      force-rag-for-risk-evaluation: true
+      risk-intent-keywords:
+        - 风险
+        - 风控
+        - 评估
+        - 判断
+      require-rag-evidence-for-risk: true
+      self-check-enabled: true
+      self-check-min-score: 70
+      min-observation-count: 1
+      fallback-on-replan-failure: true
+      fallback-when-self-check-failed: true
+      fallback-answer-template: |
+        基于当前可验证信息，我先给出稳健结论：
+        - 问题：{question}
+        - 路由：{routeType}
+        - 证据：{observations}
+        - 说明：{reason}
+        如需更精确结果，请补充更多上下文或稍后重试。
+      allowed-tools:
+        - rag.search
+        - loan.query
+        - repayment.query
+        - risk.assess
   prompts:
     enabled: true
     registry-enabled: true

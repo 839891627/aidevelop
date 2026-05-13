@@ -75,17 +75,16 @@
 | 09 | [embedding-and-chunking](09-embedding-and-chunking.md) | 文本分块策略、Ollama 本地嵌入 | ★★★ |
 | 10 | [chat-memory](10-chat-memory.md) | 会话持久化、SSE meta 事件、流式续聊 | ★★★ |
 
-## 设计文档（未实现）
-
-功能实现后会合并到对应教程中。
+## 设计文档（持续落地）
 
 | 文档 | 内容 |
 |------|------|
-| [agent-loop](design/agent-loop.md) | Agent Loop 架构（Plan/Act/Observe/Reflect） |
+| [agent-loop](design/agent-loop.md) | Agent Loop 架构（L3 已落地：Plan/Tool/Reflect/Replan/SelfCheck/Respond，风险问题要求 RAG 证据） |
 | [enterprise-ai-evolution-todo](design/enterprise-ai-evolution-todo.md) | 企业级 AI 系统演进 TODO（Embedding 升级暂缓） |
 
 ## 当前实现边界
 
 - `/api/chat` — 主对话接口，可启用内置 Advisor（基础 RAG）
 - `/api/rag` — 高级 RAG 实验（混合检索、重排、评估）
+- `/api/agent/chat` — Agent Loop MVP（Plan -> Tool -> Respond，含 traceId 与步骤追踪）
 - 对话历史 — 基于 MySQL `chat_message` 表持久化，重启后可恢复

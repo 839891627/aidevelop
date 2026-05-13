@@ -29,6 +29,7 @@ Java 开发者学习 AI Agent 开发的实战项目 | 基于 Spring Boot 3.3 + S
 | | 成本统计 | 按日/周/月统计 Token 和费用 |
 | | 前端看板 | 可视化成本管理界面 |
 | **Prompt 管理** | 模板管理 | 外部化 Prompt 配置和版本管理 |
+| **Agent Loop（L3）** | Plan-Tool-Reflect-Replan-SelfCheck-Respond | 支持步骤追踪、重试、二次改计划、结果自检与策略回退（风险问题强制 RAG 证据） |
 
 ## 技术栈
 
@@ -161,6 +162,12 @@ src/main/java/com/example/aidevelop/
 | POST | `/api/chat/stream` | 流式聊天（SSE） |
 | DELETE | `/api/chat/{conversationId}` | 清空对话历史 |
 
+### Agent Loop（MVP）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/agent/chat` | Agent 闭环（Plan -> Tool -> Respond），返回 `traceId` 与执行步骤 |
+
 ### RAG 检索（高级管线）
 
 | 方法 | 路径 | 说明 |
@@ -219,7 +226,7 @@ src/main/java/com/example/aidevelop/
 | [08-cost-and-observability](docs/08-cost-and-observability.md) | 成本管理、AOP 日志、缓存 | ★★ |
 | [09-embedding-and-chunking](docs/09-embedding-and-chunking.md) | Embedding 与分块策略 | ★★★ |
 | [10-chat-memory](docs/10-chat-memory.md) | Chat Memory 持久化与流式会话续聊 | ★★★ |
-| [design/agent-loop](docs/design/agent-loop.md) | Agent Loop 设计草案（未实现） | 设计稿 |
+| [design/agent-loop](docs/design/agent-loop.md) | Agent Loop 设计文档（MVP 已实现） | 设计稿 |
 | [design/enterprise-ai-evolution-todo](docs/design/enterprise-ai-evolution-todo.md) | 企业级 AI 系统演进 TODO（Embedding 暂缓升级） | 设计稿 |
 
 详见 [docs/README.md](docs/README.md)。
