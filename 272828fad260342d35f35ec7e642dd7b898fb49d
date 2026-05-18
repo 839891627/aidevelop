@@ -1,0 +1,14 @@
+.gitignore
+  h_0e7e73f3ca1668 65-67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0-codex",
+  "base_commit_sha": "272828fad260342d35f35ec7e642dd7b898fb49d",
+  "prompts": {},
+  "humans": {
+    "h_0e7e73f3ca1668": {
+      "author": "jinliang.cao"
+    }
+  }
+}
