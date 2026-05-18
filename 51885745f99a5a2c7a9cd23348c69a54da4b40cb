@@ -1,0 +1,27 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0-codex",
+  "base_commit_sha": "51885745f99a5a2c7a9cd23348c69a54da4b40cb",
+  "prompts": {
+    "3edd2501ee2b9a75": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "d8ca50ca-9000-45ad-b7fa-4d823728d67d",
+        "model": "gpt-5.3-codex"
+      },
+      "human_author": "jinliang.cao",
+      "messages": [],
+      "total_additions": 521,
+      "total_deletions": 0,
+      "accepted_lines": 0,
+      "overriden_lines": 0,
+      "messages_url": "https://codeaiapi.xinfei-inc.cn/cas/2783c99ba31ab830fdf39ff1abbd83d8bf8c9027bc5677163979a22b832d3dc9"
+    }
+  },
+  "humans": {
+    "h_0e7e73f3ca1668": {
+      "author": "jinliang.cao"
+    }
+  }
+}
