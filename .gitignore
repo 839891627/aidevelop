@@ -62,3 +62,6 @@ Thumbs.db
 # Test coverage
 *.exec
 .sonar/
+
+.claude/
+data/vector-store-ollama.json
