@@ -58,6 +58,12 @@
  │ 10 Chat Memory    │
  │ 持久化 + 流式续聊   │
  └───────────────────┘
+
+第 7 周：训练视角
+ ┌───────────────────┐
+ │ 11 Fine-tuning    │
+ │ 数据集 + 评测基线   │
+ └───────────────────┘
 ```
 
 ## 文档索引
@@ -74,6 +80,7 @@
 | 08 | [cost-and-observability](08-cost-and-observability.md) | AOP 调用日志、成本计算、Caffeine 缓存 | ★★ |
 | 09 | [embedding-and-chunking](09-embedding-and-chunking.md) | 文本分块策略、Ollama 本地嵌入 | ★★★ |
 | 10 | [chat-memory](10-chat-memory.md) | 会话持久化、SSE meta 事件、流式续聊 | ★★★ |
+| 11 | [fine-tuning-basics](11-fine-tuning-basics.md) | 微调基础、SFT 数据集、数据校验与基线评测 | ★★★ |
 
 ## 设计文档（持续落地）
 

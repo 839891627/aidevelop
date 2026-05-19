@@ -4,10 +4,12 @@ import com.example.aidevelop.model.entity.Loan;
 import com.example.aidevelop.model.entity.RepaymentRecord;
 import com.example.aidevelop.repository.LoanRepository;
 import com.example.aidevelop.repository.RepaymentRecordRepository;
+import com.example.aidevelop.service.cache.AiCacheService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.context.annotation.Description;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,20 +23,31 @@ public class RiskAssessmentFunction implements AiToolProvider {
 
     private final LoanRepository loanRepository;
     private final RepaymentRecordRepository repaymentRecordRepository;
+    private final AiCacheService aiCacheService;
 
-    public RiskAssessmentFunction(LoanRepository loanRepository, RepaymentRecordRepository repaymentRecordRepository) {
+    public RiskAssessmentFunction(LoanRepository loanRepository,
+                                  RepaymentRecordRepository repaymentRecordRepository,
+                                  AiCacheService aiCacheService) {
         this.loanRepository = loanRepository;
         this.repaymentRecordRepository = repaymentRecordRepository;
+        this.aiCacheService = aiCacheService;
     }
 
     @Tool(name = "riskAssessmentFunction", description = "评估用户借款风险，返回风险等级和建议")
     public Response assessRisk(Request request) {
         log.info("执行风险评估: userNo={}", request.userNo());
+        String cacheKey = "tool=risk|method=assessRisk|userNo=" + normalize(request.userNo());
+        var cached = aiCacheService.<Response>get(AiCacheService.TOOL_CALL, cacheKey);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
 
         // 1. 查询用户的借款记录
         List<Loan> loans = loanRepository.findByUserNo(request.userNo());
         if (loans.isEmpty()) {
-            return new Response(request.userNo(), RiskLevel.UNKNOWN, 0, 0, 0, BigDecimal.ZERO, "用户无借款记录");
+            Response response = new Response(request.userNo(), RiskLevel.UNKNOWN, 0, 0, 0, BigDecimal.ZERO, "用户无借款记录");
+            aiCacheService.put(AiCacheService.TOOL_CALL, cacheKey, response);
+            return response;
         }
 
         // 2. 查询还款记录
@@ -75,7 +88,7 @@ public class RiskAssessmentFunction implements AiToolProvider {
 
         log.info("风险评估完成: userNo={}, level={}, description={}", request.userNo(), riskLevel, riskDescription);
 
-        return new Response(
+        Response response = new Response(
                 request.userNo(),
                 riskLevel,
                 totalLoans,
@@ -84,6 +97,12 @@ public class RiskAssessmentFunction implements AiToolProvider {
                 totalOverdueAmount,
                 riskDescription
         );
+        aiCacheService.put(AiCacheService.TOOL_CALL, cacheKey, response);
+        return response;
+    }
+
+    private String normalize(String value) {
+        return StringUtils.hasText(value) ? value.trim() : "";
     }
 
     /**

@@ -2,11 +2,13 @@ package com.example.aidevelop.service.function;
 
 import com.example.aidevelop.model.entity.RepaymentRecord;
 import com.example.aidevelop.repository.RepaymentRecordRepository;
+import com.example.aidevelop.service.cache.AiCacheService;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.context.annotation.Description;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -16,14 +18,23 @@ import java.util.List;
 public class RepaymentQueryFunction implements AiToolProvider {
 
     private final RepaymentRecordRepository repaymentRecordRepository;
+    private final AiCacheService aiCacheService;
 
-    public RepaymentQueryFunction(RepaymentRecordRepository repaymentRecordRepository) {
+    public RepaymentQueryFunction(RepaymentRecordRepository repaymentRecordRepository, AiCacheService aiCacheService) {
         this.repaymentRecordRepository = repaymentRecordRepository;
+        this.aiCacheService = aiCacheService;
     }
 
     @Tool(name = "repaymentQueryFunction", description = "查询用户还款记录，支持按 userNo 和 status 过滤")
     public Response queryRepaymentRecords(Request request) {
         log.info("执行还款查询: userNo={}, status={}", request.userNo(), request.status());
+        String cacheKey = buildCacheKey("queryRepaymentRecords",
+                "userNo", request.userNo(),
+                "status", request.status());
+        var cached = aiCacheService.<Response>get(AiCacheService.TOOL_CALL, cacheKey);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
 
         List<RepaymentRecord> records;
         if (request.status() != null && !request.status().isEmpty()) {
@@ -37,7 +48,7 @@ public class RepaymentQueryFunction implements AiToolProvider {
 
         log.info("查询到 {} 条还款记录", records.size());
 
-        return new Response(
+        Response response = new Response(
             request.userNo(),
             records.size(),
             records.stream().map(record -> new RepaymentInfo(
@@ -50,6 +61,20 @@ public class RepaymentQueryFunction implements AiToolProvider {
                 record.getRepaySuccessTime()
             )).toList()
         );
+        aiCacheService.put(AiCacheService.TOOL_CALL, cacheKey, response);
+        return response;
+    }
+
+    private String buildCacheKey(String method, String... parts) {
+        StringBuilder builder = new StringBuilder("tool=repayment|method=").append(method);
+        for (int i = 0; i + 1 < parts.length; i += 2) {
+            builder.append('|').append(parts[i]).append('=').append(normalize(parts[i + 1]));
+        }
+        return builder.toString();
+    }
+
+    private String normalize(String value) {
+        return StringUtils.hasText(value) ? value.trim() : "";
     }
 
     /**

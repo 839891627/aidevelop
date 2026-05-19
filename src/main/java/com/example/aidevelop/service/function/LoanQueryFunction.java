@@ -2,11 +2,13 @@ package com.example.aidevelop.service.function;
 
 import com.example.aidevelop.model.entity.Loan;
 import com.example.aidevelop.repository.LoanRepository;
+import com.example.aidevelop.service.cache.AiCacheService;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Description;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,14 +19,21 @@ import java.util.Optional;
 public class LoanQueryFunction implements AiToolProvider {
 
     private final LoanRepository loanRepository;
+    private final AiCacheService aiCacheService;
 
-    public LoanQueryFunction(LoanRepository loanRepository) {
+    public LoanQueryFunction(LoanRepository loanRepository, AiCacheService aiCacheService) {
         this.loanRepository = loanRepository;
+        this.aiCacheService = aiCacheService;
     }
 
     @Tool(name = "queryLoanByBizSerial", description = "通过订单编号查询记录")
     public Response queryLoanByBizSerial(BizSerialRequest request) {
         log.info("通过订单编号查询记录: bizSerial={}", request.bizSerial());
+        String cacheKey = buildCacheKey("queryLoanByBizSerial", "bizSerial", request.bizSerial());
+        var cached = aiCacheService.<Response>get(AiCacheService.TOOL_CALL, cacheKey);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
 
         Optional<Loan> loan = loanRepository.findByBizSerial(request.bizSerial());
 
@@ -35,7 +44,7 @@ public class LoanQueryFunction implements AiToolProvider {
 
         log.info("查询到 {} 条借款记录", loans.size());
 
-        return new Response(
+        Response response = new Response(
                 loan.map(Loan::getUserNo).orElse(null),
                 loans.size(),
                 loans.stream().map(item -> new LoanInfo(
@@ -48,10 +57,19 @@ public class LoanQueryFunction implements AiToolProvider {
                         item.getLoanSuccessTime()
                 )).toList()
         );
+        aiCacheService.put(AiCacheService.TOOL_CALL, cacheKey, response);
+        return response;
     }
     @Tool(name = "loanQueryFunction", description = "查询用户借款记录，支持按 userNo 和 status 过滤")
     public Response queryLoanRecords(UserStatusRequest request) {
         log.info("执行借款查询: userNo={}, status={}", request.userNo(), request.status());
+        String cacheKey = buildCacheKey("queryLoanRecords",
+                "userNo", request.userNo(),
+                "status", request.status());
+        var cached = aiCacheService.<Response>get(AiCacheService.TOOL_CALL, cacheKey);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
 
         List<Loan> loans;
         if (request.status() != null && !request.status().isEmpty()) {
@@ -65,7 +83,7 @@ public class LoanQueryFunction implements AiToolProvider {
 
         log.info("查询到 {} 条借款记录", loans.size());
 
-        return new Response(
+        Response response = new Response(
             request.userNo(),
             loans.size(),
             loans.stream().map(loan -> new LoanInfo(
@@ -78,6 +96,20 @@ public class LoanQueryFunction implements AiToolProvider {
                 loan.getLoanSuccessTime()
             )).toList()
         );
+        aiCacheService.put(AiCacheService.TOOL_CALL, cacheKey, response);
+        return response;
+    }
+
+    private String buildCacheKey(String method, String... parts) {
+        StringBuilder builder = new StringBuilder("tool=loan|method=").append(method);
+        for (int i = 0; i + 1 < parts.length; i += 2) {
+            builder.append('|').append(parts[i]).append('=').append(normalize(parts[i + 1]));
+        }
+        return builder.toString();
+    }
+
+    private String normalize(String value) {
+        return StringUtils.hasText(value) ? value.trim() : "";
     }
 
     /**

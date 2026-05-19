@@ -137,14 +137,13 @@ public record DailyCost(
 
 ### 7.1 缓存架构
 
-三个独立的 `CacheManager`，基于 Caffeine，各有不同的 TTL 和容量：
+项目内置三个独立的 Caffeine 本地缓存，由 `AiCacheService` 统一读写，并通过 `/api/cache/stats` 暴露命中统计：
 
-| 缓存类型 | Bean 名称 | TTL | 最大条目 | 适用场景 |
+| 缓存类型 | 名称 | TTL | 最大条目 | 适用场景 |
 |---------|----------|-----|---------|---------|
-| AI 响应缓存 | aiResponseCacheManager | 30 分钟 | 1000 | 重复问题的缓存命中 |
-| 向量检索缓存 | vectorSearchCacheManager | 1 小时 | 500 | 相同查询的检索结果 |
-| 函数调用缓存 | functionCallCacheManager | 10 分钟 | 2000 | 频繁查询的贷款信息 |
-| 默认缓存 | defaultCacheManager (@Primary) | 30 分钟 | 10000 | 通用场景 |
+| AI 响应缓存 | aiResponse | 30 分钟 | 1000 | 单轮重复问题的缓存命中 |
+| RAG 检索缓存 | ragSearch | 1 小时 | 500 | 相同查询的检索结果 |
+| 工具调用缓存 | toolCall | 10 分钟 | 2000 | 频繁查询的贷款/还款/风险信息 |
 
 ### 7.2 Caffeine Cache 特点
 
@@ -154,29 +153,34 @@ public record DailyCost(
 
 ### 7.3 缓存 Key 设计
 
-- AI 响应：`#question` 或 `'system:' + #systemPrompt + '|question:' + #question`
-- 向量检索：`#query + '_' + #topK + '_' + #threshold`
-- 函数调用：根据具体函数参数设计
+- AI 响应：`message + model + temperature + maxTokens + routeType + rag 参数`
+- RAG 检索：`operation + query + type + topK + threshold`
+- 函数调用：`tool + method + userNo/status/bizSerial`
 
-通过 `cacheManager` 参数指定使用哪个 CacheManager：
+AI 响应缓存只覆盖 `conversationId` 为空、且未进入显式工具路由（非 `TOOL_ONLY`）的阻塞式 `/api/chat` 单轮请求；流式接口不缓存，明确业务查询类请求不缓存，避免动态业务数据误命中。
 
-```java
-@Cacheable(value = "qaCache", key = "#question", cacheManager = "aiResponseCacheManager")
-public String ask(String question) { ... }
+RAG 缓存覆盖：
 
-@Cacheable(value = "vectorSearch", key = "#query + '_' + #topK + '_' + #threshold",
-           cacheManager = "vectorSearchCacheManager")
-public List<Document> similaritySearch(String query, int topK, double threshold) { ... }
-```
+- `/api/rag/search`
+- `/api/rag/hybrid-search`
+- `/api/rag/rerank-search`
+- `/api/rag/pipeline`（仅 `conversationId` 为空时）
 
-缓存失效使用 `@CacheEvict`，支持单条清除和全部清除：
+工具缓存加在 `LoanQueryFunction`、`RepaymentQueryFunction`、`RiskAssessmentFunction`，因此 Function Calling 和 Agent Tool 复用同一套缓存。
 
-```java
-@CacheEvict(value = "qaCache", key = "#question")
-public void evictQuestion(String question) { ... }
+### 7.4 缓存调试接口
 
-@CacheEvict(value = "qaCache", allEntries = true)
-public void evictAllQuestions() { ... }
+```http
+### 查看缓存统计
+GET http://localhost:8080/api/cache/stats
+
+### 清空全部缓存
+DELETE http://localhost:8080/api/cache
+
+### 清空指定缓存
+DELETE http://localhost:8080/api/cache/aiResponse
+DELETE http://localhost:8080/api/cache/ragSearch
+DELETE http://localhost:8080/api/cache/toolCall
 ```
 
 ## 8. AiCallLog 数据模型
@@ -223,7 +227,7 @@ public class AiCallLog {
 
 ## 10. 动手实验
 
-1. 发送多次相同的聊天消息，观察缓存命中率（通过日志或 AOP 记录）
+1. 发送多次相同的单轮聊天消息，观察响应中的 `cacheHit` 和 `cacheType`
 2. 修改 `AiCostCalculator` 的 `PRICING_TABLE`，添加新模型定价，观察成本计算变化
 3. 添加一个新的统计维度：在 Repository 中按 `sessionId` 分组统计成本
 4. 实现成本预警：当单次调用成本超过 1 元时，在 AOP 切面中打印 warn 日志
@@ -238,8 +242,8 @@ public class AiCallLog {
 | `src/main/java/.../controller/AiCostController.java` | 成本统计 API |
 | `src/main/java/.../scheduled/DailyCostStatisticsScheduler.java` | 定时统计与预警 |
 | `src/main/java/.../config/CacheConfig.java` | Caffeine 缓存配置 |
-| `src/main/java/.../service/cache/CachedChatService.java` | 带缓存的问答服务 |
-| `src/main/java/.../service/cache/CachedVectorSearchService.java` | 带缓存的向量检索 |
+| `src/main/java/.../service/cache/AiCacheService.java` | 统一缓存读写、清理、统计 |
+| `src/main/java/.../controller/CacheController.java` | 缓存调试 API |
 | `src/main/java/.../model/entity/AiCallLog.java` | 调用日志实体 |
 | `src/main/java/.../repository/AiCallLogRepository.java` | 日志数据访问层 |
 | `src/main/resources/static/cost.html` | 成本看板页面 |

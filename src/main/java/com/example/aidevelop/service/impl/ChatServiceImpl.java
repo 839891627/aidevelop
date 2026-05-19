@@ -9,6 +9,7 @@ import com.example.aidevelop.model.entity.MessageRole;
 import com.example.aidevelop.repository.ConversationRepository;
 import com.example.aidevelop.service.ChatService;
 import com.example.aidevelop.service.IntentRoutingService;
+import com.example.aidevelop.service.cache.AiCacheService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -38,6 +39,8 @@ public class ChatServiceImpl implements ChatService {
     private IntentRoutingService intentRoutingService;
     @Resource
     private ObjectProvider<VectorStore> vectorStoreProvider;
+    @Resource
+    private AiCacheService aiCacheService;
 
     @Override
     public ChatResponse chat(ChatRequest request) {
@@ -61,10 +64,39 @@ public class ChatServiceImpl implements ChatService {
             // 3. 构建提示词（包含历史消息）
             String prompt = buildPromptWithHistory(conversation);
             OpenAiChatOptions runtimeOptions = buildRuntimeOptions(request);
+            IntentRoutingService.RoutePlan routePlan = intentRoutingService.plan(request.getMessage());
+
+            boolean cacheable = isAiResponseCacheable(request, routePlan);
+            String cacheKey = cacheable ? buildAiResponseCacheKey(request, routePlan) : null;
+            if (cacheable) {
+                var cachedPayload = aiCacheService.<CachedChatPayload>get(AiCacheService.AI_RESPONSE, cacheKey);
+                if (cachedPayload.isPresent()) {
+                    CachedChatPayload payload = cachedPayload.get();
+                    Message assistantMessage = new Message(
+                            UUID.randomUUID().toString(),
+                            MessageRole.ASSISTANT,
+                            payload.message(),
+                            LocalDateTime.now(),
+                            payload.model()
+                    );
+                    conversation.addMessage(assistantMessage);
+                    conversationRepository.save(conversation);
+
+                    long responseTime = System.currentTimeMillis() - startTime;
+                    return ChatResponse.builder()
+                            .conversationId(conversation.getConversationId())
+                            .message(payload.message())
+                            .model(payload.model())
+                            .tokensUsed(payload.tokensUsed())
+                            .responseTime(responseTime)
+                            .cacheHit(true)
+                            .cacheType("AI_RESPONSE")
+                            .build();
+                }
+            }
 
             // 4. 调用 AI 模型
             log.debug("发送请求到 AI 模型: {}", request.getMessage());
-            IntentRoutingService.RoutePlan routePlan = intentRoutingService.plan(request.getMessage());
             var promptSpec = preparePromptSpec(routePlan);
             if (runtimeOptions != null) {
                 promptSpec = promptSpec.options(runtimeOptions);
@@ -88,6 +120,13 @@ public class ChatServiceImpl implements ChatService {
             // 6. 保存对话
             conversationRepository.save(conversation);
 
+            if (cacheable) {
+                aiCacheService.put(AiCacheService.AI_RESPONSE, cacheKey,
+                        new CachedChatPayload(responseContent,
+                                aiResponse.getMetadata().getModel(),
+                                Math.toIntExact(aiResponse.getMetadata().getUsage().getTotalTokens())));
+            }
+
             long responseTime = System.currentTimeMillis() - startTime;
 
             return ChatResponse.builder()
@@ -96,6 +135,8 @@ public class ChatServiceImpl implements ChatService {
                     .model(aiResponse.getMetadata().getModel())
                     .tokensUsed(Math.toIntExact(aiResponse.getMetadata().getUsage().getTotalTokens()))
                     .responseTime(responseTime)
+                    .cacheHit(false)
+                    .cacheType(cacheable ? "AI_RESPONSE" : null)
                     .build();
 
         } catch (Exception e) {
@@ -262,6 +303,27 @@ public class ChatServiceImpl implements ChatService {
         return builder.build();
     }
 
+    private boolean isAiResponseCacheable(ChatRequest request, IntentRoutingService.RoutePlan routePlan) {
+        return !StringUtils.hasText(request.getConversationId())
+                && routePlan.routeType() != IntentRoutingService.RouteType.TOOL_ONLY;
+    }
+
+    private String buildAiResponseCacheKey(ChatRequest request, IntentRoutingService.RoutePlan routePlan) {
+        return String.join("|",
+                "message=" + normalize(request.getMessage()),
+                "model=" + normalize(request.getModel()),
+                "temperature=" + request.getTemperature(),
+                "maxTokens=" + request.getMaxTokens(),
+                "routeType=" + routePlan.routeType(),
+                "rag=" + routePlan.ragEnabled(),
+                "topK=" + routePlan.ragTopK(),
+                "threshold=" + routePlan.ragSimilarityThreshold());
+    }
+
+    private String normalize(String value) {
+        return StringUtils.hasText(value) ? value.trim() : "";
+    }
+
     private ChatClient.ChatClientRequestSpec preparePromptSpec(IntentRoutingService.RoutePlan routePlan) {
         log.debug("意图路由结果: type={}, rag={}, tools={}, reason={}",
             routePlan.routeType(), routePlan.ragEnabled(), routePlan.allowedToolNames(), routePlan.reason());
@@ -288,5 +350,12 @@ public class ChatServiceImpl implements ChatService {
         }
 
         return promptSpec;
+    }
+
+    private record CachedChatPayload(
+            String message,
+            String model,
+            Integer tokensUsed
+    ) {
     }
 }

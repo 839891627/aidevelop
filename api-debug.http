@@ -14,6 +14,30 @@ Content-Type: application/json
   "maxTokens": 1000
 }
 
+### AI 响应缓存 - 第一次通常 miss
+POST http://localhost:8080/api/chat
+Content-Type: application/json
+
+{
+  "message": "用三句话解释什么是 RAG",
+  "conversationId": null,
+  "model": null,
+  "temperature": 0.3,
+  "maxTokens": 500
+}
+
+### AI 响应缓存 - 第二次相同请求应 hit，响应 cacheHit=true
+POST http://localhost:8080/api/chat
+Content-Type: application/json
+
+{
+  "message": "用三句话解释什么是 RAG",
+  "conversationId": null,
+  "model": null,
+  "temperature": 0.3,
+  "maxTokens": 500
+}
+
 ### 普通聊天 - 带指定模型
 POST http://localhost:8080/api/chat
 Content-Type: application/json
@@ -48,19 +72,34 @@ DELETE http://localhost:8080/api/chat/test-conv-001
 ### 知识库检索
 GET http://localhost:8080/api/rag/search?query=逾期处理&type=规则&topK=5
 
+### RAG search 缓存 - 重复调用观察 ragSearch 命中
+GET http://localhost:8080/api/rag/search?query=逾期处理&type=规则&topK=5
+
 ### 知识库检索 - 不指定类型
 GET http://localhost:8080/api/rag/search?query=贷款利率计算&topK=3
 
 ### 混合检索
 GET http://localhost:8080/api/rag/hybrid-search?query=M1阶段的征信上报&topK=5
 
+### Hybrid search 缓存 - 重复调用观察 ragSearch 命中
+GET http://localhost:8080/api/rag/hybrid-search?query=M1阶段的征信上报&topK=5
+
 ### 重排序检索
+GET http://localhost:8080/api/rag/rerank-search?query=客户逾期了怎么办&topK=5
+
+### Rerank search 缓存 - 重复调用观察 ragSearch 命中
 GET http://localhost:8080/api/rag/rerank-search?query=客户逾期了怎么办&topK=5
 
 ### 智能 RAG 管道检索
 GET http://localhost:8080/api/rag/pipeline?query=客户逾期了怎么办&topK=5
 
+### Pipeline 缓存 - 无 conversationId，可缓存
+GET http://localhost:8080/api/rag/pipeline?query=客户逾期了怎么办&topK=5
+
 ### 智能 RAG 管道检索 - 带对话ID
+GET http://localhost:8080/api/rag/pipeline?query=还款方式有哪些&conversationId=test-conv-001&topK=3
+
+### Pipeline 不缓存 - 带 conversationId
 GET http://localhost:8080/api/rag/pipeline?query=还款方式有哪些&conversationId=test-conv-001&topK=3
 
 ### RAG 系统评估
@@ -155,6 +194,58 @@ GET http://localhost:8080/api/prompts/registry/active?promptKey=system-prompt&en
 
 ### 查询 Prompt 历史版本
 GET http://localhost:8080/api/prompts/registry/versions?promptKey=system-prompt&env=dev
+
+### ===========================
+### 缓存调试接口 CacheController
+### ===========================
+
+### 查看缓存统计
+GET http://localhost:8080/api/cache/stats
+
+### 清空全部缓存
+DELETE http://localhost:8080/api/cache
+
+### 清空 AI 响应缓存
+DELETE http://localhost:8080/api/cache/aiResponse
+
+### 清空 RAG 检索缓存
+DELETE http://localhost:8080/api/cache/ragSearch
+
+### 清空工具调用缓存
+DELETE http://localhost:8080/api/cache/toolCall
+
+### Function Calling 触发贷款查询工具缓存
+POST http://localhost:8080/api/chat
+Content-Type: application/json
+
+{
+  "message": "查询用户 CUST001 的借款记录",
+  "conversationId": null,
+  "temperature": 0.2,
+  "maxTokens": 800
+}
+
+### Function Calling 触发还款查询工具缓存
+POST http://localhost:8080/api/chat
+Content-Type: application/json
+
+{
+  "message": "查询用户 CUST001 的还款记录",
+  "conversationId": null,
+  "temperature": 0.2,
+  "maxTokens": 800
+}
+
+### Function Calling 触发风险评估工具缓存
+POST http://localhost:8080/api/chat
+Content-Type: application/json
+
+{
+  "message": "评估用户 CUST001 的借款风险",
+  "conversationId": null,
+  "temperature": 0.2,
+  "maxTokens": 1000
+}
 
 ### ===========================
 ### 成本统计 AiCostController

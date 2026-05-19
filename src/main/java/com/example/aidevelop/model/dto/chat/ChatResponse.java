@@ -27,4 +27,10 @@ public class ChatResponse {
 
     @Schema(description = "响应时间（毫秒）", example = "1234")
     private Long responseTime;
+
+    @Schema(description = "本次响应是否命中缓存", example = "true")
+    private Boolean cacheHit;
+
+    @Schema(description = "命中的缓存类型", example = "AI_RESPONSE")
+    private String cacheType;
 }

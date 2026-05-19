@@ -2,12 +2,14 @@ package com.example.aidevelop.service.rag;
 
 import com.example.aidevelop.config.RagProperties;
 import com.example.aidevelop.model.dto.rag.*;
+import com.example.aidevelop.service.cache.AiCacheService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,9 +30,15 @@ public class RagOrchestrationService {
     private final RerankService rerankService;
     private final RagPipelineService ragPipelineService;
     private final RagEvaluationService ragEvaluationService;
+    private final AiCacheService aiCacheService;
 
     public List<SearchResultDTO> search(String query, String type, int topK) {
         log.info("知识库检索 - query: {}, type: {}, topK: {}", query, type, topK);
+        String cacheKey = buildRagCacheKey("search", query, type, topK, ragProperties.getSimilarityThreshold(), null);
+        var cached = aiCacheService.<List<SearchResultDTO>>get(AiCacheService.RAG_SEARCH, cacheKey);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
 
         int searchTopK = type != null && !type.isEmpty() ? topK * 5 : topK;
         String expandedQuery = queryExpansionService.expandQuery(query);
@@ -58,62 +66,93 @@ public class RagOrchestrationService {
             log.info("类型 '{}' 过滤后剩余 {} 个文档", type, documents.size());
         }
 
-        return documents.stream()
+        List<SearchResultDTO> result = documents.stream()
                 .map(doc -> new SearchResultDTO(doc.getText(), doc.getMetadata(), doc.getScore()))
                 .collect(Collectors.toList());
+        aiCacheService.put(AiCacheService.RAG_SEARCH, cacheKey, result);
+        return result;
     }
 
     public List<HybridSearchResultDTO> hybridSearch(String query, int topK) {
         log.info("混合检索 - query: {}, topK: {}", query, topK);
+        String cacheKey = buildRagCacheKey("hybrid", query, null, topK, ragProperties.getSimilarityThreshold(), null);
+        var cached = aiCacheService.<List<HybridSearchResultDTO>>get(AiCacheService.RAG_SEARCH, cacheKey);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
+
         var hybridResults = hybridSearchService.hybridSearch(query, topK);
 
-        return hybridResults.stream()
-                .map(result -> {
-                    var source = HybridSearchResultDTO.determineSource(result.getVectorRank(), result.getBm25Rank());
+        List<HybridSearchResultDTO> items = hybridResults.stream()
+                .map(item -> {
+                    var source = HybridSearchResultDTO.determineSource(item.getVectorRank(), item.getBm25Rank());
                     return new HybridSearchResultDTO(
-                            result.getDocument().getText(),
-                            result.getDocument().getMetadata(),
-                            result.getFinalScore(),
-                            result.getVectorRank(),
-                            result.getBm25Rank(),
-                            result.getVectorScore(),
-                            result.getBm25Score(),
+                            item.getDocument().getText(),
+                            item.getDocument().getMetadata(),
+                            item.getFinalScore(),
+                            item.getVectorRank(),
+                            item.getBm25Rank(),
+                            item.getVectorScore(),
+                            item.getBm25Score(),
                             source);
                 })
                 .collect(Collectors.toList());
+        aiCacheService.put(AiCacheService.RAG_SEARCH, cacheKey, items);
+        return items;
     }
 
     public List<RerankSearchResultDTO> rerankSearch(String query, int topK) {
         log.info("重排序检索 - query: {}, topK: {}", query, topK);
+        String cacheKey = buildRagCacheKey("rerank", query, null, topK, 0.0, null);
+        var cached = aiCacheService.<List<RerankSearchResultDTO>>get(AiCacheService.RAG_SEARCH, cacheKey);
+        if (cached.isPresent()) {
+            return cached.get();
+        }
+
         var rerankResults = rerankService.rerankSearch(query, topK);
 
-        return rerankResults.stream()
-                .map(result -> new RerankSearchResultDTO(
-                        result.document().getText(),
-                        result.document().getMetadata(),
-                        result.rerankScore(),
-                        result.getVectorScore(),
-                        result.getScoreImprovement(),
-                        result.reranked(),
-                        formatRankChange(result.getVectorScore(), result.rerankScore())))
+        List<RerankSearchResultDTO> items = rerankResults.stream()
+                .map(item -> new RerankSearchResultDTO(
+                        item.document().getText(),
+                        item.document().getMetadata(),
+                        item.rerankScore(),
+                        item.getVectorScore(),
+                        item.getScoreImprovement(),
+                        item.reranked(),
+                        formatRankChange(item.getVectorScore(), item.rerankScore())))
                 .collect(Collectors.toList());
+        aiCacheService.put(AiCacheService.RAG_SEARCH, cacheKey, items);
+        return items;
     }
 
     public PipelineSearchResultDTO pipelineSearch(String query, String conversationId, int topK) {
         log.info("RAG 管道检索 - query: {}, conversationId: {}, topK: {}", query, conversationId, topK);
+        boolean cacheable = !StringUtils.hasText(conversationId);
+        String cacheKey = cacheable ? buildRagCacheKey("pipeline", query, null, topK, ragProperties.getSimilarityThreshold(), "conversationId=") : null;
+        if (cacheable) {
+            var cached = aiCacheService.<PipelineSearchResultDTO>get(AiCacheService.RAG_SEARCH, cacheKey);
+            if (cached.isPresent()) {
+                return cached.get();
+            }
+        }
+
         var pipelineResult = ragPipelineService.search(query, conversationId, topK);
 
         List<PipelineSearchResultDTO.DocumentResult> documentResults = pipelineResult.getDocuments().stream()
                 .map(doc -> new PipelineSearchResultDTO.DocumentResult(doc.getText(), doc.getMetadata(), doc.getScore()))
                 .collect(Collectors.toList());
 
-        return new PipelineSearchResultDTO(
+        PipelineSearchResultDTO result = new PipelineSearchResultDTO(
                 pipelineResult.getOriginalQuery(),
                 pipelineResult.getRewrittenQuery(),
                 pipelineResult.getExpandedQuery(),
                 pipelineResult.getStrategy().toString(),
                 pipelineResult.getTransformationSummary(),
                 documentResults);
+        if (cacheable) {
+            aiCacheService.put(AiCacheService.RAG_SEARCH, cacheKey, result);
+        }
+        return result;
     }
 
     public EvaluationMetricsDTO evaluate(String query, List<String> relevantDocIds, int topK,
@@ -146,5 +185,20 @@ public class RagOrchestrationService {
             return String.format("小幅下降（%.2f）", improvement);
         }
         return "基本持平";
+    }
+
+    private String buildRagCacheKey(String operation, String query, String type, int topK,
+                                    double threshold, String extra) {
+        return String.join("|",
+                "operation=" + operation,
+                "query=" + normalize(query),
+                "type=" + normalize(type),
+                "topK=" + topK,
+                "threshold=" + threshold,
+                "extra=" + normalize(extra));
+    }
+
+    private String normalize(String value) {
+        return StringUtils.hasText(value) ? value.trim() : "";
     }
 }

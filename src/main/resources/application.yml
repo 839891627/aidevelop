@@ -203,3 +203,17 @@ app:
   cost-tracking:
     enabled: true
     log-all-calls: true
+  cache:
+    enabled: true
+    ai-response:
+      enabled: true
+      ttl-minutes: 30
+      maximum-size: 1000
+    rag-search:
+      enabled: true
+      ttl-minutes: 60
+      maximum-size: 500
+    tool-call:
+      enabled: true
+      ttl-minutes: 10
+      maximum-size: 2000
