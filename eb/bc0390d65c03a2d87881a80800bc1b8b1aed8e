@@ -1,0 +1,86 @@
+src/main/java/com/example/aidevelop/config/CacheConfig.java
+  s_e73b5751614d3e::t_09e385130b8285 1-36
+api-debug.http
+  s_e73b5751614d3e::t_ba75421d4b1c9f 17-40,75-77,84-86,90-92,96-98,102-104,198-248
+src/main/java/com/example/aidevelop/model/dto/cache/CacheStatsDTO.java
+  s_e73b5751614d3e::t_09e385130b8285 1-22
+docs/08-cost-and-observability.md
+  s_e73b5751614d3e::t_358d639390796b 140,142,144-146,156-158,162,164-167,169,171-178,180-183,230,245-246
+  s_e73b5751614d3e::t_dd65c84a32559f 160
+src/main/java/com/example/aidevelop/service/function/RiskAssessmentFunction.java
+  s_e73b5751614d3e::t_58e4bad32d2a5b 7,12,26,28-30,33,39-43,48-50,91,100-105
+finetune/data/eval/eval_prompts.jsonl
+  s_a9057b0b625f89::t_8f155ccdefc3ff 1-6
+src/main/java/com/example/aidevelop/service/cache/AiCacheService.java
+  s_e73b5751614d3e::t_52c9658125b474 79,104-110
+  s_e73b5751614d3e::t_09e385130b8285 1-78,80-103,111-116
+finetune/scripts/baseline_eval_template.py
+  s_a9057b0b625f89::t_c262e6f31d8498 1-154
+finetune/data/eval/baseline_results.jsonl
+  s_a9057b0b625f89::t_dccc48ae496e78 1-6
+finetune/scripts/validate_sft_dataset.py
+  s_a9057b0b625f89::t_e13a39233689d5 1-170
+src/main/java/com/example/aidevelop/controller/CacheController.java
+  s_e73b5751614d3e::t_09e385130b8285 1-47
+finetune/data/raw/loan_assistant_examples.jsonl
+  s_a9057b0b625f89::t_a24e4006a4c54c 1-12
+docs/README.md
+  s_a9057b0b625f89::t_72b8338deb80da 61-66,83
+src/main/java/com/example/aidevelop/service/rag/RagOrchestrationService.java
+  s_e73b5751614d3e::t_bbe4d4283a9d97 86-88,90-96,100-101,114-122,124-125
+  s_e73b5751614d3e::t_a67e93861417e7 5,12,33,37-41,69,72-73,78-83,106-111,130-138,145,152-155,189-202
+pom.xml
+  s_e73b5751614d3e::t_09e385130b8285 103-108
+finetune/data/processed/validation.jsonl
+  s_a9057b0b625f89::t_dccc48ae496e78 1-2
+finetune/data/processed/train.jsonl
+  s_a9057b0b625f89::t_dccc48ae496e78 1-10
+finetune/README.md
+  s_a9057b0b625f89::t_b953b23f3eb071 1-137
+src/main/java/com/example/aidevelop/config/AppCacheProperties.java
+  s_e73b5751614d3e::t_09e385130b8285 1-30
+src/main/resources/application.yml
+  s_e73b5751614d3e::t_5e608fae7ca01f 206-219
+src/main/java/com/example/aidevelop/model/dto/chat/ChatResponse.java
+  s_e73b5751614d3e::t_1f9884d92da0f9 30-35
+src/main/java/com/example/aidevelop/service/function/LoanQueryFunction.java
+  s_e73b5751614d3e::t_58e4bad32d2a5b 5,11,22,24,26,32-36,47,60-61,66-72,86,99-112
+docs/11-fine-tuning-basics.md
+  s_a9057b0b625f89::t_aef7aefc430642 1-197
+finetune/scripts/build_sft_dataset.py
+  s_a9057b0b625f89::t_1510d54d849e79 1-149
+src/main/java/com/example/aidevelop/service/impl/ChatServiceImpl.java
+  s_e73b5751614d3e::t_8dc56da8c69ab2 308
+  s_e73b5751614d3e::t_d1960cd34211ea 12,42-43,67-96,123-129,138-139,306-307,309-326,354-359
+src/main/java/com/example/aidevelop/service/function/RepaymentQueryFunction.java
+  s_e73b5751614d3e::t_58e4bad32d2a5b 5,11,21,23,25,31-37,51,64-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "ebbc0390d65c03a2d87881a80800bc1b8b1aed8e",
+  "prompts": {},
+  "humans": {
+    "h_0e7e73f3ca1668": {
+      "author": "jinliang.cao"
+    }
+  },
+  "sessions": {
+    "s_a9057b0b625f89": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c79dddc7-c553-4f86-98a0-1b53326fcd6d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "jinliang.cao <arvin.cao2@xinfei.cn>"
+    },
+    "s_e73b5751614d3e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019e400d-df85-7281-8de0-01b3a14cbaa8",
+        "model": "x5/gpt-5.5"
+      },
+      "human_author": "jinliang.cao <arvin.cao2@xinfei.cn>"
+    }
+  }
+}
