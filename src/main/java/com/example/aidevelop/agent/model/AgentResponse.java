@@ -1,5 +1,6 @@
 package com.example.aidevelop.agent.model;
 
+import com.example.aidevelop.agent.multi.SubAgentExecution;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -35,4 +36,7 @@ public class AgentResponse {
 
     @Schema(description = "执行步骤详情")
     private List<AgentStep> steps;
+
+    @Schema(description = "子 Agent 执行记录（仅多 Agent 模式）")
+    private List<SubAgentExecution> subAgentExecutions;
 }

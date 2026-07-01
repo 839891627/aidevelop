@@ -64,4 +64,9 @@ public class RouteProperties {
      */
     private int maxToolCalls = 3;
     private int timeoutMs = 30000;
+
+    /**
+     * 命中后触发多 Agent 协作模式的关键词。
+     */
+    private List<String> multiAgentKeywords = List.of("综合评估", "多维度分析", "先查再评");
 }

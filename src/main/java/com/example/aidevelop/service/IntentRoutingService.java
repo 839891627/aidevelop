@@ -27,8 +27,13 @@ public class IntentRoutingService {
             return buildRagOnlyPlan("空消息默认走 RAG");
         }
 
-        Pattern businessIdPattern = Pattern.compile(routeProperties.getBusinessIdPattern(), Pattern.CASE_INSENSITIVE);
         String normalized = message.trim().toLowerCase();
+
+        if (isMultiAgentRequired(normalized)) {
+            return buildMultiAgentPlan("命中多 Agent 协作规则");
+        }
+
+        Pattern businessIdPattern = Pattern.compile(routeProperties.getBusinessIdPattern(), Pattern.CASE_INSENSITIVE);
         if (businessIdPattern.matcher(message).find() || containsAny(normalized, routeProperties.getToolIntentKeywords())) {
             return buildToolOnlyPlan("命中业务查询规则，优先工具调用");
         }
@@ -36,6 +41,32 @@ public class IntentRoutingService {
             return buildRagOnlyPlan("命中知识问答规则，优先 RAG");
         }
         return buildHybridPlan("默认走 HYBRID（工具+RAG）");
+    }
+
+    private boolean isMultiAgentRequired(String normalized) {
+        List<String> keywords = routeProperties.getMultiAgentKeywords();
+        if (keywords == null || keywords.isEmpty()) {
+            return false;
+        }
+        if (containsAny(normalized, keywords)) {
+            return true;
+        }
+        boolean hitsTool = containsAny(normalized, routeProperties.getToolIntentKeywords());
+        boolean hitsRag = containsAny(normalized, routeProperties.getRagIntentKeywords());
+        return hitsTool && hitsRag;
+    }
+
+    private RoutePlan buildMultiAgentPlan(String reason) {
+        return new RoutePlan(
+            RouteType.MULTI_AGENT,
+            true,
+            resolveAllowedToolNames(routeProperties.getHybridToolNames()),
+            routeProperties.getHybridTopK(),
+            routeProperties.getHybridSimilarityThreshold(),
+            routeProperties.getMaxToolCalls(),
+            routeProperties.getTimeoutMs(),
+            reason
+        );
     }
 
     private RoutePlan buildToolOnlyPlan(String reason) {
@@ -109,7 +140,8 @@ public class IntentRoutingService {
     public enum RouteType {
         TOOL_ONLY,
         RAG_ONLY,
-        HYBRID
+        HYBRID,
+        MULTI_AGENT
     }
 
     public record RoutePlan(
