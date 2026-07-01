@@ -13,6 +13,18 @@
 
 ## 2. 查询预处理
 
+查询预处理是进阶 RAG 的第一层优化，先把用户原始问题变成更适合检索的查询。
+
+```mermaid
+flowchart LR
+  OriginalQuery["原始查询"] --> RewriteCheck["规则判断是否需要重写"]
+  RewriteCheck -->|"不需要"| KeepOriginal["保留原始查询"]
+  RewriteCheck -->|"需要"| LlmRewrite["LLM 查询重写"]
+  KeepOriginal --> Expansion["查询扩展"]
+  LlmRewrite --> Expansion
+  Expansion --> ExpandedQuery["扩展后的检索查询"]
+```
+
 ### 2.1 查询扩展 (QueryExpansionService)
 
 **目的：** 用同义词和专业术语扩展原始查询，提升召回率。
@@ -127,6 +139,21 @@ GET /api/rag/hybrid-search?query=xxx&topK=5
 
 返回结果包含每个文档的 RRF 分数、向量排名和 BM25 排名，便于调试分析。
 
+### 3.3 混合检索融合流程
+
+```mermaid
+flowchart TB
+  Query["检索查询"] --> VectorRetrievalService
+  Query --> BM25Service
+  VectorRetrievalService --> VectorResults["向量检索 TopK"]
+  BM25Service --> BM25Results["BM25 TopK"]
+  VectorResults --> RankFusion["RRF 排名融合"]
+  BM25Results --> RankFusion
+  RankFusion --> Dedup["按文档 ID 去重"]
+  Dedup --> SortResults["按 finalScore 排序"]
+  SortResults --> HybridTopK["返回混合检索 TopK"]
+```
+
 ## 4. 精排
 
 ### 4.1 LLM 重排序 (RerankService)
@@ -169,14 +196,24 @@ GET /api/rag/rerank-search?query=xxx&topK=5
 
 自动组合以上所有技术，形成 4 阶段管道：
 
-```
-阶段1: 查询重写 (QueryRewriteService)
-  ↓
-阶段2: 查询扩展 (QueryExpansionService)
-  ↓
-阶段3: 策略选择 (自动/固定)
-  ↓
-阶段4: 执行检索 (VectorStore / HybridSearch / Rerank)
+```mermaid
+flowchart TB
+  OriginalQuery["originalQuery"] --> QueryRewriteService
+  QueryRewriteService --> RewrittenQuery["rewrittenQuery"]
+  RewrittenQuery --> QueryExpansionService
+  QueryExpansionService --> ExpandedQuery["expandedQuery"]
+  ExpandedQuery --> StrategySelector["RetrievalStrategySelector"]
+  StrategySelector --> VectorOnly["VECTOR_ONLY"]
+  StrategySelector --> VectorRerank["VECTOR_WITH_RERANK"]
+  StrategySelector --> HybridSearch["HYBRID_SEARCH"]
+  StrategySelector --> HybridRerank["HYBRID_WITH_RERANK"]
+  VectorOnly --> VectorRetrievalService
+  VectorRerank --> RerankService
+  HybridSearch --> HybridSearchService
+  HybridRerank --> HybridSearchService
+  VectorRetrievalService --> Documents["documents"]
+  RerankService --> Documents
+  HybridSearchService --> Documents
 ```
 
 ### 5.1 策略选择逻辑
@@ -197,6 +234,17 @@ GET /api/rag/rerank-search?query=xxx&topK=5
 - `isLongQuery()`：查询长度超过 `complexQueryLength`（默认 10 字）
 
 **固定模式：** `autoMode = false` 时，根据 `enableHybridSearch` 和 `enableRerank` 的开关组合确定策略。
+
+```mermaid
+flowchart TB
+  QueryAnalysis["查询特征分析"] --> IsQuestion{"是否问题型查询"}
+  IsQuestion -->|"是且启用 rerank"| VectorWithRerank["VECTOR_WITH_RERANK"]
+  IsQuestion -->|"否"| HasTerms{"是否包含专有名词"}
+  HasTerms -->|"是且启用 hybrid"| HybridSearchStrategy["HYBRID_SEARCH"]
+  HasTerms -->|"否"| IsLong{"是否长查询"}
+  IsLong -->|"是且 hybrid 和 rerank 均启用"| HybridWithRerank["HYBRID_WITH_RERANK"]
+  IsLong -->|"否则"| VectorOnlyStrategy["VECTOR_ONLY"]
+```
 
 ### 5.2 配置开关
 

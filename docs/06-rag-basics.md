@@ -17,14 +17,17 @@ Retrieval-Augmented Generation，即"检索增强生成"。核心思路是先从
 
 ## 2. RAG 核心流程
 
-```
-┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
-│ 用户提问  │ -> │ 向量检索  │ -> │ 组合提示词 │ -> │ LLM 生成  │
-└──────────┘    └──────────┘    └──────────┘    └──────────┘
-                    ↑
-              ┌──────────┐
-              │ 知识库    │ <- 文档 -> 分块 -> 嵌入 -> 存储
-              └──────────┘
+```mermaid
+flowchart LR
+  UserQuestion["用户提问"] --> QueryEmbedding["查询向量化"]
+  QueryEmbedding --> VectorSearch["向量检索"]
+  VectorSearch --> PromptBuild["组合 Prompt"]
+  PromptBuild --> LlmGenerate["LLM 生成回答"]
+
+  RawDocs["业务文档"] --> Chunking["文档切分"]
+  Chunking --> DocEmbedding["文档向量化"]
+  DocEmbedding --> VectorStore["VectorStore"]
+  VectorStore --> VectorSearch
 ```
 
 1. **离线阶段（建库）：** 原始文档经过分块、嵌入，以向量形式存入 VectorStore。
@@ -49,18 +52,16 @@ Retrieval-Augmented Generation，即"检索增强生成"。核心思路是先从
 
 ### 4.1 流程概览
 
-```
-classpath:knowledge/*.txt + *.pdf
-        ↓ 加载
-   List<Document>
-        ↓ 添加元数据 (filename, type, source, fileType)
-   List<Document> (enriched)
-        ↓ TokenTextSplitter 切分
-   List<Document> (split)
-        ↓ EmbeddingModel 向量化
-   List<Document> (with embeddings)
-        ↓ SimpleVectorStore.add()
-   持久化到 JSON 文件
+```mermaid
+flowchart TB
+  KnowledgeFiles["classpath:knowledge/*.txt 和 *.pdf"] --> Loader["TextReader / PagePdfDocumentReader"]
+  Loader --> Documents["List<Document>"]
+  Documents --> Metadata["补充元数据 filename/type/source/fileType"]
+  Metadata --> Splitter["TokenTextSplitter"]
+  Splitter --> Chunks["Document Chunks"]
+  Chunks --> EmbeddingModel["Ollama EmbeddingModel"]
+  EmbeddingModel --> SimpleVectorStore["SimpleVectorStore.add"]
+  SimpleVectorStore --> JsonFile["持久化 JSON 向量库文件"]
 ```
 
 ### 4.2 关键实现细节
@@ -115,7 +116,30 @@ Spring AI 提供的 Advisor，自动将检索结果注入到 Prompt 中，适合
 
 直接调用 `VectorStore.similaritySearch()`，获取原始文档列表，适合需要对检索结果做二次处理的场景。
 
-### 6.2 配置参数
+### 6.2 在线检索流程
+
+```mermaid
+sequenceDiagram
+  participant User
+  participant RagController
+  participant RagOrchestrationService
+  participant QueryExpansionService
+  participant VectorRetrievalService
+  participant VectorStore
+
+  User->>RagController: GET /api/rag/search
+  RagController->>RagOrchestrationService: search(query,type,topK)
+  RagOrchestrationService->>QueryExpansionService: expandQuery(query)
+  QueryExpansionService-->>RagOrchestrationService: expandedQuery
+  RagOrchestrationService->>VectorRetrievalService: search(expandedQuery,topK,threshold)
+  VectorRetrievalService->>VectorStore: similaritySearch(SearchRequest)
+  VectorStore-->>VectorRetrievalService: List<Document>
+  VectorRetrievalService-->>RagOrchestrationService: documents
+  RagOrchestrationService-->>RagController: SearchResultDTO
+  RagController-->>User: JSON results
+```
+
+### 6.3 配置参数
 
 在 `application.yml` 的 `app.chat.rag` 段配置，对应 `RagProperties` 类：
 
@@ -129,7 +153,7 @@ app:
 
 `similarityThreshold` 的值设为 0.2，目的是在中文业务文档场景下优先保证召回率，避免阈值过高导致漏召回。
 
-### 6.3 SearchRequest 构建模式
+### 6.4 SearchRequest 构建模式
 
 ```java
 SearchRequest request = SearchRequest.query(query)

@@ -16,26 +16,27 @@ Function Calling 让 LLM 能够**调用外部工具**。LLM 不直接执行代�
 
 ### 交互流程
 
-```
-用户: "帮我查一下贷款 LN001 的信息"
-        │
-        ▼
-  ┌─────────────┐
-  │  ChatClient  │ ──→ LLM 分析：需要查贷款数据
-  └─────────────┘
-        │ LLM 选择 loanQueryFunction，生成参数 {loanNo: "LN001"}
-        ▼
-  ┌──────────────────┐
-  │ LoanQueryFunction │ ──→ SELECT * FROM loan WHERE loan_no = 'LN001'
-  └──────────────────┘
-        │ 返回贷款数据给 LLM
-        ▼
-  ┌─────────────┐
-  │  ChatClient  │ ──→ LLM 组织自然语言回答
-  └─────────────┘
-        │
-        ▼
-"贷款 LN001 的信息：金额 50,000 元，状态为正常还款..."
+```mermaid
+sequenceDiagram
+  participant User
+  participant ChatClient
+  participant LLM
+  participant ToolAdapter as LoanQueryFunction
+  participant BusinessService as LoanQueryService
+  participant Database
+
+  User->>ChatClient: "帮我查一下贷款信息"
+  ChatClient->>LLM: prompt + tool definitions
+  LLM-->>ChatClient: tool call loanQueryFunction(args)
+  ChatClient->>ToolAdapter: queryLoanRecords(args)
+  ToolAdapter->>BusinessService: queryLoanRecords(userNo,status)
+  BusinessService->>Database: query loan table
+  Database-->>BusinessService: loan records
+  BusinessService-->>ToolAdapter: structured response
+  ToolAdapter-->>ChatClient: tool result
+  ChatClient->>LLM: tool result + original question
+  LLM-->>ChatClient: natural language answer
+  ChatClient-->>User: answer
 ```
 
 ### Spring AI 的实现方式
@@ -129,6 +130,40 @@ public ChatClient chatClient(ChatModel chatModel, ...) {
 2. 读取 `@Description` 注解的描述
 3. 分析 `Function<Request, Response>` 的 record 字段
 4. 将这些信息作为工具定义发送给 LLM API
+
+## 3.1 当前项目的双工具适配结构
+
+重构后，项目把业务能力沉淀到 `service.business`，Spring AI Function 和 Agent Tool 都只是适配器。这样既能演示 Spring AI 自动 Function Calling，也能演示自研 Agent Loop 的显式工具调用。
+
+```mermaid
+flowchart TB
+  subgraph chatPath [Chat Function Calling]
+    ChatClient --> SpringAiTool["@Tool 适配器"]
+    SpringAiTool --> LoanQueryFunction
+    SpringAiTool --> RepaymentQueryFunction
+    SpringAiTool --> RiskAssessmentFunction
+  end
+
+  subgraph agentPath [Agent Tool Calling]
+    AgentLoopService --> AgentToolExecutor
+    AgentToolExecutor --> ToolRouter
+    ToolRouter --> LoanQueryAgentTool
+    ToolRouter --> RepaymentQueryAgentTool
+    ToolRouter --> RiskAssessmentAgentTool
+  end
+
+  LoanQueryFunction --> LoanQueryService
+  RepaymentQueryFunction --> RepaymentQueryService
+  RiskAssessmentFunction --> RiskAssessmentService
+  LoanQueryAgentTool --> LoanQueryService
+  RepaymentQueryAgentTool --> RepaymentQueryService
+  RiskAssessmentAgentTool --> RiskAssessmentService
+
+  LoanQueryService --> LoanRepository
+  RepaymentQueryService --> RepaymentRecordRepository
+  RiskAssessmentService --> LoanRepository
+  RiskAssessmentService --> RepaymentRecordRepository
+```
 
 ## 4. 添加新函数的步骤
 

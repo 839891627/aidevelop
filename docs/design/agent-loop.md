@@ -26,6 +26,63 @@
 - LLM 给出 `done=true`
 - 发生不可恢复错误
 
+### 2.1 执行状态机
+
+```mermaid
+stateDiagram-v2
+  [*] --> Plan
+  Plan --> Tool: has toolCalls
+  Plan --> Reflect: no toolCalls
+  Tool --> Observe
+  Observe --> Reflect: reflect enabled
+  Observe --> Replan: reflect disabled and not enough evidence
+  Reflect --> Respond: done true
+  Reflect --> Replan: done false
+  Replan --> Tool: has more toolCalls
+  Replan --> Respond: no more toolCalls
+  Respond --> SelfCheck
+  SelfCheck --> Fallback: check failed
+  SelfCheck --> [*]: check passed
+  Fallback --> [*]
+```
+
+### 2.2 当前代码执行时序
+
+```mermaid
+sequenceDiagram
+  participant Client
+  participant AgentController
+  participant AgentLoopService
+  participant AgentPlanner
+  participant AgentToolExecutor
+  participant ToolRouter
+  participant AgentReflector
+  participant AgentResponder
+
+  Client->>AgentController: POST /api/agent/chat
+  AgentController->>AgentLoopService: chat(request)
+  AgentLoopService->>AgentPlanner: buildPlan(request,routePlan)
+  AgentPlanner-->>AgentLoopService: AgentPlanResult
+  loop each toolCall
+    AgentLoopService->>AgentToolExecutor: executeWithRetry(toolCall)
+    AgentToolExecutor->>ToolRouter: execute(toolName,args)
+    ToolRouter-->>AgentToolExecutor: tool result
+    AgentToolExecutor-->>AgentLoopService: AgentToolExecutionResult
+    AgentLoopService->>AgentReflector: reflect(observations)
+    AgentReflector-->>AgentLoopService: done or continue
+  end
+  opt need replan
+    AgentLoopService->>AgentPlanner: buildReplan(observations)
+    AgentPlanner-->>AgentLoopService: next toolCalls
+  end
+  AgentLoopService->>AgentResponder: buildFinalAnswer(observations)
+  AgentResponder-->>AgentLoopService: draft answer
+  AgentLoopService->>AgentResponder: selfCheck(draftAnswer)
+  AgentResponder-->>AgentLoopService: pass or fallback reason
+  AgentLoopService-->>AgentController: AgentResponse with steps
+  AgentController-->>Client: traceId + finalAnswer + steps
+```
+
 ## 3. 目标架构
 
 建议新增 `agent` 分层：
@@ -96,6 +153,22 @@ public interface AgentTool {
 - `rag.search` -> `RagPipelineService.search(...)`
 - `loan.query` -> `LoanQueryFunction.apply(...)`
 - `repayment.query` -> `RepaymentQueryFunction.apply(...)`
+
+```mermaid
+flowchart LR
+  AgentPlanner -->|"toolCalls JSON"| AgentLoopService
+  AgentLoopService --> AgentToolExecutor
+  AgentToolExecutor --> ToolRouter
+  ToolRouter --> RagSearchAgentTool
+  ToolRouter --> LoanQueryAgentTool
+  ToolRouter --> RepaymentQueryAgentTool
+  ToolRouter --> RiskAssessmentAgentTool
+
+  RagSearchAgentTool --> RagOrchestrationService
+  LoanQueryAgentTool --> LoanQueryService
+  RepaymentQueryAgentTool --> RepaymentQueryService
+  RiskAssessmentAgentTool --> RiskAssessmentService
+```
 
 这样后续可扩展：
 - `cost.today`
