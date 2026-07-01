@@ -2,7 +2,6 @@ package com.example.aidevelop.agent.service;
 
 import com.example.aidevelop.agent.model.AgentRequest;
 import com.example.aidevelop.agent.model.ToolCall;
-import com.example.aidevelop.agent.tool.ToolRouter;
 import com.example.aidevelop.service.IntentRoutingService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,7 +28,6 @@ public class AgentPlanner {
     private ChatClient chatClient;
 
     private final ObjectMapper objectMapper;
-    private final ToolRouter toolRouter;
     private final AgentPolicyEnforcer agentPolicyEnforcer;
 
     public AgentPlanResult buildPlan(AgentRequest request, IntentRoutingService.RoutePlan routePlan,
@@ -109,7 +107,7 @@ public class AgentPlanner {
         List<ToolCall> parsed = new ArrayList<>();
         for (JsonNode node : toolCalls) {
             String toolName = node.path("toolName").asText();
-            if (!allowedTools.contains(toolName) || !toolRouter.exists(toolName)) {
+            if (!allowedTools.contains(toolName)) {
                 continue;
             }
             Map<String, Object> args = objectMapper.convertValue(node.path("args"), Map.class);

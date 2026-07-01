@@ -74,7 +74,7 @@ class AgentLoopServiceTest {
 
         AgentPolicyEnforcer policyEnforcer = new AgentPolicyEnforcer(agentProperties, toolRouter);
         AgentToolExecutor toolExecutor = new AgentToolExecutor(toolRouter, agentProperties, new ObjectMapper());
-        AgentPlanner planner = new AgentPlanner(new ObjectMapper(), toolRouter, policyEnforcer);
+        AgentPlanner planner = new AgentPlanner(new ObjectMapper(), policyEnforcer);
         AgentReflector reflector = new AgentReflector(new ObjectMapper());
         AgentResponder responder = new AgentResponder(new ObjectMapper(), agentProperties, policyEnforcer);
         ReflectionTestUtils.setField(planner, "chatClient", chatClient);
@@ -140,7 +140,7 @@ class AgentLoopServiceTest {
         ToolRouter flakyRouter = new ToolRouter(List.of(new FlakyAgentTool()), retryProperties);
         AgentPolicyEnforcer retryPolicyEnforcer = new AgentPolicyEnforcer(retryProperties, flakyRouter);
         AgentToolExecutor retryToolExecutor = new AgentToolExecutor(flakyRouter, retryProperties, new ObjectMapper());
-        AgentPlanner retryPlanner = new AgentPlanner(new ObjectMapper(), flakyRouter, retryPolicyEnforcer);
+        AgentPlanner retryPlanner = new AgentPlanner(new ObjectMapper(), retryPolicyEnforcer);
         AgentReflector retryReflector = new AgentReflector(new ObjectMapper());
         AgentResponder retryResponder = new AgentResponder(new ObjectMapper(), retryProperties, retryPolicyEnforcer);
         ReflectionTestUtils.setField(retryPlanner, "chatClient", chatClient);
