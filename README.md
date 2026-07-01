@@ -6,7 +6,7 @@ Java 开发者学习 Spring AI、RAG、Function Calling 和 Agent Loop 的实战
 
 ## 项目简介
 
-本项目基于 Spring Boot + Spring AI 构建，从普通聊天开始，逐步加入会话记忆、工具调用、知识库检索、RAG 评估、成本统计、Prompt Registry 和 Agent Loop。代码尽量保持模块化，方便按章节阅读、调试和扩展。
+本项目基于 Spring Boot + Spring AI 构建，从普通聊天开始，逐步加入会话记忆、工具调用、知识库检索、RAG 评估、成本统计、Prompt Registry、Agent Loop 和多 Agent 协作。代码尽量保持模块化，方便按章节阅读、调试和扩展。
 
 ## 当前能力
 
@@ -19,6 +19,7 @@ Java 开发者学习 Spring AI、RAG、Function Calling 和 Agent Loop 的实战
 | RAG | 向量检索、BM25、混合检索、查询扩展、查询重写、LLM 重排、管道检索 | `RagController`, `service/rag` |
 | 向量库 | 启动时从 `src/main/resources/knowledge/*.txt,pdf` 构建 `SimpleVectorStore`，并持久化到本地文件 | `VectorStoreConfig`, `VectorIndexBuilder` |
 | Agent Loop | Plan、Tool、Reflect、Replan、SelfCheck、Respond，返回 `traceId` 和步骤明细 | `AgentController`, `AgentLoopService` |
+| 多 Agent 协作 | Supervisor 编排多子 Agent、Agent-as-Tool 委托、跨领域复杂问题自动调度 | `SupervisorOrchestrator`, `SubAgentRunner`, `AgentDispatcher` |
 | Prompt Registry | Prompt 查询、草稿、发布、回滚、版本列表 | `PromptController`, `PromptRegistryService` |
 | 成本统计 | AOP 记录 AI 调用日志，按今日/本周/本月/时间范围统计 | `AiCallLoggerAspect`, `AiCostController` |
 | 前端演示 | 原生 HTML/CSS/JS 聊天页和成本看板 | `src/main/resources/static` |
@@ -132,6 +133,13 @@ Agent 默认最多执行 3 个工具步骤，并支持：
 - SelfCheck 给最终答案打分
 - 风险评估类问题强制要求 RAG 证据，不满足时走稳健回退回答
 
+当检测到跨领域复杂问题时，系统自动切换为多 Agent 协作模式：
+
+- **Supervisor 编排**：Supervisor LLM 分析用户意图，决定调度哪些子 Agent、以什么顺序执行
+- **Agent-as-Tool**：子 Agent 作为工具被 Supervisor 调用，支持配置可委托的 Agent 列表
+- **子 Agent 独立执行**：每个子 Agent 拥有独立的 System Prompt、工具白名单、步数限制和温度参数
+- **结果汇总**：Supervisor 汇总各子 Agent 执行结果，生成最终回答
+
 ### RAG 检索
 
 | 方法 | 路径 | 说明 |
@@ -184,6 +192,7 @@ Agent 默认最多执行 3 个工具步骤，并支持：
 | `app.chat.rag.*` | RAG 开关、相似度阈值、topK、分块和管道参数 |
 | `app.chat.routing.*` | 意图路由关键词、工具白名单、混合链路参数 |
 | `app.chat.agent.*` | Agent 步数、超时、重试、Reflect/Replan/SelfCheck 配置 |
+| `app.chat.multi-agent.*` | 多 Agent 协作开关、Supervisor 轮数/超时、子 Agent 定义、Agent-as-Tool 配置 |
 | `app.prompts.*` | Prompt Registry 开关和环境 |
 | `app.cost-tracking.*` | AI 调用日志和成本统计开关 |
 
@@ -193,13 +202,19 @@ Agent 默认最多执行 3 个工具步骤，并支持：
 
 ```text
 src/main/java/com/example/aidevelop/
-├── agent/                      # Agent Loop 模型、控制器、服务、工具路由
+├── agent/                      # Agent 模块
+│   ├── controller/             # Agent API 入口
+│   ├── model/                  # Agent 请求/响应模型
+│   ├── multi/                  # 多 Agent 协作：Supervisor 编排、子 Agent 运行、Agent-as-Tool
+│   ├── service/                # Agent Loop 核心服务（Plan/Reflect/Replan/SelfCheck）
+│   └── tool/                   # Agent 工具定义与路由
 ├── config/                     # Spring AI、RAG、向量库、Swagger、CORS 等配置
 ├── controller/                 # Chat、RAG、Prompt、成本、调试、健康检查 API
 ├── exception/                  # 统一异常处理
 ├── interceptor/                # AI 调用日志 AOP
 ├── model/                      # DTO 和 JPA Entity
 ├── repository/                 # 会话、成本、Prompt 等持久化接口
+├── scheduled/                  # 定时任务（每日成本统计）
 └── service/                    # Chat、路由、工具函数、RAG、Prompt、成本统计
 
 src/main/resources/
@@ -244,6 +259,9 @@ docs/                           # 学习文档和设计文档
 | [08-cost-and-observability](docs/08-cost-and-observability.md) | 成本管理、AOP 日志、缓存 | ★★ |
 | [09-embedding-and-chunking](docs/09-embedding-and-chunking.md) | Embedding 与分块策略 | ★★★ |
 | [10-chat-memory](docs/10-chat-memory.md) | Chat Memory 持久化与流式会话续聊 | ★★★ |
+| [architecture](docs/architecture.md) | 项目核心架构说明（学习复盘 & 面试讲解） | 架构 |
+| [multi-agent-architecture](docs/multi-agent-architecture.md) | 多 Agent 协作架构文档 | 架构 |
+| [interview-guide](docs/interview-guide.md) | AI 大模型应用开发面试问答手册 | 面试 |
 | [design/agent-loop](docs/design/agent-loop.md) | Agent Loop 设计文档 | 设计稿 |
 | [design/enterprise-ai-evolution-todo](docs/design/enterprise-ai-evolution-todo.md) | 企业级 AI 系统演进 TODO | 设计稿 |
 
