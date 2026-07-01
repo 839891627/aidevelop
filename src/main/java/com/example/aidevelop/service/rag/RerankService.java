@@ -5,8 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.document.Document;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.ai.vectorstore.SearchRequest;
-import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -33,14 +31,14 @@ import java.util.stream.Collectors;
 @Slf4j
 public class RerankService {
 
-    private final VectorStore vectorStore;
+    private final VectorRetrievalService vectorRetrievalService;
     private final ChatModel chatModel;
 
     public RerankService(
-            VectorStore vectorStore,
+            VectorRetrievalService vectorRetrievalService,
             @Qualifier("openAiChatModel") ChatModel chatModel
     ) {
-        this.vectorStore = vectorStore;
+        this.vectorRetrievalService = vectorRetrievalService;
         this.chatModel = chatModel;
     }
 
@@ -90,13 +88,7 @@ public class RerankService {
      */
     private List<Document> vectorRetrieve(String query, int topN) {
         try {
-            SearchRequest searchRequest = SearchRequest.builder()
-                .query(query)
-                .topK(topN)
-                .similarityThreshold(0.0)  // 降低阈值，召回更多
-                .build();
-
-            return vectorStore.similaritySearch(searchRequest);
+            return vectorRetrievalService.search(query, topN, 0.0);
         } catch (Exception e) {
             log.error("向量检索失败", e);
             return List.of();

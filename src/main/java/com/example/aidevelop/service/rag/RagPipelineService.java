@@ -3,8 +3,6 @@ package com.example.aidevelop.service.rag;
 import com.example.aidevelop.config.RagPipelineProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.vectorstore.SearchRequest;
-import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +33,7 @@ public class RagPipelineService {
     private final QueryExpansionService queryExpansionService;
     private final HybridSearchService hybridSearchService;
     private final RerankService rerankService;
-    private final VectorStore vectorStore;
+    private final VectorRetrievalService vectorRetrievalService;
     private final RagPipelineProperties pipelineProperties;
 
     /**
@@ -206,13 +204,7 @@ public class RagPipelineService {
      * 向量检索
      */
     private List<Document> vectorSearch(String query, int topK) {
-        SearchRequest searchRequest = SearchRequest.builder()
-            .query(query)
-            .topK(topK)
-            .similarityThreshold(0.2)  // 固定阈值
-            .build();
-
-        return vectorStore.similaritySearch(searchRequest);
+        return vectorRetrievalService.search(query, topK);
     }
 
     /**

@@ -9,7 +9,7 @@ import java.util.List;
 
 @Data
 @Component
-@ConfigurationProperties(prefix = "app.ai.agent")
+@ConfigurationProperties(prefix = "app.chat.agent")
 public class AgentProperties {
 
     /**

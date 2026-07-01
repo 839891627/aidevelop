@@ -5,8 +5,6 @@ import com.example.aidevelop.model.dto.rag.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.vectorstore.SearchRequest;
-import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,7 +19,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class RagOrchestrationService {
 
-    private final VectorStore vectorStore;
+    private final VectorRetrievalService vectorRetrievalService;
     private final RagProperties ragProperties;
     private final QueryExpansionService queryExpansionService;
     private final HybridSearchService hybridSearchService;
@@ -36,13 +34,11 @@ public class RagOrchestrationService {
         String expandedQuery = queryExpansionService.expandQuery(query);
         log.info("查询扩展: {} -> {}", query, expandedQuery);
 
-        SearchRequest searchRequest = SearchRequest.builder()
-                .query(expandedQuery)
-                .topK(searchTopK)
-                .similarityThreshold(ragProperties.getSimilarityThreshold())
-                .build();
-
-        List<Document> documents = vectorStore.similaritySearch(searchRequest);
+        List<Document> documents = vectorRetrievalService.search(
+                expandedQuery,
+                searchTopK,
+                ragProperties.getSimilarityThreshold()
+        );
         log.info("检索到 {} 个文档片段（过滤前）", documents.size());
 
         if (type != null && !type.isEmpty()) {

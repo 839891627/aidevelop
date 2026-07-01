@@ -37,9 +37,10 @@ com.example.aidevelop.agent
 ├── service
 │   ├── AgentLoopService.java
 │   ├── AgentPlanner.java
-│   ├── AgentExecutor.java
+│   ├── AgentToolExecutor.java
 │   ├── AgentReflector.java
-│   └── ToolRouter.java
+│   ├── AgentResponder.java
+│   └── AgentPolicyEnforcer.java
 ├── model
 │   ├── AgentRequest.java
 │   ├── AgentResponse.java
@@ -47,6 +48,7 @@ com.example.aidevelop.agent
 │   ├── AgentState.java
 │   └── ToolCall.java
 └── tool
+    ├── ToolRouter.java
     ├── AgentTool.java
     ├── RagSearchTool.java
     ├── LoanQueryTool.java
@@ -107,6 +109,7 @@ public interface AgentTool {
   - 同步模式：返回最终答案 + steps 摘要
   - 可选流式模式：按 step 输出事件
 - RAG 与 Function 不重写，只通过 `ToolRouter` 复用
+- 业务工具能力沉淀到 `service.business`，Spring AI `@Tool` 和 Agent `AgentTool` 只做适配
 
 ## 7. 可观测性与评估
 

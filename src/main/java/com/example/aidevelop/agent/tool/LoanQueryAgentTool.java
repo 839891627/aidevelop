@@ -1,6 +1,6 @@
 package com.example.aidevelop.agent.tool;
 
-import com.example.aidevelop.service.function.LoanQueryFunction;
+import com.example.aidevelop.service.business.LoanQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -10,7 +10,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class LoanQueryAgentTool implements AgentTool {
 
-    private final LoanQueryFunction loanQueryFunction;
+    private final LoanQueryService loanQueryService;
 
     @Override
     public String name() {
@@ -21,7 +21,7 @@ public class LoanQueryAgentTool implements AgentTool {
     public Object execute(Map<String, Object> args) {
         String userNo = readString(args, "userNo", "");
         String status = readString(args, "status", null);
-        return loanQueryFunction.queryLoanRecords(new LoanQueryFunction.UserStatusRequest(userNo, status));
+        return loanQueryService.queryLoanRecords(userNo, status);
     }
 
     private String readString(Map<String, Object> args, String key, String defaultValue) {

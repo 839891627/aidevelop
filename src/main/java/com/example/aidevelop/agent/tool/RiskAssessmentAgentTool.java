@@ -1,6 +1,6 @@
 package com.example.aidevelop.agent.tool;
 
-import com.example.aidevelop.service.function.RiskAssessmentFunction;
+import com.example.aidevelop.service.business.RiskAssessmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -10,7 +10,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class RiskAssessmentAgentTool implements AgentTool {
 
-    private final RiskAssessmentFunction riskAssessmentFunction;
+    private final RiskAssessmentService riskAssessmentService;
 
     @Override
     public String name() {
@@ -20,7 +20,7 @@ public class RiskAssessmentAgentTool implements AgentTool {
     @Override
     public Object execute(Map<String, Object> args) {
         String userNo = readString(args, "userNo", "");
-        return riskAssessmentFunction.assessRisk(new RiskAssessmentFunction.Request(userNo));
+        return riskAssessmentService.assessRisk(userNo);
     }
 
     private String readString(Map<String, Object> args, String key, String defaultValue) {

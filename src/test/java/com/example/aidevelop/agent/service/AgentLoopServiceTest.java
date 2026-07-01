@@ -72,9 +72,23 @@ class AgentLoopServiceTest {
             new FixedAgentTool("risk.assess", Map.of("riskLevel", "LOW"))
         ), agentProperties);
 
-        agentLoopService = new AgentLoopService(intentRoutingService, toolRouter, new ObjectMapper(), agentProperties);
-        ReflectionTestUtils.setField(agentLoopService, "chatClient", chatClient);
-
+        AgentPolicyEnforcer policyEnforcer = new AgentPolicyEnforcer(agentProperties, toolRouter);
+        AgentToolExecutor toolExecutor = new AgentToolExecutor(toolRouter, agentProperties, new ObjectMapper());
+        AgentPlanner planner = new AgentPlanner(new ObjectMapper(), toolRouter, policyEnforcer);
+        AgentReflector reflector = new AgentReflector(new ObjectMapper());
+        AgentResponder responder = new AgentResponder(new ObjectMapper(), agentProperties, policyEnforcer);
+        ReflectionTestUtils.setField(planner, "chatClient", chatClient);
+        ReflectionTestUtils.setField(reflector, "chatClient", chatClient);
+        ReflectionTestUtils.setField(responder, "chatClient", chatClient);
+        agentLoopService = new AgentLoopService(
+            intentRoutingService,
+            agentProperties,
+            policyEnforcer,
+            toolExecutor,
+            planner,
+            reflector,
+            responder
+        );
         when(chatClient.prompt()).thenReturn(requestSpec);
         when(requestSpec.user(anyString())).thenReturn(requestSpec);
         when(requestSpec.call()).thenReturn(callResponseSpec);
@@ -124,9 +138,23 @@ class AgentLoopServiceTest {
         IntentRoutingService intentRoutingService = new IntentRoutingService(new RouteProperties(), toolsProperties);
 
         ToolRouter flakyRouter = new ToolRouter(List.of(new FlakyAgentTool()), retryProperties);
-        AgentLoopService retryService = new AgentLoopService(intentRoutingService, flakyRouter, new ObjectMapper(), retryProperties);
-        ReflectionTestUtils.setField(retryService, "chatClient", chatClient);
-
+        AgentPolicyEnforcer retryPolicyEnforcer = new AgentPolicyEnforcer(retryProperties, flakyRouter);
+        AgentToolExecutor retryToolExecutor = new AgentToolExecutor(flakyRouter, retryProperties, new ObjectMapper());
+        AgentPlanner retryPlanner = new AgentPlanner(new ObjectMapper(), flakyRouter, retryPolicyEnforcer);
+        AgentReflector retryReflector = new AgentReflector(new ObjectMapper());
+        AgentResponder retryResponder = new AgentResponder(new ObjectMapper(), retryProperties, retryPolicyEnforcer);
+        ReflectionTestUtils.setField(retryPlanner, "chatClient", chatClient);
+        ReflectionTestUtils.setField(retryReflector, "chatClient", chatClient);
+        ReflectionTestUtils.setField(retryResponder, "chatClient", chatClient);
+        AgentLoopService retryService = new AgentLoopService(
+            intentRoutingService,
+            retryProperties,
+            retryPolicyEnforcer,
+            retryToolExecutor,
+            retryPlanner,
+            retryReflector,
+            retryResponder
+        );
         when(callResponseSpec.content())
             .thenReturn("{\"toolCalls\":[{\"toolName\":\"loan.query\",\"args\":{\"userNo\":\"CUST1001\"}}],\"done\":false}")
             .thenReturn("{\"done\":true,\"reason\":\"重试后已成功\"}")
