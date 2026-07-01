@@ -26,4 +26,14 @@ class FallbackVectorStoreConfigTest {
                 .build())).isEmpty();
         });
     }
+
+    @Test
+    void shouldNotProvideFallbackVectorStoreWhenMilvusIsEnabled() {
+        contextRunner
+            .withPropertyValues("spring.ai.vectorstore.milvus.enabled=true")
+            .run(context -> {
+                assertThat(context).hasNotFailed();
+                assertThat(context).doesNotHaveBean(VectorStore.class);
+            });
+    }
 }

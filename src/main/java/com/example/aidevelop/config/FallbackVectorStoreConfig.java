@@ -6,6 +6,7 @@ import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.Filter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -17,6 +18,7 @@ public class FallbackVectorStoreConfig {
 
     @Bean
     @ConditionalOnMissingBean(VectorStore.class)
+    @ConditionalOnProperty(prefix = "spring.ai.vectorstore.milvus", name = "enabled", havingValue = "false", matchIfMissing = true)
     public VectorStore fallbackVectorStore() {
         log.warn("未配置可用的 VectorStore，RAG 将使用空结果降级实现。需要真实检索时请启动 Milvus 并设置 MILVUS_ENABLED=true");
         return new EmptyVectorStore();
