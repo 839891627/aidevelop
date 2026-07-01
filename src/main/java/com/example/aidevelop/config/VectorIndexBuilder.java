@@ -8,6 +8,7 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.reader.TextReader;
 import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
+import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -35,6 +36,16 @@ public class VectorIndexBuilder {
 
     public void buildIndex(VectorStore vectorStore) {
         try {
+            SearchRequest probe = SearchRequest.builder()
+                .query("test")
+                .topK(1)
+                .build();
+            List<Document> existing = vectorStore.similaritySearch(probe);
+            if (!existing.isEmpty()) {
+                log.info("向量库已有数据，跳过重建。如需强制重建请先清空 collection");
+                return;
+            }
+
             List<Document> allDocuments = new ArrayList<>();
             loadTextDocuments(allDocuments);
             loadPdfDocuments(allDocuments);

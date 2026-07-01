@@ -58,6 +58,17 @@ services:
       timeout: 20s
       retries: 3
 
+  attu:
+    image: zilliz/attu:v2.4
+    container_name: aidevelop-attu
+    ports:
+      - "8000:3000"
+    environment:
+      MILVUS_URL: milvus:19530
+    depends_on:
+      milvus:
+        condition: service_healthy
+
 volumes:
   mysql_data:
   etcd_data:
