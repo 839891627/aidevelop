@@ -38,7 +38,7 @@ public class AiCallLoggerAspect {
     private final AiCostCalculator costCalculator;
     @Value("${spring.ai.openai.chat.options.model}")
     private String configuredChatModel;
-    @Value("${spring.ai.ollama.embedding.options.model}")
+    @Value("${spring.ai.openai.embedding.options.model}")
     private String configuredEmbeddingModel;
 
     /**

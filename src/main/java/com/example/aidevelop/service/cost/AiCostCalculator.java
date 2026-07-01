@@ -19,7 +19,7 @@ public class AiCostCalculator {
 
     public AiCostCalculator(
         @Value("${spring.ai.openai.chat.options.model}") String chatModel,
-        @Value("${spring.ai.ollama.embedding.options.model}") String embeddingModel,
+        @Value("${spring.ai.openai.embedding.options.model}") String embeddingModel,
         @Value("${app.ai.pricing.chat-input:0.001}") BigDecimal chatInputPrice,
         @Value("${app.ai.pricing.chat-output:0.002}") BigDecimal chatOutputPrice,
         @Value("${app.ai.pricing.embedding-input:0.0}") BigDecimal embeddingInputPrice

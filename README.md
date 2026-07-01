@@ -31,7 +31,7 @@ Java 开发者学习 Spring AI、RAG、Function Calling 和 Agent Loop 的实战
 - Spring AI 1.1.6
 - Spring Web MVC, Spring Data JPA, Spring AOP, Validation
 - OpenAI 兼容 Chat Model（默认示例为 DeepSeek）
-- Ollama Embedding Model（默认 `nomic-embed-text`）
+- 火山方舟 doubao-embedding-vision（Embedding Model）
 - MySQL
 - Maven
 - Knife4j / Swagger UI
@@ -44,17 +44,26 @@ Java 开发者学习 Spring AI、RAG、Function Calling 和 Agent Loop 的实战
 
 - JDK 17+
 - Maven 3.6+
-- MySQL 8.x 或兼容版本
-- 一个 OpenAI 兼容接口的 API Key
-- 本地 Ollama 服务，用于 RAG embedding
+- Docker & Docker Compose（推荐，一键启动 MySQL + Milvus）
+- 一个 OpenAI 兼容接口的 API Key（聊天 + Embedding 均走火山方舟）
 
-### 1. 准备数据库
+### 1. 启动基础设施
 
 ```bash
-mysql -u root -p < sql/demo_tables.sql
-mysql -u root -p < sql/ai_cost_tracking.sql
-mysql -u root -p < sql/chat_memory.sql
-mysql -u root -p < sql/prompt_registry.sql
+docker-compose up -d
+```
+
+MySQL 和 Milvus 首次启动时会自动完成初始化：
+- MySQL 自动执行 `sql/` 下的建表脚本（通过 `docker-init/01-init.sh`）
+- Milvus 开箱即用，无需额外配置
+
+如果不使用 Docker，手动导入 SQL：
+
+```bash
+mysql -u root -p ai_develop < sql/demo_tables.sql
+mysql -u root -p ai_develop < sql/ai_cost_tracking.sql
+mysql -u root -p ai_develop < sql/chat_memory.sql
+mysql -u root -p ai_develop < sql/prompt_registry.sql
 ```
 
 ### 2. 配置环境变量
@@ -67,23 +76,15 @@ export DB_URL=jdbc:mysql://localhost:3306/ai_develop
 export DB_USERNAME=root
 export DB_PASSWORD=your-password
 
-# Chat model: OpenAI-compatible API
-export OPENAI_API_KEY=your-openai-compatible-key
-export OPENAI_BASE_URL=https://api.deepseek.com
-export OPENAI_CHAT_MODEL=deepseek-chat
-
-# Embedding model: Ollama
-export OLLAMA_BASE_URL=http://localhost:11434
-export EMBEDDING_MODEL=nomic-embed-text
-
-# Local vector store file
-export VECTOR_STORE_PATH=./data/vector-store-ollama.json
-```
-
-如果使用默认 embedding 模型，需要先拉取模型：
-
-```bash
-ollama pull nomic-embed-text
+# Chat & Embedding: 火山方舟 OpenAI 兼容 API
+export OPENAI_API_KEY=your-ark-api-key
+export OPENAI_BASE_URL=https://ark.cn-beijing.volces.com/api/plan/v3
+export OPENAI_CHAT_COMPLETIONS_PATH=/chat/completions
+export OPENAI_EMBEDDINGS_PATH=/embeddings
+export OPENAI_CHAT_MODEL=your-chat-endpoint-id
+export EMBEDDING_MODEL=doubao-embedding-vision
+export MILVUS_EMBEDDING_DIMENSION=2048
+export RAG_EMBEDDING_BATCH_SIZE=10
 ```
 
 ### 3. 启动应用
@@ -92,7 +93,7 @@ ollama pull nomic-embed-text
 mvn spring-boot:run
 ```
 
-首次启动时，如果 `VECTOR_STORE_PATH` 指向的文件不存在，应用会在启动完成后异步读取 `src/main/resources/knowledge/` 下的 TXT/PDF 文档，切分后写入本地向量库文件。后续启动会优先加载已有向量库文件。
+首次启动时，应用会在启动完成后异步读取 `src/main/resources/knowledge/` 下的 TXT/PDF 文档，切分后写入 Milvus。方舟 Agent Plan 的 Embeddings API 单次 `input` 上限为 10，项目默认通过 `RAG_EMBEDDING_BATCH_SIZE=10` 分批写入。
 
 ### 4. 访问入口
 
@@ -186,10 +187,9 @@ Agent 默认最多执行 3 个工具步骤，并支持：
 | 配置段 | 说明 |
 |--------|------|
 | `spring.profiles.active=openai` | 默认启用 OpenAI 兼容聊天模型配置 |
-| `spring.ai.openai.*` | Chat Model 的 API Key、Base URL、模型名 |
-| `spring.ai.ollama.*` | Ollama embedding 配置 |
-| `vector.store.path` | 本地向量库持久化文件路径 |
-| `app.chat.rag.*` | RAG 开关、相似度阈值、topK、分块和管道参数 |
+| `spring.ai.openai.*` | Chat Model 和 Embedding Model 的 API Key、Base URL、路径和模型名（均走火山方舟） |
+| `spring.ai.vectorstore.milvus.*` | Milvus 连接、集合名、向量维度和索引参数 |
+| `app.chat.rag.*` | RAG 开关、相似度阈值、topK、分块、Embedding 分批大小和管道参数 |
 | `app.chat.routing.*` | 意图路由关键词、工具白名单、混合链路参数 |
 | `app.chat.agent.*` | Agent 步数、超时、重试、Reflect/Replan/SelfCheck 配置 |
 | `app.chat.multi-agent.*` | 多 Agent 协作开关、Supervisor 轮数/超时、子 Agent 定义、Agent-as-Tool 配置 |

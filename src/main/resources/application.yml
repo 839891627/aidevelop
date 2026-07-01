@@ -25,15 +25,18 @@ spring:
     retry:
       max-attempts: 3
       backoff-delay: 1000
-    ollama:
-      base-url: ${OLLAMA_BASE_URL}
-      chat:
-        enabled: false
-      embedding:
-        enabled: true
-        model: ${EMBEDDING_MODEL}
-        options:
-          model: ${EMBEDDING_MODEL}
+    vectorstore:
+      milvus:
+        enabled: ${MILVUS_ENABLED:false}
+        client:
+          host: ${MILVUS_HOST:localhost}
+          port: ${MILVUS_PORT:19530}
+        database-name: ${MILVUS_DATABASE:default}
+        collection-name: ${MILVUS_COLLECTION:knowledge_vectors}
+        embedding-dimension: ${MILVUS_EMBEDDING_DIMENSION:768}
+        index-type: IVF_FLAT
+        metric-type: COSINE
+        initialize-schema: true
 
 springdoc:
   api-docs:
@@ -70,11 +73,6 @@ knife4j:
 server:
   port: 8080
 
-vector:
-  store:
-    # 切换 embedding 模型后，请使用新的向量库文件路径（避免向量维度不一致）
-    path: ${VECTOR_STORE_PATH}
-
 logging:
   level:
     root: INFO
@@ -103,6 +101,7 @@ app:
     rag:
       # false: 纯聊天模式，不走向量检索；true: 启用 RAG（会调用 embedding）
       enabled: true
+      embedding-batch-size: ${RAG_EMBEDDING_BATCH_SIZE:10}
       similarity-threshold: 0.2
       top-k: 5
       chunking:
