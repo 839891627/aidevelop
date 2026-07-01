@@ -1,0 +1,25 @@
+.env.example
+  s_8b42b000859c35::t_ea5a643fec6d7d 9
+docker-compose.yml
+  ai_agent 61-71
+sql/docker-init/01-init.sh
+  s_8b42b000859c35::t_5e241700b4df90 6,18
+src/main/java/com/example/aidevelop/config/VectorIndexBuilder.java
+  ai_agent 11,39-48
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "156cb2bb584134037e2d87e3ac359ef5624f2640",
+  "prompts": {},
+  "sessions": {
+    "s_8b42b000859c35": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "7493d369-168d-48f4-baf2-6dc7aea19941",
+        "model": "gpt-5.5"
+      },
+      "human_author": "jinliang.cao <arvin.cao2@xinfei.cn>"
+    }
+  }
+}
