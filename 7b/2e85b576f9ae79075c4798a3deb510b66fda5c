@@ -1,0 +1,131 @@
+docs/05-function-calling.md
+  s_16826a9bd264af::t_34bb14d32d719e 46,109,112-117,121,127
+  s_16826a9bd264af::t_7332d5115ff31a 205,207
+src/main/resources/static/css/cost.css
+  s_16826a9bd264af::t_5e8fae89ba3552 2,6-25,29,36-41,44-45,47,49-54,57-66,68-71,74-76,78-85,88-94,97-104,107-110,113-133,139-140,144-159,162-164,170-177,181-187,190-192,195-199,201-202,205,208-219,223-228,231-235,238-241,244-254,258-261,266-271,274-292,295-309,314-315,325,328,330-331,334-338,341-343,346-347,352,359-369,373-380,385-395,399-400,404-406,409-417,419-423,426,428-430,433-449,452-460
+src/main/java/com/example/aidevelop/service/ChatService.java
+  s_2e110532d7f813::t_e91bccab859e9a 5-6,9-10,30-39
+README.md
+  s_16826a9bd264af::t_22efefd3a696c9 271
+  s_16826a9bd264af::t_1ed97cc239524d 15,23,25,103,121-129,167,177-185
+  s_16826a9bd264af::t_d8edc3efd7e19e 267,282
+docs/design/agent-loop.md
+  s_16826a9bd264af::t_73caf3619e960a 8,15-33
+src/main/resources/static/index.html
+  s_2e110532d7f813::t_7bed35e431e536 37-46
+  s_16826a9bd264af::t_82e084badd8c90 6,8,12-19,21-36,47-51,55-62,64-66,68,72-80,82-83,93-103,105-106
+  s_16826a9bd264af::t_a694f0cf1f95bf 63,67,69-71,81,84-87,104
+  s_2e110532d7f813::t_b711f9fac8df9c 88-92
+src/main/java/com/example/aidevelop/config/AiModelConfig.java
+  s_16826a9bd264af::t_0e6d14acf75d02 31,47
+docs/06-rag-basics.md
+  s_16826a9bd264af::t_a61dc0199a9878 37-57
+src/test/java/com/example/aidevelop/staticpage/StaticChatPageTest.java
+  s_16826a9bd264af::t_a167b154b65801 87-97
+  s_16826a9bd264af::t_4101d969d16230 33-34
+  s_16826a9bd264af::t_b0ea8b542e2f54 24,35
+  s_16826a9bd264af::t_c3f5b3e4e5ae5a 22,25-26,31-32
+  s_16826a9bd264af::t_b1cac99dd906cf 64-66,68-70
+  s_2e110532d7f813::t_072298624b593c 27-30,36,44-45
+  s_16826a9bd264af::t_12a262b2730b3d 81,85
+  s_16826a9bd264af::t_cbf0b15ebc6ea4 76-80,82-84,86
+  s_16826a9bd264af::t_2a988a48ce3f48 1-21,37-43,61-63,71-75,98
+  s_2e110532d7f813::t_6e2b5c39e1a17e 23,46-60
+  s_16826a9bd264af::t_3186f18324ffa8 67
+src/main/resources/static/css/chat.css
+  s_2e110532d7f813::t_9feb9d6d77ee9d 174-182,185-208,211-215,217-231,233-234,237-239,242-245,248-249,252-253
+  s_16826a9bd264af::t_17400966ddf033 435-437,451-463
+  s_16826a9bd264af::t_c576ca3c498a66 466-474
+  s_16826a9bd264af::t_689cb24fce4254 2,6-28,30,37-42,46-47,49,51-56,59-71,73-77,80,83-92,95,98-112,115-124,127-129,131-160,163-167,170-173,256-278,281-285,288-295,298-299,302-311,314-320,323-328,331-366,371,375-376,379-383,386-392,395-406,409-426,428,430-434,438-450,464-465,475-486,490-493,496-522,526-527,530-538,541-544,552,566-570,575-576,580,584-590,594-595,597-599,604-605,610-613,616-619,622-626,629-634,637-638,641-653,656-666,671-677,679,683,686-691,693-695,698-700,703-707,710-715,718-726,729-737,740-743,745-749,751-753,755-758,760-762,764-766,768-770,773-776,779-780,784-786,789-791,794-797,800-802,805-808,811-812,815-818,821-822
+sql/prompt_registry.sql
+  s_16826a9bd264af::t_4eebc7064ea79d 58-76,105-117
+src/main/resources/static/css/prompt.css
+  s_16826a9bd264af::t_40e964db6ddebb 1-528
+src/main/java/com/example/aidevelop/model/dto/chat/ChatConversationSummary.java
+  s_2e110532d7f813::t_ceb321f8452b13 1-32
+src/main/java/com/example/aidevelop/service/IntentRoutingService.java
+  s_16826a9bd264af::t_90a3ac7e7a6d66 36,41,45,50,64,134
+  s_16826a9bd264af::t_32f70d7fd68b9a 49,51-53
+src/main/java/com/example/aidevelop/controller/ChatController.java
+  s_2e110532d7f813::t_84db0dc03c66cb 5-6,16,24-25,69-87
+src/main/resources/static/js/cost.js
+  s_16826a9bd264af::t_9b1ae0aadeff59 16-26,47,57,71,78-89,91-92,95-162,164-253,255,262,267,291-299
+src/main/java/com/example/aidevelop/service/prompt/PromptRegistryService.java
+  s_16826a9bd264af::t_5f6569c8c58c51 33-59,155,160-162,197-200,202-205
+  s_16826a9bd264af::t_3fa96734e27704 154,159,201
+  s_16826a9bd264af::t_0b8e85f96ea54a 25-26,153,156-158
+src/main/resources/static/cost.html
+  s_16826a9bd264af::t_930951e2dcc4b7 6,8,11-22,25,31,33,35-36,40-42,47-49,54-56,59,61-63,66,68-69,71-109,116,120,124,126-130,134
+src/main/java/com/example/aidevelop/model/dto/chat/ChatRequest.java
+  s_16826a9bd264af::t_6d3253dc938a37 24-27
+src/test/java/com/example/aidevelop/model/dto/chat/ChatModeTest.java
+  s_16826a9bd264af::t_00f7f28f7f64f0 1-26
+docs/04-prompt-engineering.md
+  s_16826a9bd264af::t_bbd10d15e9a160 29-40,42-43,57,61,63,65,93-101,144-171,214-215,220-221
+docs/03-multi-llm.md
+  s_16826a9bd264af::t_95f352754ea4fc 5
+  s_16826a9bd264af::t_28dcf7622e4828 106,119,125-129
+src/main/java/com/example/aidevelop/model/dto/chat/ChatMessageResponse.java
+  s_2e110532d7f813::t_cf851265da34c0 1-32
+src/main/java/com/example/aidevelop/agent/service/AgentLoopService.java
+  s_16826a9bd264af::t_ba4348f676d111 39,42,48,59,80,101,126,168,181
+src/main/java/com/example/aidevelop/model/dto/chat/ChatMode.java
+  s_16826a9bd264af::t_adcb9afdd58e13 1-5,7,9,11-24,26-33,35-37
+  s_16826a9bd264af::t_a2a84c8866751d 6,8,10,25,34
+docs/02-chat-basics.md
+  s_16826a9bd264af::t_cec99a245377de 5,22,68,72-84,91,102-103,120-125,128,130,196,198-201
+docs/README.md
+  s_16826a9bd264af::t_14b2ca06fb2a5e 28-35,99
+  s_16826a9bd264af::t_580f158c078dd2 23-27,36,40-46
+  s_16826a9bd264af::t_0b058eabf43aab 3,10,13,88,110,113-114,116-135
+src/main/java/com/example/aidevelop/agent/tool/ToolRouter.java
+  s_16826a9bd264af::t_afed68b9630b9e 34,63
+src/main/java/com/example/aidevelop/service/impl/ChatServiceImpl.java
+  s_2e110532d7f813::t_813600323ed576 5-6,30-31,194-225,267-283
+  s_16826a9bd264af::t_34e0ef5db5bbd8 4,15,46-47,75-77,145-147,326-327,329,331,333-335,337-346,348,353,371-373,375-378
+  s_16826a9bd264af::t_92ed2d1d8315f5 73,140,328,330,332,349,356,374
+src/main/resources/static/js/prompt.js
+  s_16826a9bd264af::t_fa1d75e85c8bb5 8-9
+docs/11-case-execution-flows.md
+  s_16826a9bd264af::t_181ed1307b5990 1-396
+src/test/java/com/example/aidevelop/controller/ChatControllerTest.java
+  s_2e110532d7f813::t_b73ff4bcd7f7de 1-81
+src/main/resources/static/prompt.html
+  s_16826a9bd264af::t_5d8c975ecf4430 1-102
+docs/architecture.md
+  s_16826a9bd264af::t_9277c5a5230ca0 3,5,7,9-11,13,17,19-22,25-30,33-38,41-48,50-56,58-61,63-67,69,71-83,86,88,92-107,110-116,118,120-122,124,126-152,159,161,164-182,184-186,188,190,194-216,219-227,229,231,233-236,240-285,294-296,299,301-328,330,332,334-350,352,354-362,364-367,369-377,379,383-385,387-392
+src/main/resources/static/js/chat.js
+  s_16826a9bd264af::t_468a1c17f8bdd5 2,20,23-25,27,32,35-37,41,44,53,55-57,62-65,70-73,77-84,87,92-94,96-98,101,103-104,107,109,112-113,115-118,127,132,139-149,151-164,166-167,169,171,178,183,188,195,209-210,232,235,246,249,253-271,295-296,302,308-319,330-331,340-344,437,443-447,453,456-457,467,469,471-472,486-491,496-500,510,512-516,520-529
+  s_16826a9bd264af::t_fcf8a2daeb6b78 5-16,284
+  s_16826a9bd264af::t_f5b25e0a96dad8 66-69,492-495
+  s_16826a9bd264af::t_f918db181c28a7 110,150
+  s_2e110532d7f813::t_e1609ab97b6675 477-481
+  s_2e110532d7f813::t_910d96f7946df4 26,31,34,46,52,99,119,137,168,207,345-429,438-442,448-452,458-462,464
+  s_16826a9bd264af::t_6b771b57f25199 3,21-22,38-40,100,111,114,136,138,176,206,454-455,470,473-476,517-519
+docs/01-quick-start.md
+  s_16826a9bd264af::t_87f3112c8ae519 20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "7b2e85b576f9ae79075c4798a3deb510b66fda5c",
+  "prompts": {},
+  "sessions": {
+    "s_16826a9bd264af": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "82ae0494-06d2-4d7a-8ff7-4dcc931cd2b7",
+        "model": "gpt-5.5"
+      },
+      "human_author": "jinliang.cao <arvin.cao2@xinfei.cn>"
+    },
+    "s_2e110532d7f813": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "45a797cc-994e-4df8-83dc-05e10f97dec5",
+        "model": "gpt-5.5"
+      },
+      "human_author": "jinliang.cao <arvin.cao2@xinfei.cn>"
+    }
+  }
+}
