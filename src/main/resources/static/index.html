@@ -3,40 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 智能助手</title>
+    <title>AI 工作台</title>
     <link rel="stylesheet" href="/css/chat.css">
-    <!-- Markdown解析库 - 必须在chat.js之前加载 -->
+    <!-- Markdown 解析库 - 必须在 chat.js 之前加载 -->
     <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
-    <base target="_blank">
 </head>
 <body>
-    <div class="chat-container">
-        <header class="chat-header">
-            <h1>AI 智能助手</h1>
-            <div class="controls">
-                <a href="/cost.html" class="nav-link">💰 成本管理</a>
-                <button id="clearBtn"><span>清空对话</span></button>
-                <select id="modeSelect">
-                    <option value="normal">普通模式</option>
-                    <option value="stream" selected>流式模式</option>
-                </select>
-            </div>
-        </header>
-
-        <main id="chatMessages" class="chat-messages">
-            <div class="empty-state">
-                <div class="empty-state-icon">✦</div>
-                <div class="empty-state-text">
-                    <strong>开始新的对话</strong><br>
-                    输入您的问题，我将竭诚为您服务
+    <div class="app-shell">
+        <aside class="sidebar" aria-label="主导航">
+            <div class="brand">
+                <div class="brand-mark">A</div>
+                <div>
+                    <p class="eyebrow">AI Develop</p>
+                    <h1>智能工作台</h1>
                 </div>
             </div>
-        </main>
 
-        <footer class="chat-input">
-            <textarea id="messageInput" placeholder="输入消息..." rows="3"></textarea>
-            <button id="sendBtn">发送</button>
-        </footer>
+            <nav class="sidebar-nav">
+                <a href="/index.html" class="nav-item active">
+                    <span>Chat</span>
+                    <small>多接口对话</small>
+                </a>
+                <a href="/prompt.html" class="nav-item">
+                    <span>Prompt</span>
+                    <small>提示词管理</small>
+                </a>
+                <a href="/cost.html" class="nav-item">
+                    <span>Cost</span>
+                    <small>成本监控</small>
+                </a>
+            </nav>
+
+            <section class="history-panel" aria-label="历史聊天">
+                <div class="history-header">
+                    <span>历史聊天</span>
+                    <button id="newChatBtn" type="button">新建</button>
+                </div>
+                <div id="conversationHistory" class="history-list">
+                    <p class="history-empty">暂无历史会话</p>
+                </div>
+            </section>
+
+            <div class="sidebar-card">
+                <span class="status-dot"></span>
+                <div>
+                    <strong>3 个聊天入口</strong>
+                    <p>流式、普通与 Agent 对话统一在右上角切换。</p>
+                </div>
+            </div>
+
+            <button id="clearBtn" class="ghost-button">清空当前对话</button>
+        </aside>
+
+        <main class="chat-workspace">
+            <header class="workspace-header">
+                <div>
+                    <p class="eyebrow">Chat Console</p>
+                    <h2>今天想构建什么？</h2>
+                    <p id="modeDescription" class="mode-description">常规知识、技术解释、写作和方案设计，不套用金融助贷提示词。</p>
+                </div>
+
+                <label class="api-switcher">
+                    <span>能力模式</span>
+                    <select id="apiModeSelect">
+                        <option value="general" selected>常规聊天</option>
+                        <option value="financial_rag">金融 RAG</option>
+                        <option value="agent">Agent 任务</option>
+                    </select>
+                </label>
+            </header>
+
+            <section id="chatMessages" class="chat-messages" aria-live="polite">
+                <div class="empty-state">
+                    <div class="empty-state-icon">?</div>
+                    <div class="empty-state-text">
+                        <strong>开始一段新的对话</strong>
+                        <span>预制问题会自动切换到对应能力模式：常规聊天、金融 RAG 或 Agent 任务。</span>
+                    </div>
+                    <div class="prompt-chips" aria-label="示例问题">
+                        <button type="button" data-mode="general" data-prompt="什么是 RAG？和 Agent 有什么区别？"><span class="chip-tag chip-tag-general">常规</span><span>解释 RAG 与 Agent</span></button>
+                        <button type="button" data-mode="general" data-prompt="帮我把这个项目的聊天、Prompt、成本管理能力总结成一段产品说明"><span class="chip-tag chip-tag-general">常规</span><span>生成产品说明</span></button>
+                        <button type="button" data-mode="financial_rag" data-prompt="请根据金融助贷知识库说明借款申请通常需要关注哪些规则"><span class="chip-tag chip-tag-rag">RAG</span><span>借款规则说明</span></button>
+                        <button type="button" data-mode="financial_rag" data-prompt="请根据金融助贷知识库总结还款逾期相关的处理原则"><span class="chip-tag chip-tag-rag">RAG</span><span>逾期处理原则</span></button>
+                        <button type="button" data-mode="agent" data-prompt="请查询 USER001 的借款记录，并总结当前借款状态"><span class="chip-tag">Agent</span><span>查询借款记录</span></button>
+                        <button type="button" data-mode="agent" data-prompt="请查询 USER001 的还款记录，重点说明是否存在逾期或异常状态"><span class="chip-tag">Agent</span><span>查询还款记录</span></button>
+                        <button type="button" data-mode="agent" data-prompt="请分析 USER001 的借款和还款信息，指出需要关注的问题"><span class="chip-tag">Agent</span><span>借还款综合分析</span></button>
+                        <button type="button" data-mode="agent" data-prompt="请对 USER001 做风险评估，并给出风险等级、依据和建议"><span class="chip-tag">Agent</span><span>风险评估</span></button>
+                        <button type="button" data-mode="agent" data-prompt="请检索知识库中的风控规则，并结合 USER001 的情况给出判断"><span class="chip-tag">Agent</span><span>规则 + 用户判断</span></button>
+                    </div>
+                </div>
+            </section>
+
+            <footer class="composer-wrap">
+                <div class="composer-card">
+                    <textarea id="messageInput" placeholder="发送消息给 AI 工作台..." rows="1"></textarea>
+                    <button id="sendBtn" class="send-button" aria-label="发送消息">
+                        <span>发送</span>
+                    </button>
+                </div>
+                <p class="composer-hint">Enter 发送，Shift + Enter 换行。常规聊天不绑定金融提示词；金融 RAG 使用知识库；Agent 任务会返回执行轨迹摘要。</p>
+            </footer>
+        </main>
     </div>
 
     <script src="/js/chat.js"></script>

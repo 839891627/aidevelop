@@ -1,6 +1,9 @@
 package com.example.aidevelop.service.impl;
 
 import com.example.aidevelop.exception.AiServiceException;
+import com.example.aidevelop.model.dto.chat.ChatMode;
+import com.example.aidevelop.model.dto.chat.ChatConversationSummary;
+import com.example.aidevelop.model.dto.chat.ChatMessageResponse;
 import com.example.aidevelop.model.dto.chat.ChatRequest;
 import com.example.aidevelop.model.dto.chat.ChatResponse;
 import com.example.aidevelop.model.entity.Conversation;
@@ -9,6 +12,7 @@ import com.example.aidevelop.model.entity.MessageRole;
 import com.example.aidevelop.repository.ConversationRepository;
 import com.example.aidevelop.service.ChatService;
 import com.example.aidevelop.service.IntentRoutingService;
+import com.example.aidevelop.service.prompt.PromptRegistryService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -23,6 +27,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -36,6 +42,8 @@ public class ChatServiceImpl implements ChatService {
     private ConversationRepository conversationRepository;
     @Resource
     private IntentRoutingService intentRoutingService;
+    @Resource
+    private PromptRegistryService promptRegistryService;
     @Resource
     private ObjectProvider<VectorStore> vectorStoreProvider;
 
@@ -62,10 +70,11 @@ public class ChatServiceImpl implements ChatService {
             String prompt = buildPromptWithHistory(conversation);
             OpenAiChatOptions runtimeOptions = buildRuntimeOptions(request);
 
-            // 4. 调用 AI 模型
+            // 4. 根据前端选择的能力模式，决定本次请求使用哪套提示词、是否启用 RAG/工具。
             log.debug("发送请求到 AI 模型: {}", request.getMessage());
-            IntentRoutingService.RoutePlan routePlan = intentRoutingService.plan(request.getMessage());
-            var promptSpec = preparePromptSpec(routePlan);
+            ChatMode chatMode = ChatMode.from(request.getMode());
+            IntentRoutingService.RoutePlan routePlan = resolveRoutePlan(chatMode, request.getMessage());
+            var promptSpec = preparePromptSpec(chatMode, routePlan);
             if (runtimeOptions != null) {
                 promptSpec = promptSpec.options(runtimeOptions);
             }
@@ -128,13 +137,14 @@ public class ChatServiceImpl implements ChatService {
             String prompt = buildPromptWithHistory(conversation);
             OpenAiChatOptions runtimeOptions = buildRuntimeOptions(request);
 
-            // 流式调用
+            // 流式调用和阻塞调用共用同一套路由逻辑，保证两种接口行为一致。
             log.debug("开始流式响应: {}", request.getMessage());
 
             StringBuilder fullResponse = new StringBuilder();
 
-            IntentRoutingService.RoutePlan routePlan = intentRoutingService.plan(request.getMessage());
-            var promptSpec = preparePromptSpec(routePlan);
+            ChatMode chatMode = ChatMode.from(request.getMode());
+            IntentRoutingService.RoutePlan routePlan = resolveRoutePlan(chatMode, request.getMessage());
+            var promptSpec = preparePromptSpec(chatMode, routePlan);
             if (runtimeOptions != null) {
                 promptSpec = promptSpec.options(runtimeOptions);
             }
@@ -181,6 +191,38 @@ public class ChatServiceImpl implements ChatService {
         log.info("已清空对话历史: {}", conversationId);
     }
 
+    @Override
+    public List<ChatConversationSummary> listConversations() {
+        return conversationRepository.findAll().stream()
+                .sorted(Comparator.comparing(
+                        Conversation::getUpdatedAt,
+                        Comparator.nullsLast(Comparator.naturalOrder())
+                ).reversed())
+                .map(conversation -> ChatConversationSummary.builder()
+                        .conversationId(conversation.getConversationId())
+                        .title(resolveConversationTitle(conversation))
+                        .messageCount(conversation.getMessages().size())
+                        .createdAt(conversation.getCreatedAt())
+                        .updatedAt(conversation.getUpdatedAt())
+                        .build())
+                .toList();
+    }
+
+    @Override
+    public List<ChatMessageResponse> getConversationMessages(String conversationId) {
+        return conversationRepository.findById(conversationId)
+                .map(conversation -> conversation.getMessages().stream()
+                        .map(message -> ChatMessageResponse.builder()
+                                .messageId(message.getId())
+                                .role(message.getRole().name())
+                                .content(message.getContent())
+                                .model(message.getModel())
+                                .createdAt(message.getTimestamp())
+                                .build())
+                        .toList())
+                .orElseGet(List::of);
+    }
+
     // ===== 私有辅助方法 =====
 
     private Conversation getOrCreateConversation(String conversationId) {
@@ -220,6 +262,25 @@ public class ChatServiceImpl implements ChatService {
                     return roleLabel + ": " + m.getContent();
                 })
                 .collect(Collectors.joining("\n")) + "\n助手: ";
+    }
+
+    private String resolveConversationTitle(Conversation conversation) {
+        return conversation.getMessages().stream()
+                .filter(message -> message.getRole() == MessageRole.USER)
+                .map(Message::getContent)
+                .filter(StringUtils::hasText)
+                .findFirst()
+                .map(this::truncateTitle)
+                .orElse("未命名会话");
+    }
+
+    private String truncateTitle(String title) {
+        String normalized = title.trim().replaceAll("\\s+", " ");
+        int maxLength = 30;
+        if (normalized.length() <= maxLength) {
+            return normalized;
+        }
+        return normalized.substring(0, maxLength) + "...";
     }
 
     private void sendSseChunk(SseEmitter emitter, String chunk) {
@@ -262,19 +323,37 @@ public class ChatServiceImpl implements ChatService {
         return builder.build();
     }
 
-    private ChatClient.ChatClientRequestSpec preparePromptSpec(IntentRoutingService.RoutePlan routePlan) {
-        log.debug("意图路由结果: type={}, rag={}, tools={}, reason={}",
-            routePlan.routeType(), routePlan.ragEnabled(), routePlan.allowedToolNames(), routePlan.reason());
+    private IntentRoutingService.RoutePlan resolveRoutePlan(ChatMode chatMode, String message) {
+        return switch (chatMode) {
+            // 常规聊天明确不走 IntentRoutingService，避免命中金融关键词后自动挂载 RAG/工具。
+            case GENERAL -> null;
+            // 金融 RAG 模式强制构造 RAG_ONLY 计划，不再依赖关键词判断。
+            case FINANCIAL_RAG -> intentRoutingService.financialRagPlan();
+            // auto 是兼容旧体验的自动路由：根据问题内容判断 Tool/RAG/Hybrid。
+            case AUTO -> intentRoutingService.plan(message);
+        };
+    }
 
-        ChatClient.ChatClientRequestSpec promptSpec = chatClient.prompt();
+    private ChatClient.ChatClientRequestSpec preparePromptSpec(ChatMode chatMode, IntentRoutingService.RoutePlan routePlan) {
+        if (routePlan == null) {
+            log.debug("聊天模式: {}, 不启用 RAG/工具路由", chatMode);
+        } else {
+            log.debug("聊天模式: {}, 意图路由结果: type={}, rag={}, tools={}, reason={}",
+                chatMode, routePlan.routeType(), routePlan.ragEnabled(), routePlan.allowedToolNames(), routePlan.reason());
+        }
 
-        if (!routePlan.allowedToolNames().isEmpty()) {
+        ChatClient.ChatClientRequestSpec promptSpec = chatClient.prompt()
+            .system(resolveSystemPrompt(chatMode));
+
+        if (routePlan != null && !routePlan.allowedToolNames().isEmpty()) {
+            // 只把路由计划允许的工具暴露给模型，降低误调用和越权调用风险。
             promptSpec = promptSpec.toolNames(routePlan.allowedToolNames().toArray(new String[0]));
         }
 
-        if (routePlan.ragEnabled()) {
+        if (routePlan != null && routePlan.ragEnabled()) {
             VectorStore vectorStore = vectorStoreProvider.getIfAvailable();
             if (vectorStore != null) {
+                // RAG 参数来自 RoutePlan，不同链路可以使用不同 topK 和相似度阈值。
                 SearchRequest searchRequest = SearchRequest.builder()
                     .topK(routePlan.ragTopK())
                     .similarityThreshold(routePlan.ragSimilarityThreshold())
@@ -288,5 +367,14 @@ public class ChatServiceImpl implements ChatService {
         }
 
         return promptSpec;
+    }
+
+    private String resolveSystemPrompt(ChatMode chatMode) {
+        return switch (chatMode) {
+            // 三种模式使用不同 promptKey，让“常规聊天”和“金融 RAG”在系统提示词层面隔离。
+            case GENERAL -> promptRegistryService.getGeneralChatPrompt();
+            case FINANCIAL_RAG -> promptRegistryService.getFinancialRagPrompt();
+            case AUTO -> promptRegistryService.getSystemPrompt();
+        };
     }
 }

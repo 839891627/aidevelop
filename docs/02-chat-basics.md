@@ -2,7 +2,7 @@
 
 本节讲解如何使用 Spring AI 构建完整的 AI 对话功能，包括阻塞式调用、流式响应、对话历史管理和前端交互。
 
-技术栈：Spring Boot 3.3.5 + Spring AI 1.0.0-M5 + Spring MVC（SSE 流式输出）
+技术栈：Spring Boot 3.3.5 + Spring AI + Spring MVC（SSE 流式输出）
 
 ---
 
@@ -19,7 +19,7 @@ Spring AI 提供两个层次的 API：
 | 功能 | 发送消息、获取响应 | 自动注入系统提示、对话记忆、RAG、Function Calling |
 | 类比 | JDBC | JPA / MyBatis |
 
-本项目使用 `ChatClient` 作为统一入口，在 `AiModelConfig` 中完成所有配置。
+本项目使用 `ChatClient` 作为统一入口，`AiModelConfig` 只负责按模型 Provider 创建基础客户端；具体 system prompt、RAG Advisor 和工具能力由 `ChatServiceImpl` 在每次请求中根据 `ChatMode` 动态挂载。
 
 ### 消息类型
 
@@ -65,18 +65,21 @@ public ChatClient chatClientForOpenAI(
             .similarityThreshold(ragProperties.getSimilarityThreshold())  // 相似度阈值 0.2
             .build();
 
-    return ChatClient.builder(chatModel)
-            .defaultSystem(promptService.getSystemPrompt())  // 从文件加载系统提示词
-            .defaultAdvisors(
-                new QuestionAnswerAdvisor(vectorStore, searchRequest)  // RAG 检索
-            )
-            .defaultFunctions(                                  // Function Calling
-                "loanQueryFunction",
-                "repaymentQueryFunction",
-                "riskAssessmentFunction"
-            )
-            .build();
+    return ChatClient.builder(chatModel).build();
 }
+```
+
+项目没有把金融助贷 system prompt 写死到 `ChatClient.Builder`，否则常规聊天也会被强行约束为金融领域助手。现在的模式是：
+
+```mermaid
+flowchart LR
+  Request["ChatRequest"] --> Mode["ChatMode"]
+  Mode --> General["general: chat.general"]
+  Mode --> FinancialRag["financial_rag: chat.financial.rag + RAG"]
+  Mode --> Auto["auto: system.default + IntentRoutingService"]
+  General --> ChatClient
+  FinancialRag --> ChatClient
+  Auto --> ChatClient
 ```
 
 ### Advisor 职责
@@ -85,7 +88,7 @@ public ChatClient chatClientForOpenAI(
 |---|---|---|
 | `QuestionAnswerAdvisor` | RAG 检索增强 | 将用户问题与向量库匹配，把相关文档片段注入到上下文 |
 
-多轮对话记忆由业务层的 `ConversationRepository`（`ConcurrentHashMap`）维护。`defaultFunctions` 注册了三个 Function Calling 函数，LLM 会在需要时自动调用它们查询数据库。系统提示词由 `PromptService` 从 Prompt Registry 的 `ACTIVE` 版本读取。
+多轮对话记忆由业务层的 `ConversationRepository` 维护。系统提示词由 `PromptRegistryService` 从 Prompt Registry 的 `ACTIVE` 版本读取；`chat.general` 用于常规聊天，`chat.financial.rag` 用于金融 RAG，`system.default` 用于兼容旧的自动路由链路。
 
 ---
 
@@ -96,7 +99,8 @@ public ChatClient chatClientForOpenAI(
 ### 调用流程
 
 ```
-用户请求 -> 获取/创建对话 -> 保存用户消息 -> 构建含历史的 Prompt
+用户请求 -> 解析 ChatMode -> 获取/创建对话 -> 保存用户消息
+    -> 选择 system prompt 和路由计划 -> 构建含历史的 Prompt
     -> 调用 ChatClient -> 获取响应 -> 保存 AI 消息 -> 返回 ChatResponse
 ```
 
@@ -113,11 +117,17 @@ Message userMessage = new Message(UUID.randomUUID().toString(),
     MessageRole.USER, request.getMessage(), LocalDateTime.now(), null);
 conversation.addMessage(userMessage);
 
-// 3. 构建包含历史消息的提示词
+// 3. 根据 mode 选择提示词和能力路由
+ChatMode mode = ChatMode.from(request.getMode());
+String systemPrompt = resolveSystemPrompt(mode);
+IntentRoutingService.RoutePlan routePlan = resolveRoutePlan(mode, request.getMessage());
+
+// 4. 构建包含历史消息的提示词
 String prompt = buildPromptWithHistory(conversation);
 
-// 4. 调用 AI 模型（阻塞式）
+// 5. 调用 AI 模型（阻塞式）
 org.springframework.ai.chat.model.ChatResponse aiResponse = chatClient.prompt()
+    .system(systemPrompt)
     .user(prompt)
     .call()            // 阻塞调用
     .chatResponse();   // 获取完整响应（含元数据）
@@ -183,9 +193,12 @@ public SseEmitter streamChat(@Valid @RequestBody ChatRequest request) {
 
 `MediaType.TEXT_EVENT_STREAM_VALUE` 告诉浏览器这是 SSE 响应。服务端使用 `SseEmitter` 持续发送 `data` 事件给客户端。
 
-### Chat 链路与高级 RAG 链路
+### Chat 模式与高级 RAG 链路
 
-- `ChatController` 的 `/api/chat` 是主对话链路，可按配置启用内置 `QuestionAnswerAdvisor`（基础 RAG）。
+- `ChatController` 的 `/api/chat` 是主对话链路，前端通过 `mode` 显式选择 `general`、`financial_rag` 或 `auto`。
+- `general` 只使用常规系统提示词，不挂载金融 RAG 或工具。
+- `financial_rag` 使用金融 RAG 系统提示词，并挂载 `QuestionAnswerAdvisor`。
+- `auto` 保留旧的意图路由逻辑，可按 `IntentRoutingService` 输出挂载 RAG 或工具。
 - 高级 RAG（混合检索、重排、评估）由 `RagController` 的 `/api/rag/*` 接口提供。
 - 这样可以将“对话体验”与“检索策略实验”分离，降低学习和维护成本。
 

@@ -26,23 +26,21 @@
 
 ## 2. 本项目的 Prompt 架构
 
+```mermaid
+flowchart TB
+  PromptPage["prompt.html 管理页"] --> PromptController
+  PromptController --> PromptRegistryService
+  PromptRegistryService --> PromptTemplateRepository
+  PromptTemplateRepository --> PromptTemplate["prompt_template"]
+
+  ChatServiceImpl --> PromptRegistryService
+  ChatServiceImpl --> ChatMode
+  ChatMode --> General["chat.general"]
+  ChatMode --> FinancialRag["chat.financial.rag"]
+  ChatMode --> Auto["system.default"]
 ```
-application.yml (app.prompts.*)
-       │
-       ▼
-PromptProperties (@ConfigurationProperties)
-       │
-       ▼
-PromptService (仅从 Prompt Registry 读取 ACTIVE 版本)
-       │
-       ├── PromptRegistryService（版本化：DRAFT/ACTIVE/ARCHIVED）
-       │
-       ▼
-PromptTemplateRepository / prompt_template
-       │
-       ▼
-AiModelConfig (将 prompt 注入 ChatClient.builder())
-```
+
+Prompt 不再在 `AiModelConfig` 中作为 `defaultSystem` 写入 `ChatClient.Builder`。原因是系统现在同时支持常规聊天和金融 RAG，如果全局写死金融提示词，普通问题也会被模型理解成金融助贷问题。当前由 `ChatServiceImpl` 在每次请求时根据 `ChatMode` 动态选择 prompt。
 
 ### PromptProperties
 
@@ -56,14 +54,15 @@ app:
     env: dev
 ```
 
-### PromptService
+### PromptService 与 PromptRegistryService
 
 核心职责：
 1. 只读取 Prompt Registry 中当前 `ACTIVE` 版本
-2. 未命中 ACTIVE 版本时直接报错，阻断运行时误用
+2. 对历史兼容链路保持严格读取，未命中时阻断误用
 3. 通过 API 完成草稿、发布、回滚等版本化管理
+4. 为 `chat.general` 和 `chat.financial.rag` 提供代码级兜底，避免数据库尚未执行新 SQL 时聊天直接不可用
 
-`PromptService` 采用纯 DB 策略，确保生产环境配置一致性与可审计性。
+`PromptService` 负责老接口的只读访问；`PromptRegistryService` 负责版本治理和新模式提示词读取。执行 `sql/prompt_registry.sql` 后，运行时优先读取数据库中的 `ACTIVE` 版本。
 
 ### Prompt Registry 数据模型（最小版）
 
@@ -91,7 +90,15 @@ DRAFT -> ACTIVE -> ARCHIVED
 
 ### 本项目的系统提示词分析
 
-项目根据用户问题类型设计了 4 种决策策略：
+项目目前有三类主要运行时提示词：
+
+| promptKey | 使用场景 | 设计目标 |
+|-----------|----------|----------|
+| `chat.general` | 常规聊天 | 中立助手，不强行进入金融助贷语境 |
+| `chat.financial.rag` | 金融 RAG | 基于知识库回答借款、还款、风控、产品规则 |
+| `system.default` | 自动路由兼容链路 | 保留旧的 Tool/RAG/Hybrid 决策策略 |
+
+`system.default` 根据用户问题类型设计了 4 种决策策略：
 
 ```
 场景 1: 纯规则类问题（如"逾期怎么处理"）
@@ -133,6 +140,34 @@ Prompt 内容统一存储在 `prompt_template` 表中，通过 `prompt_key + env
 | GET | `/api/prompts/registry/versions` | 查询版本历史列表 |
 
 Prompt 的生效方式为：创建草稿版本 -> 发布为 `ACTIVE`，无需重启应用。
+
+### Prompt 管理页
+
+`src/main/resources/static/prompt.html` 提供可视化管理入口，当前会展示：
+
+- `system.default`
+- `chat.general`
+- `chat.financial.rag`
+- `rag.qa`
+- `function.calling`
+
+```mermaid
+sequenceDiagram
+  participant User
+  participant PromptPage
+  participant PromptController
+  participant PromptRegistryService
+  participant MySQL
+
+  User->>PromptPage: 编辑并创建草稿
+  PromptPage->>PromptController: POST /registry/drafts
+  PromptController->>PromptRegistryService: createDraft
+  PromptRegistryService->>MySQL: insert DRAFT
+  User->>PromptPage: 发布版本
+  PromptPage->>PromptController: POST /registry/publish
+  PromptController->>PromptRegistryService: publish
+  PromptRegistryService->>MySQL: archive old ACTIVE + activate selected version
+```
 
 ## 6. 动手实验
 
@@ -176,12 +211,13 @@ Prompt 的生效方式为：创建草稿版本 -> 发布为 `ACTIVE`，无需重
 
 | 文件 | 关注点 |
 |------|--------|
-| `service/prompt/PromptService.java` | 运行时按 key 读取 ACTIVE 版本 |
-| `service/prompt/PromptRegistryService.java` | 版本创建、发布、回滚 |
+| `service/prompt/PromptService.java` | 兼容链路按 key 读取 ACTIVE 版本 |
+| `service/prompt/PromptRegistryService.java` | 版本创建、发布、回滚、Chat 模式 prompt 读取与兜底 |
 | `config/PromptProperties.java` | 配置绑定 |
 | `controller/PromptController.java` | Prompt 管理 API |
 | `model/entity/PromptTemplateEntity.java` | Prompt 模板实体 |
 | `repository/PromptTemplateRepository.java` | Prompt 模板仓储 |
-| `config/AiModelConfig.java` | prompt 注入 ChatClient |
+| `config/AiModelConfig.java` | 创建基础 ChatClient，不写死默认金融 system prompt |
+| `service/impl/ChatServiceImpl.java` | 根据 ChatMode 动态选择 prompt、RAG Advisor 和路由计划 |
 | `src/main/resources/application.yml` | `app.prompts.*` 配置节 |
 | `sql/prompt_registry.sql` | Prompt Registry 表结构 |

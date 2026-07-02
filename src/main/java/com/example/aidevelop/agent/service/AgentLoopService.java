@@ -36,13 +36,16 @@ public class AgentLoopService implements AgentService {
 
         long startedAt = System.currentTimeMillis();
         String traceId = UUID.randomUUID().toString();
+        // Agent 仍复用 IntentRoutingService：先判断问题需要工具、RAG、混合还是多 Agent。
         IntentRoutingService.RoutePlan routePlan = intentRoutingService.plan(request.getMessage());
         int maxSteps = resolveMaxSteps(request.getMaxSteps(), routePlan.maxToolCalls());
+        // 策略层会结合路由结果和用户问题，收敛本轮 Agent 真正允许调用的工具集合。
         List<String> allowedTools = agentPolicyEnforcer.resolveAllowedTools(routePlan, request.getMessage());
         AgentState state = new AgentState(traceId, routePlan, maxSteps, allowedTools);
 
         log.info("AgentLoop 开始: traceId={}, routeType={}, maxSteps={}", traceId, routePlan.routeType(), maxSteps);
 
+        // Plan 阶段：让模型先产出结构化 toolCalls，而不是直接回答。
         AgentPlanResult planResult = agentPlanner.buildPlan(request, routePlan, allowedTools, maxSteps);
         state.addStep(AgentStep.builder()
             .stepIndex(state.nextStepIndex())
@@ -53,6 +56,7 @@ public class AgentLoopService implements AgentService {
             .build());
 
         for (ToolCall toolCall : planResult.toolCalls()) {
+            // Tool 阶段：逐个执行计划中的工具调用，并把结果沉淀为 observation。
             AgentToolExecutionResult executionResult = agentToolExecutor.executeWithRetry(toolCall);
             state.incrementExecutedToolCalls();
             state.addExecutedToolName(toolCall.toolName());
@@ -73,6 +77,7 @@ public class AgentLoopService implements AgentService {
                 .build());
 
             if (agentProperties.isReflectEnabled()) {
+                // Reflect 阶段：根据已有 observation 判断证据是否足够，足够就提前结束工具循环。
                 AgentReflectDecision decision = agentReflector.reflect(request, routePlan, state.getObservations());
                 state.addStep(AgentStep.builder()
                     .stepIndex(state.nextStepIndex())
@@ -93,6 +98,7 @@ public class AgentLoopService implements AgentService {
             && replanRound < Math.max(0, agentProperties.getMaxReplanRounds())
             && state.getExecutedToolCalls() < maxSteps) {
             int remainingSteps = maxSteps - state.getExecutedToolCalls();
+            // Replan 阶段：如果反思后发现证据不足，基于已有 observation 继续规划补充工具调用。
             AgentPlanResult replanResult = agentPlanner.buildReplan(
                 request,
                 routePlan,
@@ -117,6 +123,7 @@ public class AgentLoopService implements AgentService {
                 .build());
 
             for (ToolCall toolCall : replanResult.toolCalls()) {
+                // 重新规划得到的工具调用也进入同一套 Tool -> Observe -> Reflect 流程。
                 AgentToolExecutionResult executionResult = agentToolExecutor.executeWithRetry(toolCall);
                 state.incrementExecutedToolCalls();
                 state.addExecutedToolName(toolCall.toolName());
@@ -158,6 +165,7 @@ public class AgentLoopService implements AgentService {
         }
 
         if (!state.isShouldStop() && planResult.toolCalls().isEmpty() && agentProperties.isReflectEnabled()) {
+            // 没有规划出工具时也做一次反思，方便记录“为何无需工具/为何证据不足”。
             AgentReflectDecision decision = agentReflector.reflect(request, routePlan, state.getObservations());
             state.addStep(AgentStep.builder()
                 .stepIndex(state.nextStepIndex())
@@ -170,6 +178,7 @@ public class AgentLoopService implements AgentService {
 
         long respondStart = System.currentTimeMillis();
         String draftAnswer = agentResponder.buildFinalAnswer(request, routePlan, state.getObservations());
+        // SelfCheck 阶段：最终答案输出前再检查证据完整性和回答质量，失败时走兜底回答。
         AgentSelfCheckDecision selfCheckDecision = agentResponder.selfCheck(request, routePlan, state.getObservations(), draftAnswer);
         state.addStep(AgentStep.builder()
             .stepIndex(state.nextStepIndex())

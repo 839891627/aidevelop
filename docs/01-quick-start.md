@@ -17,7 +17,7 @@
 | 技术 | 版本 | 用途 |
 |------|------|------|
 | Spring Boot | 3.3.5 | 应用框架 |
-| Spring AI | 1.0.0-M5 | AI 模型抽象层 |
+| Spring AI | 1.x | AI 模型抽象层 |
 | Java | 17 | 开发语言 |
 | Spring WebFlux | - | SSE 流式响应 |
 | Spring Data JPA | - | 数据持久化 |

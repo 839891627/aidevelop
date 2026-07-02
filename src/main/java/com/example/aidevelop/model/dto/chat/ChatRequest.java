@@ -21,6 +21,10 @@ public class ChatRequest {
     @Size(max = 64, message = "conversationId 长度不能超过 64 个字符")
     private String conversationId;
 
+    @Schema(description = "聊天能力模式：general=常规聊天，financial_rag=金融知识库问答，auto=保留旧自动路由", example = "general")
+    @Size(max = 32, message = "mode 长度不能超过 32 个字符")
+    private String mode;
+
     @Schema(description = "指定使用的模型（可选），不传则使用配置中的默认模型", example = "deepseek-chat")
     @Size(max = 100, message = "model 长度不能超过 100 个字符")
     private String model;

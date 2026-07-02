@@ -33,14 +33,22 @@ public class IntentRoutingService {
             return buildMultiAgentPlan("命中多 Agent 协作规则");
         }
 
+        // 先识别业务编号和业务查询关键词：这类问题需要查真实业务数据，优先开放工具。
         Pattern businessIdPattern = Pattern.compile(routeProperties.getBusinessIdPattern(), Pattern.CASE_INSENSITIVE);
         if (businessIdPattern.matcher(message).find() || containsAny(normalized, routeProperties.getToolIntentKeywords())) {
             return buildToolOnlyPlan("命中业务查询规则，优先工具调用");
         }
+        // 再识别知识问答关键词：这类问题需要知识库证据，但不需要查询具体用户数据。
         if (containsAny(normalized, routeProperties.getRagIntentKeywords())) {
             return buildRagOnlyPlan("命中知识问答规则，优先 RAG");
         }
+        // auto 模式下兜底走 HYBRID，给模型同时提供工具和 RAG，适合边界不明确的问题。
         return buildHybridPlan("默认走 HYBRID（工具+RAG）");
+    }
+
+    public RoutePlan financialRagPlan() {
+        // financial_rag 是显式模式，不做关键词判断，直接固定为知识库问答链路。
+        return buildRagOnlyPlan("显式金融 RAG 模式");
     }
 
     private boolean isMultiAgentRequired(String normalized) {
@@ -53,6 +61,7 @@ public class IntentRoutingService {
         }
         boolean hitsTool = containsAny(normalized, routeProperties.getToolIntentKeywords());
         boolean hitsRag = containsAny(normalized, routeProperties.getRagIntentKeywords());
+        // 同时命中“查数据”和“查规则”时，说明问题可能需要跨工具协作。
         return hitsTool && hitsRag;
     }
 
@@ -122,6 +131,7 @@ public class IntentRoutingService {
                 intersection.add(name);
             }
         }
+        // 返回“路由希望开放的工具”和“系统实际启用的工具”的交集。
         return intersection;
     }
 

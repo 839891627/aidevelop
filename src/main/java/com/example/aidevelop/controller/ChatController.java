@@ -2,6 +2,8 @@ package com.example.aidevelop.controller;
 
 import com.example.aidevelop.model.dto.chat.ChatRequest;
 import com.example.aidevelop.model.dto.chat.ChatResponse;
+import com.example.aidevelop.model.dto.chat.ChatConversationSummary;
+import com.example.aidevelop.model.dto.chat.ChatMessageResponse;
 import com.example.aidevelop.service.ChatService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -11,12 +13,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.util.List;
 
 /**
  * 聊天控制器 - 提供对话 API。
@@ -59,6 +64,27 @@ public class ChatController {
     public SseEmitter streamChat(@Valid @RequestBody ChatRequest request) {
         log.info("收到流式聊天请求: {}", request.getMessage());
         return chatService.streamChat(request);
+    }
+
+    @GetMapping("/conversations")
+    @Operation(
+            summary = "查询历史会话",
+            description = "返回已持久化的聊天会话摘要列表，按最近更新时间倒序排列"
+    )
+    public List<ChatConversationSummary> listConversations() {
+        return chatService.listConversations();
+    }
+
+    @GetMapping("/{conversationId}/messages")
+    @Operation(
+            summary = "查询会话消息",
+            description = "根据对话 ID 返回该会话的历史消息，按创建时间正序排列"
+    )
+    public List<ChatMessageResponse> getConversationMessages(
+            @Parameter(description = "对话 ID", required = true)
+            @PathVariable String conversationId
+    ) {
+        return chatService.getConversationMessages(conversationId);
     }
 
     /**

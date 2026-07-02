@@ -5,11 +5,32 @@
 - 多模型对话（普通 + 流式）
 - Function Calling（贷款/还款/风控）
 - RAG（查询重写、扩展、混合检索、重排、评估）
+- Prompt Registry（常规聊天、金融 RAG、自动路由等提示词版本治理）
 
 下一阶段目标是将能力升级为可迭代的 Agent Loop：
 - 让系统具备“规划 -> 工具调用 -> 观察 -> 反思 -> 输出”的闭环
 - 让每一轮执行可观测、可回放、可评估
 - 保持与现有 `ChatService` / `RagPipelineService` / Function 模块兼容
+
+当前前端聊天页已经把 Agent 任务与 `general`、`financial_rag` 明确区分。常规聊天和金融 RAG 走 `/api/chat` 或 `/api/chat/stream`；需要查询客户借款、还款、风险评估等多步工具任务时，才走 `/api/agent/chat`。
+
+```mermaid
+flowchart LR
+  ChatPage["聊天页预制问题"] --> General["常规问题"]
+  ChatPage --> FinancialRag["金融知识库问题"]
+  ChatPage --> AgentTask["Agent 任务问题"]
+
+  General --> ChatApi["/api/chat/stream mode=general"]
+  FinancialRag --> ChatApiRag["/api/chat/stream mode=financial_rag"]
+  AgentTask --> AgentApi["/api/agent/chat"]
+
+  AgentApi --> AgentLoopService
+  AgentLoopService --> ToolRouter
+  ToolRouter --> LoanQuery["loan.query"]
+  ToolRouter --> RepaymentQuery["repayment.query"]
+  ToolRouter --> RiskAssess["risk.assess"]
+  ToolRouter --> RagSearch["rag.search"]
+```
 
 ## 2. Agent Loop 定义
 

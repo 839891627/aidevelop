@@ -43,7 +43,7 @@ sequenceDiagram
 
 - 函数是标准的 Spring Bean，实现 `Function<I, O>` 接口
 - 通过 `@Component` 注册到容器，通过 `@Description` 描述功能
-- 在 ChatClient 构建时通过 `defaultFunctions()` 注册
+- 在请求编排时由 `ChatServiceImpl` 按路由计划挂载到 `ChatClient.prompt()`
 - Spring AI 自动将函数描述发送给 LLM，LLM 自主决定调用
 
 ## 2. 三个函数详解
@@ -106,30 +106,25 @@ public class LoanQueryFunction implements Function<LoanQueryFunction.Request, Lo
 
 ## 3. 函数注册
 
-在 `AiModelConfig.java` 中注册：
+早期实现可以在 `AiModelConfig.java` 中通过 `defaultFunctions()` 全局注册工具；当前项目为了支持常规聊天、金融 RAG 和自动路由的清晰边界，不再把工具写死为全局默认能力，而是由 `ChatServiceImpl` 在需要时挂载：
 
 ```java
-@Bean
-public ChatClient chatClient(ChatModel chatModel, ...) {
-    return ChatClient.builder(chatModel)
-        .defaultSystem(promptService.getSystemPrompt())
-        .defaultAdvisors(
-            new QuestionAnswerAdvisor(vectorStore)
-        )
-        .defaultFunctions(
-            "loanQueryFunction",        // Bean 名称
-            "repaymentQueryFunction",
-            "riskAssessmentFunction"
-        )
-        .build();
+var promptSpec = chatClient.prompt()
+    .system(systemPrompt)
+    .user(prompt);
+
+if (routePlan.hasTools()) {
+    promptSpec = promptSpec.tools(routePlan.allowedToolNames());
 }
 ```
 
-`defaultFunctions()` 接收的是 Spring Bean 名称。Spring AI 会：
+工具名称接收的是 Spring Bean 名称。Spring AI 会：
 1. 从容器中获取对应的 Bean
 2. 读取 `@Description` 注解的描述
 3. 分析 `Function<Request, Response>` 的 record 字段
 4. 将这些信息作为工具定义发送给 LLM API
+
+这样常规聊天 `general` 不会暴露金融业务工具，金融 RAG `financial_rag` 只负责知识库问答，只有 `auto` 或显式 Agent 任务才会进入工具链。
 
 ## 3.1 当前项目的双工具适配结构
 
@@ -207,9 +202,9 @@ public class CustomerQueryFunction implements Function<CustomerQueryFunction.Req
 }
 ```
 
-### 步骤 3：注册到 ChatClient
+### 步骤 3：纳入路由白名单
 
-在 `AiModelConfig.java` 的 `defaultFunctions()` 中添加 `"customerQueryFunction"`。
+在工具路由配置或 `IntentRoutingService` 对应的 `RoutePlan` 中允许 `"customerQueryFunction"`。这样只有命中相关意图时，`ChatServiceImpl` 才会把该工具挂载到本次 `ChatClient.prompt()` 调用中。
 
 ### 步骤 4：测试
 

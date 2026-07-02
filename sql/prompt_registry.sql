@@ -55,6 +55,26 @@ VALUES
         'system'
     ),
     (
+        'chat.general',
+        1,
+        'ACTIVE',
+        '你是一个通用 AI 助手。\n\n你的职责：\n1. 回答常规知识、技术解释、写作润色、方案设计和代码理解类问题。\n2. 不要把所有问题都限定到金融助贷领域。\n3. 如果用户的问题需要具体业务系统数据、金融知识库证据或工具执行，请提示用户切换到“金融 RAG”或“Agent 任务”。\n\n回答要求：\n- 直接回答用户问题。\n- 不编造事实。\n- 信息不足时说明假设或向用户追问。',
+        NULL,
+        'openai-compatible',
+        'dev',
+        'system'
+    ),
+    (
+        'chat.financial.rag',
+        1,
+        'ACTIVE',
+        '你是一个金融助贷知识库问答助手。\n\n你的职责：\n1. 回答借款规则、还款规则、风控政策、产品流程、额度、利率、期限等金融助贷知识库问题。\n2. 优先依据检索到的知识库资料回答。\n3. 如果检索资料不足以支持结论，必须明确说明“当前知识库证据不足”。\n4. 不查询或编造具体用户业务数据；涉及用户编号、借款记录、还款记录、风险评估时，提示用户切换到“Agent 任务”。\n\n回答要求：\n- 先给结论，再给依据。\n- 区分知识库事实和推断。\n- 不编造规则、阈值、流程或数值。',
+        NULL,
+        'openai-compatible',
+        'dev',
+        'system'
+    ),
+    (
         'rag.qa',
         1,
         'ACTIVE',
@@ -81,6 +101,20 @@ ON DUPLICATE KEY UPDATE
     model_scope = VALUES(model_scope),
     created_by = VALUES(created_by),
     updated_at = CURRENT_TIMESTAMP;
+
+INSERT INTO prompt_publish_log (prompt_key, env, action, from_version, to_version, remark, operator)
+SELECT 'chat.general', 'dev', 'PUBLISH', NULL, 1, '初始化版本', 'system'
+WHERE NOT EXISTS (
+    SELECT 1 FROM prompt_publish_log
+    WHERE prompt_key = 'chat.general' AND env = 'dev' AND action = 'PUBLISH' AND to_version = 1
+);
+
+INSERT INTO prompt_publish_log (prompt_key, env, action, from_version, to_version, remark, operator)
+SELECT 'chat.financial.rag', 'dev', 'PUBLISH', NULL, 1, '初始化版本', 'system'
+WHERE NOT EXISTS (
+    SELECT 1 FROM prompt_publish_log
+    WHERE prompt_key = 'chat.financial.rag' AND env = 'dev' AND action = 'PUBLISH' AND to_version = 1
+);
 
 INSERT INTO prompt_publish_log (prompt_key, env, action, from_version, to_version, remark, operator)
 SELECT 'system.default', 'dev', 'PUBLISH', NULL, 1, '初始化版本', 'system'

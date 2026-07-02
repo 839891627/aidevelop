@@ -31,6 +31,7 @@ public class ToolRouter {
 
     public Object execute(String toolName, Map<String, Object> args) {
         if (!isAllowed(toolName)) {
+            // 全局工具白名单兜底，防止模型或规划阶段生成未授权工具名。
             throw new IllegalArgumentException("工具未授权: " + toolName);
         }
         AgentTool tool = registry().get(toolName);
@@ -59,6 +60,7 @@ public class ToolRouter {
             synchronized (this) {
                 localRegistry = toolRegistry;
                 if (localRegistry == null) {
+                    // 延迟构建工具注册表，避免启动时过早初始化所有 AgentTool。
                     localRegistry = buildRegistry(toolProvider.orderedStream().toList());
                     toolRegistry = localRegistry;
                 }

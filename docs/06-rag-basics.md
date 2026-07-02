@@ -34,6 +34,27 @@ flowchart LR
 2. **在线阶段（检索）：** 用户提问被转换为向量，与库中向量做相似度计算，返回最相关的文档片段。
 3. **生成阶段：** 将检索到的文档片段注入 Prompt，LLM 基于这些上下文生成回答。
 
+### 2.1 本项目中的两条 RAG 入口
+
+```mermaid
+flowchart TB
+  ChatPage["聊天页 金融 RAG 模式"] --> ChatApi["/api/chat/stream mode=financial_rag"]
+  ChatApi --> ChatServiceImpl
+  ChatServiceImpl --> FinancialPrompt["chat.financial.rag"]
+  ChatServiceImpl --> QuestionAnswerAdvisor
+  QuestionAnswerAdvisor --> VectorStore
+
+  RagDebug["RAG 调试接口"] --> RagApi["/api/rag/*"]
+  RagApi --> RagOrchestrationService
+  RagOrchestrationService --> RagPipelineService
+  RagPipelineService --> Rewrite["查询重写"]
+  RagPipelineService --> Hybrid["混合检索"]
+  RagPipelineService --> Rerank["重排序"]
+  Hybrid --> VectorStore
+```
+
+聊天页里的“金融 RAG”用于面向用户的知识库问答；`/api/rag/*` 用于调试和评估检索策略。常规聊天模式 `general` 不会默认挂载金融 RAG，避免普通问题被金融助贷知识库干扰。
+
 ## 3. 向量嵌入 (Embedding)
 
 将文本转换为高维数值向量（如 1024 维浮点数组），使语义相近的文本在向量空间中距离也相近。

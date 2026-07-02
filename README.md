@@ -12,7 +12,7 @@ Java 开发者学习 Spring AI、RAG、Function Calling 和 Agent Loop 的实战
 
 | 模块 | 已实现能力 | 代码入口 |
 |------|------------|----------|
-| 基础对话 | 阻塞式聊天、SSE 流式聊天、运行时覆盖模型/温度/maxTokens | `ChatController`, `ChatServiceImpl` |
+| 基础对话 | 阻塞式聊天、SSE 流式聊天、显式 `general` / `financial_rag` / `auto` 能力模式、运行时覆盖模型/温度/maxTokens | `ChatController`, `ChatServiceImpl`, `ChatMode` |
 | 会话记忆 | 基于 MySQL `chat_message` 表持久化多轮对话，支持按 `conversationId` 清空 | `ConversationRepository` |
 | 意图路由 | 根据关键词和业务编号判断工具/RAG/混合链路 | `IntentRoutingService` |
 | Function Calling | 贷款查询、还款查询、风险评估工具 | `service/function`, `agent/tool` |
@@ -20,9 +20,9 @@ Java 开发者学习 Spring AI、RAG、Function Calling 和 Agent Loop 的实战
 | 向量库 | 启动时从 `src/main/resources/knowledge/*.txt,pdf` 构建 `SimpleVectorStore`，并持久化到本地文件 | `VectorStoreConfig`, `VectorIndexBuilder` |
 | Agent Loop | Plan、Tool、Reflect、Replan、SelfCheck、Respond，返回 `traceId` 和步骤明细 | `AgentController`, `AgentLoopService` |
 | 多 Agent 协作 | Supervisor 编排多子 Agent、Agent-as-Tool 委托、跨领域复杂问题自动调度 | `SupervisorOrchestrator`, `SubAgentRunner`, `AgentDispatcher` |
-| Prompt Registry | Prompt 查询、草稿、发布、回滚、版本列表 | `PromptController`, `PromptRegistryService` |
+| Prompt Registry | Prompt 查询、草稿、发布、回滚、版本列表，支持 `chat.general` 与 `chat.financial.rag` 等分场景提示词 | `PromptController`, `PromptRegistryService` |
 | 成本统计 | AOP 记录 AI 调用日志，按今日/本周/本月/时间范围统计 | `AiCallLoggerAspect`, `AiCostController` |
-| 前端演示 | 原生 HTML/CSS/JS 聊天页和成本看板 | `src/main/resources/static` |
+| 前端演示 | 原生 HTML/CSS/JS 聊天工作台、Prompt 管理页和成本看板，聊天页显式展示常规/RAG/Agent 能力模式 | `src/main/resources/static` |
 
 ## 技术栈
 
@@ -100,6 +100,7 @@ mvn spring-boot:run
 | 入口 | 地址 |
 |------|------|
 | 聊天界面 | http://localhost:8080/index.html |
+| Prompt 管理 | http://localhost:8080/prompt.html |
 | 成本看板 | http://localhost:8080/cost.html |
 | Swagger UI | http://localhost:8080/swagger-ui.html |
 | Knife4j | http://localhost:8080/doc.html |
@@ -117,7 +118,15 @@ mvn spring-boot:run
 | POST | `/api/chat/stream` | SSE 流式聊天 |
 | DELETE | `/api/chat/{conversationId}` | 清空指定会话历史 |
 
-`/api/chat` 会先经过 `IntentRoutingService` 做意图路由。命中工具意图时会挂载允许的工具名；命中 RAG 意图时会挂载 `QuestionAnswerAdvisor`，从本地 `VectorStore` 检索上下文。
+`/api/chat` 和 `/api/chat/stream` 支持 `ChatRequest.mode`：
+
+| mode | 说明 |
+|------|------|
+| `general` | 常规聊天，使用 `chat.general`，不启用金融 RAG 和工具 |
+| `financial_rag` | 金融助贷知识库问答，使用 `chat.financial.rag` 并挂载 `QuestionAnswerAdvisor` |
+| `auto` | 兼容旧自动路由，使用 `system.default` 并经过 `IntentRoutingService` |
+
+前端聊天页默认使用 `general`，金融知识库问题可选择“金融 RAG”，需要查询业务数据或执行风险评估时选择“Agent 任务”。
 
 ### Agent Loop
 
@@ -155,7 +164,7 @@ Agent 默认最多执行 3 个工具步骤，并支持：
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/api/prompts/system` | 查看当前 System Prompt |
+| GET | `/api/prompts/system` | 查看兼容链路 System Prompt |
 | GET | `/api/prompts/rag/qa` | 查看 RAG QA Prompt |
 | GET | `/api/prompts/function/calling` | 查看 Function Calling Prompt |
 | GET | `/api/prompts/status` | 查看 Prompt 状态摘要 |
@@ -164,6 +173,16 @@ Agent 默认最多执行 3 个工具步骤，并支持：
 | POST | `/api/prompts/registry/rollback` | 回滚到指定版本 |
 | GET | `/api/prompts/registry/active` | 查询当前生效版本 |
 | GET | `/api/prompts/registry/versions` | 查询版本列表 |
+
+当前核心 prompt key：
+
+| promptKey | 用途 |
+|-----------|------|
+| `chat.general` | 常规聊天中立提示词 |
+| `chat.financial.rag` | 金融 RAG 场景提示词 |
+| `system.default` | 旧自动路由/兼容链路提示词 |
+| `rag.qa` | RAG QA 模板 |
+| `function.calling` | Function Calling 模板 |
 
 ### 调试与成本统计
 
@@ -245,10 +264,11 @@ docs/                           # 学习文档和设计文档
 
 ## 学习文档
 
-所有学习文档统一放在 `docs/` 目录，按难度递进排列：
+所有学习文档统一放在 `docs/` 目录。推荐先读 [architecture](docs/architecture.md) 建立全局地图，再读 [case-execution-flows](docs/11-case-execution-flows.md) 用具体问题串代码链路，之后按 `01` 到 `10` 逐步阅读；如果只做面试复盘，优先看 `architecture`、`case-execution-flows`、`chat-basics`、`prompt-engineering`、`rag-basics`、`design/agent-loop` 和 `cost-and-observability`。
 
 | 文档 | 主题 | 难度 |
 |------|------|------|
+| [architecture](docs/architecture.md) | 项目核心架构说明（前端模式、Chat 路由、Prompt/RAG/Agent/成本图解） | 架构 |
 | [01-quick-start](docs/01-quick-start.md) | 项目架构总览与快速开始 | ★ |
 | [02-chat-basics](docs/02-chat-basics.md) | 基础对话、流式响应、对话历史 | ★ |
 | [03-multi-llm](docs/03-multi-llm.md) | 多 LLM 接入、Profile 切换 | ★★ |
@@ -259,7 +279,7 @@ docs/                           # 学习文档和设计文档
 | [08-cost-and-observability](docs/08-cost-and-observability.md) | 成本管理、AOP 日志、缓存 | ★★ |
 | [09-embedding-and-chunking](docs/09-embedding-and-chunking.md) | Embedding 与分块策略 | ★★★ |
 | [10-chat-memory](docs/10-chat-memory.md) | Chat Memory 持久化与流式会话续聊 | ★★★ |
-| [architecture](docs/architecture.md) | 项目核心架构说明（学习复盘 & 面试讲解） | 架构 |
+| [11-case-execution-flows](docs/11-case-execution-flows.md) | 常规聊天、金融 RAG、Agent、Prompt、成本等 case 链路执行说明 | ★★ |
 | [multi-agent-architecture](docs/multi-agent-architecture.md) | 多 Agent 协作架构文档 | 架构 |
 | [interview-guide](docs/interview-guide.md) | AI 大模型应用开发面试问答手册 | 面试 |
 | [design/agent-loop](docs/design/agent-loop.md) | Agent Loop 设计文档 | 设计稿 |

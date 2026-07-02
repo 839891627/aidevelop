@@ -2,7 +2,7 @@
 
 本节讲解如何使用 Spring AI 的 Provider 抽象机制接入多个 LLM 提供商，并通过 Spring Profile 实现运行时切换。
 
-技术栈：Spring Boot 3.3.5 + Spring AI 1.0.0-M5
+技术栈：Spring Boot 3.3.5 + Spring AI
 
 ---
 
@@ -103,7 +103,7 @@ spring:
 
 `AiModelConfig.java` 是多 LLM 切换的核心配置类。
 
-`AiModelConfig` 当前只在 `openai` profile 下装配一个 `ChatClient`，核心能力为：系统提示词、Function Calling、可选 `QuestionAnswerAdvisor`（基础 RAG）。
+`AiModelConfig` 当前只在 `openai` profile 下装配一个基础 `ChatClient`。系统提示词、Function Calling 工具和 `QuestionAnswerAdvisor` 不再作为全局默认能力写入 Builder，而是在 `ChatServiceImpl` 中按 `ChatMode` 和路由计划动态挂载。
 
 ### OpenAI Profile 的 ChatClient
 
@@ -116,30 +116,17 @@ public ChatClient chatClientForOpenAI(
 
     log.info("初始化 ChatClient，使用提供商: OpenAI (DeepSeek)");
 
-    SearchRequest searchRequest = SearchRequest.defaults()
-            .topK(ragProperties.getTopK())
-            .similarityThreshold(ragProperties.getSimilarityThreshold())
-            .build();
-
-    ChatClient.Builder builder = ChatClient.builder(chatModel)
-            .defaultSystem(promptService.getSystemPrompt())    // Prompt Registry 生效提示词
-            .defaultFunctions("loanQueryFunction", "repaymentQueryFunction", "riskAssessmentFunction")
-    ;
-
-    if (ragProperties.isEnabled()) {
-        VectorStore vectorStore = vectorStoreProvider.getIfAvailable();
-        if (vectorStore != null) {
-            builder.defaultAdvisors(new QuestionAnswerAdvisor(vectorStore, searchRequest));
-        }
-    }
-
-    return builder.build();
+    return ChatClient.builder(chatModel).build();
 }
 ```
 
 `@Qualifier("openAiChatModel")` 显式指定使用 OpenAI 的 ChatModel Bean，避免多个 ChatModel 实现时冲突。
 
-当前 openai profile 统一通过 `promptService.getSystemPrompt()` 从 Prompt Registry 读取生效系统提示词。
+当前 openai profile 只解决“使用哪个模型”的问题；“使用哪个提示词”和“是否挂载 RAG/工具”由请求模式决定：
+
+- `general`：读取 `chat.general`，不挂载金融 RAG 或工具。
+- `financial_rag`：读取 `chat.financial.rag`，挂载 `QuestionAnswerAdvisor`。
+- `auto`：读取 `system.default`，经过 `IntentRoutingService` 判断是否需要工具或 RAG。
 
 ### Bean 命名与冲突处理
 

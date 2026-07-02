@@ -3,101 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>成本管理 - AI 智能助手</title>
+    <title>成本管理 - AI 工作台</title>
     <link rel="stylesheet" href="/css/cost.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 </head>
 <body>
-    <div class="cost-container">
-        <header class="cost-header">
-            <div class="header-content">
-                <h1>💰 成本管理</h1>
-                <p class="subtitle">AI 调用成本统计与分析</p>
-            </div>
-            <a href="/index.html" class="back-btn">← 返回聊天</a>
-        </header>
+    <div class="cost-shell">
+        <header class="cost-hero">
+            <nav class="cost-nav" aria-label="主导航">
+                <a href="/index.html">Chat</a>
+                <a href="/prompt.html">Prompt</a>
+                <a href="/cost.html" class="active">Cost</a>
+            </nav>
 
-        <main class="cost-main">
-            <!-- 时间段选择 -->
-            <div class="time-selector">
+            <div class="hero-content">
+                <p class="eyebrow">Cost Ledger</p>
+                <h1>成本管理</h1>
+                <p class="subtitle">跟踪 AI 调用量、模型成本、Token 消耗与每日明细。</p>
+            </div>
+
+            <div class="time-selector" aria-label="时间范围">
                 <button class="time-btn active" data-period="today">今日</button>
                 <button class="time-btn" data-period="week">本周</button>
                 <button class="time-btn" data-period="month">本月</button>
                 <button class="time-btn" data-period="custom">自定义</button>
             </div>
+        </header>
 
-            <!-- 自定义日期范围（隐藏） -->
+        <main class="cost-main">
             <div class="custom-range" style="display: none;">
-                <input type="datetime-local" id="startDate" placeholder="开始时间">
-                <input type="datetime-local" id="endDate" placeholder="结束时间">
+                <input type="datetime-local" id="startDate" aria-label="开始时间">
+                <input type="datetime-local" id="endDate" aria-label="结束时间">
                 <button id="queryBtn">查询</button>
             </div>
 
-            <!-- 统计卡片 -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon">📊</div>
+            <section class="metric-grid stats-grid" aria-label="成本指标">
+                <article class="stat-card">
+                    <div class="stat-icon">01</div>
                     <div class="stat-content">
                         <div class="stat-label">总调用次数</div>
                         <div class="stat-value" id="totalCalls">-</div>
                     </div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-icon">💵</div>
+                </article>
+                <article class="stat-card featured">
+                    <div class="stat-icon">02</div>
                     <div class="stat-content">
                         <div class="stat-label">总成本</div>
                         <div class="stat-value" id="totalCost">-</div>
                     </div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-icon">✅</div>
+                </article>
+                <article class="stat-card">
+                    <div class="stat-icon">03</div>
                     <div class="stat-content">
                         <div class="stat-label">成功 / 总调用</div>
-                        <div class="stat-value" id="inputTokens">-</div>
+                        <div class="stat-value" id="successCalls">-</div>
                     </div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-icon">📈</div>
+                </article>
+                <article class="stat-card">
+                    <div class="stat-icon">04</div>
                     <div class="stat-content">
                         <div class="stat-label">成功率</div>
-                        <div class="stat-value" id="outputTokens">-</div>
+                        <div class="stat-value" id="successRate">-</div>
                     </div>
-                </div>
-            </div>
+                </article>
+            </section>
 
-            <!-- 详细统计表格 -->
-            <div class="details-section">
-                <h2>每日成本趋势</h2>
+            <section class="charts-row">
+                <article class="chart-card wide">
+                    <div class="section-title">
+                        <p class="eyebrow">Trend</p>
+                        <h2>每日成本趋势</h2>
+                    </div>
+                    <div id="dailyCostChart" class="chart-container"></div>
+                </article>
+                <article class="chart-card">
+                    <div class="section-title">
+                        <p class="eyebrow">Share</p>
+                        <h2>模型成本占比</h2>
+                    </div>
+                    <div id="modelPieChart" class="chart-container"></div>
+                </article>
+            </section>
+
+            <section class="charts-row">
+                <article class="chart-card">
+                    <div class="section-title">
+                        <p class="eyebrow">Volume</p>
+                        <h2>每日调用量</h2>
+                    </div>
+                    <div id="dailyCallChart" class="chart-container"></div>
+                </article>
+                <article class="chart-card">
+                    <div class="section-title">
+                        <p class="eyebrow">Model</p>
+                        <h2>模型调用次数</h2>
+                    </div>
+                    <div id="modelCallChart" class="chart-container"></div>
+                </article>
+            </section>
+
+            <section class="details-section">
+                <div class="section-title">
+                    <p class="eyebrow">Daily</p>
+                    <h2>每日明细</h2>
+                </div>
                 <div class="table-wrapper">
                     <table class="details-table">
                         <thead>
                             <tr>
                                 <th>日期</th>
-                                <th>模型</th>
-                                <th>Token</th>
-                                <th>耗时</th>
-                                <th>成本</th>
                                 <th>调用次数</th>
+                                <th>成本</th>
                             </tr>
                         </thead>
                         <tbody id="detailsBody">
-                            <tr class="loading">
-                                <td colspan="6">加载中...</td>
-                            </tr>
+                            <tr class="loading"><td colspan="3">加载中...</td></tr>
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </section>
 
-            <!-- 模型分布 -->
-            <div class="model-distribution">
-                <h2>模型分布</h2>
+            <section class="model-distribution">
+                <div class="section-title">
+                    <p class="eyebrow">Usage</p>
+                    <h2>模型使用详情</h2>
+                </div>
                 <div id="modelStats" class="model-list">
                     <div class="loading">加载中...</div>
                 </div>
-            </div>
+            </section>
         </main>
     </div>
 
