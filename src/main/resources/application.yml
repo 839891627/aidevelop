@@ -90,6 +90,9 @@ logging:
     name: logs/aidevelop.log
 app:
   ai:
+    http:
+      connect-timeout-ms: ${AI_HTTP_CONNECT_TIMEOUT_MS:10000}
+      read-timeout-ms: ${AI_HTTP_READ_TIMEOUT_MS:60000}
     pricing:
       chat-input: 0.001
       chat-output: 0.002
