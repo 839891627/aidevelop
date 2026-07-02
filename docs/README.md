@@ -30,7 +30,7 @@
 4. **理解聊天主链路**：[02 chat-basics](02-chat-basics.md) -> [10 chat-memory](10-chat-memory.md)，重点看 `ChatMode`、SSE 流式响应和会话持久化。
 5. **理解模型与提示词治理**：[03 multi-llm](03-multi-llm.md) -> [04 prompt-engineering](04-prompt-engineering.md)，重点看模型 Provider 切换和 `chat.general`、`chat.financial.rag`、`system.default` 的边界。
 6. **理解工具与 RAG 能力**：[05 function-calling](05-function-calling.md) -> [06 rag-basics](06-rag-basics.md) -> [07 rag-advanced](07-rag-advanced.md) -> [09 embedding-and-chunking](09-embedding-and-chunking.md)。
-7. **理解 Agent 与生产化能力**：[design/agent-loop](design/agent-loop.md) -> [08 cost-and-observability](08-cost-and-observability.md)，重点看多步工具编排、trace、调用日志和成本统计。
+7. **理解 Agent 与生产化能力**：[design/agent-loop](design/agent-loop.md) -> [multi-agent-architecture](multi-agent-architecture.md) -> [08 cost-and-observability](08-cost-and-observability.md)，重点看多步工具编排、多 Agent Supervisor、trace、调用日志和成本统计。
 
 如果只是为了项目复盘，可以优先阅读 `architecture.md`、`11-case-execution-flows.md`、`02-chat-basics.md`、`04-prompt-engineering.md`、`06-rag-basics.md`、`design/agent-loop.md` 和 `08-cost-and-observability.md`。
 
@@ -103,13 +103,14 @@
 | 文档 | 内容 |
 |------|------|
 | [agent-loop](design/agent-loop.md) | Agent Loop 架构（L3 已落地：Plan/Tool/Reflect/Replan/SelfCheck/Respond，风险问题要求 RAG 证据） |
+| [multi-agent-architecture](multi-agent-architecture.md) | 多 Agent Supervisor 架构面试讲解（Supervisor 编排、SubAgent 配置、工具白名单、Agent-as-Tool） |
 | [enterprise-ai-evolution-todo](design/enterprise-ai-evolution-todo.md) | 企业级 AI 系统演进 TODO（Embedding 升级暂缓） |
 
 ## 当前实现边界
 
 - `/api/chat` — 主对话接口，支持 `general`、`financial_rag`、`auto` 三种模式
 - `/api/rag` — 高级 RAG 实验（混合检索、重排、评估）
-- `/api/agent/chat` — Agent Loop MVP（Plan -> Tool -> Respond，含 traceId 与步骤追踪）
+- `/api/agent/chat` — Agent Loop（Plan -> Tool/Observe -> Reflect -> Replan -> SelfCheck -> Respond，含 traceId 与步骤追踪）
 - `/api/prompts/registry` — Prompt Registry（草稿、发布、回滚、版本列表）
 - `/api/cost` — 大模型调用成本统计与趋势分析
 - 对话历史 — 基于 MySQL `chat_message` 表持久化，重启后可恢复

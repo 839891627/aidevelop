@@ -19,6 +19,11 @@ public class RagSearchAgentTool implements AgentTool {
     }
 
     @Override
+    public String description() {
+        return "rag.search: 知识库语义检索。参数: query(string,检索问题), conversationId(string,可选,会话ID), topK(int,可选,返回条数,默认5)";
+    }
+
+    @Override
     public Object execute(Map<String, Object> args) {
         String query = readString(args, "query", "");
         String conversationId = readString(args, "conversationId", null);

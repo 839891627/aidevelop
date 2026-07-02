@@ -75,21 +75,20 @@ public class AgentLoopService implements AgentService {
                 .success(executionResult.success())
                 .errorMessage(executionResult.success() ? null : executionResult.errorMessage())
                 .build());
+        }
 
-            if (agentProperties.isReflectEnabled()) {
-                // Reflect 阶段：根据已有 observation 判断证据是否足够，足够就提前结束工具循环。
-                AgentReflectDecision decision = agentReflector.reflect(request, routePlan, state.getObservations());
-                state.addStep(AgentStep.builder()
-                    .stepIndex(state.nextStepIndex())
-                    .actionType(AgentActionType.REFLECT)
-                    .toolOutput(decision.reason())
-                    .latencyMs(decision.latencyMs())
-                    .success(true)
-                    .build());
-                if (decision.done()) {
-                    state.markShouldStop();
-                    break;
-                }
+        // Reflect 阶段：初始 plan 的所有工具执行完毕后，再统一判断证据是否充足。
+        if (agentProperties.isReflectEnabled() && !planResult.toolCalls().isEmpty()) {
+            AgentReflectDecision decision = agentReflector.reflect(request, routePlan, state.getObservations());
+            state.addStep(AgentStep.builder()
+                .stepIndex(state.nextStepIndex())
+                .actionType(AgentActionType.REFLECT)
+                .toolOutput(decision.reason())
+                .latencyMs(decision.latencyMs())
+                .success(true)
+                .build());
+            if (decision.done()) {
+                state.markShouldStop();
             }
         }
 

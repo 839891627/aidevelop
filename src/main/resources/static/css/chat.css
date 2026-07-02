@@ -33,7 +33,8 @@
 }
 
 body {
-    min-height: 100vh;
+    height: 100vh;
+    height: 100dvh;
     color: var(--ink);
     font-family: "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
     background:
@@ -72,15 +73,17 @@ select {
     z-index: 1;
     display: grid;
     grid-template-columns: 286px minmax(0, 1fr);
-    height: 100vh;
+    grid-template-rows: minmax(0, 1fr);
+    height: 100%;
     padding: 18px;
     gap: 18px;
+    overflow: hidden;
 }
 
 .sidebar {
     display: flex;
     flex-direction: column;
-    gap: 22px;
+    gap: 18px;
     padding: 22px;
     color: #fff8eb;
     background:
@@ -90,6 +93,8 @@ select {
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     min-width: 0;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .brand {
@@ -134,30 +139,30 @@ select {
 
 .sidebar-nav {
     display: grid;
-    gap: 8px;
+    gap: 6px;
 }
 
 .nav-item {
     display: block;
-    padding: 14px;
+    padding: 10px 12px;
     color: rgba(255, 248, 235, 0.74);
     text-decoration: none;
     border: 1px solid transparent;
-    border-radius: 16px;
+    border-radius: 14px;
     transition: 180ms ease;
 }
 
 .nav-item span {
     display: block;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
 }
 
 .nav-item small {
     display: block;
-    margin-top: 3px;
+    margin-top: 2px;
     color: rgba(255, 248, 235, 0.44);
-    font-size: 12px;
+    font-size: 11px;
 }
 
 .nav-item:hover,
@@ -303,6 +308,7 @@ select {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
     min-width: 0;
+    min-height: 0;
     background: rgba(255, 250, 241, 0.58);
     border: 1px solid rgba(255, 255, 255, 0.68);
     border-radius: var(--radius-lg);
@@ -367,6 +373,7 @@ select {
 }
 
 .chat-messages {
+    min-height: 0;
     overflow-y: auto;
     padding: 26px 30px 32px;
     scroll-behavior: smooth;
@@ -389,6 +396,7 @@ select {
     align-content: center;
     gap: 18px;
     min-height: 100%;
+    padding-block: 20px;
     text-align: center;
 }
 
@@ -746,6 +754,8 @@ select {
         grid-template-columns: 1fr;
         height: auto;
         min-height: 100vh;
+        min-height: 100dvh;
+        overflow: visible;
     }
 
     .sidebar {
@@ -767,6 +777,49 @@ select {
 
     .chat-workspace {
         min-height: 76vh;
+    }
+}
+
+@media (max-height: 720px) and (min-width: 901px) {
+    .workspace-header {
+        padding: 20px 26px 14px;
+    }
+
+    .workspace-header h2 {
+        font-size: clamp(26px, 3vw, 36px);
+    }
+
+    .chat-messages {
+        padding-top: 18px;
+        padding-bottom: 20px;
+    }
+
+    .empty-state {
+        align-content: start;
+        gap: 14px;
+        min-height: 0;
+    }
+
+    .empty-state-icon {
+        width: 58px;
+        height: 58px;
+        border-radius: 20px;
+        font-size: 34px;
+    }
+
+    .empty-state-text strong {
+        font-size: 26px;
+    }
+
+    .prompt-chips {
+        max-height: 118px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
+    .composer-wrap {
+        padding-top: 12px;
+        padding-bottom: 16px;
     }
 }
 

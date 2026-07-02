@@ -70,14 +70,22 @@ public class SupervisorOrchestrator implements AgentService {
 
             SubAgentDefinition definition = multiAgentProperties.toDefinition(targetAgent);
             long subStart = System.currentTimeMillis();
-            AgentResponse subResponse = subAgentRunner.execute(request, definition, state);
-            long subLatency = System.currentTimeMillis() - subStart;
+            try {
+                AgentResponse subResponse = subAgentRunner.execute(request, definition, state);
+                long subLatency = System.currentTimeMillis() - subStart;
 
-            state.put(definition.outputKey(), subResponse.getFinalAnswer());
-            state.recordExecution(new SubAgentExecution(
-                targetAgent, definition.outputKey(), subResponse, subLatency));
+                state.put(definition.outputKey(), subResponse.getFinalAnswer());
+                state.recordExecution(new SubAgentExecution(
+                    targetAgent, definition.outputKey(), subResponse, subLatency));
 
-            log.info("SubAgent [{}] 执行完成: round={}, latency={}ms", targetAgent, round, subLatency);
+                log.info("SubAgent [{}] 执行完成: round={}, latency={}ms", targetAgent, round, subLatency);
+            } catch (Exception ex) {
+                long subLatency = System.currentTimeMillis() - subStart;
+                String errorMsg = targetAgent + " 执行异常: " + ex.getMessage();
+                state.put(definition.outputKey(), errorMsg);
+                log.warn("SubAgent [{}] 执行失败: round={}, latency={}ms, error={}",
+                    targetAgent, round, subLatency, ex.getMessage());
+            }
         }
 
         String finalAnswer = synthesize(request, state);
@@ -110,7 +118,6 @@ public class SupervisorOrchestrator implements AgentService {
             systemPrompt = """
                 你是多 Agent 调度器。根据用户问题和已有结果决定下一步。
                 仅返回 JSON：{"action":"DISPATCH","targetAgent":"<name>","reason":"..."} 或 {"action":"FINISH","reason":"..."}
-                可用 Agent: %s
                 """;
         }
 

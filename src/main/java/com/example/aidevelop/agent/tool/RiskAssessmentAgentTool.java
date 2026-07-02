@@ -18,6 +18,11 @@ public class RiskAssessmentAgentTool implements AgentTool {
     }
 
     @Override
+    public String description() {
+        return "risk.assess: 评估用户风险等级。参数: userNo(string,用户编号)";
+    }
+
+    @Override
     public Object execute(Map<String, Object> args) {
         String userNo = readString(args, "userNo", "");
         return riskAssessmentService.assessRisk(userNo);

@@ -18,6 +18,11 @@ public class RepaymentQueryAgentTool implements AgentTool {
     }
 
     @Override
+    public String description() {
+        return "repayment.query: 查询用户还款记录。参数: userNo(string,用户编号), status(string,可选,枚举值: INIT|SUCCESS|FAIL|PENDING)";
+    }
+
+    @Override
     public Object execute(Map<String, Object> args) {
         String userNo = readString(args, "userNo", "");
         String status = readString(args, "status", null);

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -72,6 +73,40 @@ class StaticChatPageTest {
         String css = readStaticFile("css/chat.css");
 
         assertThat(css).contains(".app-shell", ".sidebar", ".composer-card", ".api-switcher");
+    }
+
+    @Test
+    void chatMessagesCanShrinkInsideWorkspaceGrid() throws IOException {
+        String css = readStaticFile("css/chat.css");
+
+        Pattern chatMessagesBlock = Pattern.compile("\\.chat-messages\\s*\\{[^}]*min-height:\\s*0;", Pattern.DOTALL);
+        assertThat(chatMessagesBlock.matcher(css).find()).isTrue();
+    }
+
+    @Test
+    void chatWorkspaceGridKeepsLongHistoryInsideSidebar() throws IOException {
+        String css = readStaticFile("css/chat.css");
+
+        Pattern shellBlock = Pattern.compile("\\.app-shell\\s*\\{[^}]*grid-template-rows:\\s*minmax\\(0,\\s*1fr\\);", Pattern.DOTALL);
+        Pattern sidebarBlock = Pattern.compile("\\.sidebar\\s*\\{[^}]*min-height:\\s*0;", Pattern.DOTALL);
+        Pattern workspaceBlock = Pattern.compile("\\.chat-workspace\\s*\\{[^}]*min-height:\\s*0;", Pattern.DOTALL);
+
+        assertThat(shellBlock.matcher(css).find()).isTrue();
+        assertThat(sidebarBlock.matcher(css).find()).isTrue();
+        assertThat(workspaceBlock.matcher(css).find()).isTrue();
+    }
+
+    @Test
+    void chatSidebarNavigationUsesCompactSpacing() throws IOException {
+        String css = readStaticFile("css/chat.css");
+
+        Pattern navItemBlock = Pattern.compile("\\.nav-item\\s*\\{[^}]*padding:\\s*10px\\s+12px;", Pattern.DOTALL);
+        Pattern navTitleBlock = Pattern.compile("\\.nav-item span\\s*\\{[^}]*font-size:\\s*14px;", Pattern.DOTALL);
+        Pattern navCaptionBlock = Pattern.compile("\\.nav-item small\\s*\\{[^}]*font-size:\\s*11px;", Pattern.DOTALL);
+
+        assertThat(navItemBlock.matcher(css).find()).isTrue();
+        assertThat(navTitleBlock.matcher(css).find()).isTrue();
+        assertThat(navCaptionBlock.matcher(css).find()).isTrue();
     }
 
     @Test

@@ -49,6 +49,20 @@ public class ToolRouter {
         return registry().keySet();
     }
 
+    public String buildToolDescriptions(List<String> toolNames) {
+        StringBuilder sb = new StringBuilder();
+        Map<String, AgentTool> reg = registry();
+        for (String name : toolNames) {
+            AgentTool tool = reg.get(name);
+            if (tool != null) {
+                sb.append("- ").append(tool.description()).append("\n");
+            } else {
+                sb.append("- ").append(name).append("\n");
+            }
+        }
+        return sb.toString().trim();
+    }
+
     private boolean isAllowed(String toolName) {
         List<String> allowedTools = agentProperties.getAllowedTools();
         return allowedTools == null || allowedTools.isEmpty() || allowedTools.contains(toolName);
