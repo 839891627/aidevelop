@@ -1,6 +1,6 @@
 # AI 应用架构说明
 
-本文档用于梳理项目的核心架构，重点服务于学习复盘、方案评审和面试讲解。当前项目已经从“单一金融助贷聊天助手”演进为一个显式支持 **常规聊天、金融 RAG、Agent 任务、Prompt 管理和成本观测** 的 Spring AI 应用。
+本文档用于梳理项目的核心架构，重点服务于学习复盘、方案评审和项目讲解。当前项目已经从“单一金融助贷聊天助手”演进为一个显式支持 **常规聊天、金融 RAG、Agent 任务、Prompt 管理和成本观测** 的 Spring AI 应用。
 
 ## 1. 项目定位
 
@@ -376,11 +376,11 @@ flowchart LR
   VectorRetrievalService --> Milvus
 ```
 
-## 10. 面试表达建议
+## 10. 项目表达建议
 
 可以把项目概括为：
 
-> 这是一个面向 AI 应用开发学习和面试准备的综合实践项目。它以金融助贷为主要业务场景，但通过显式 `ChatMode` 区分常规聊天、金融 RAG 和 Agent 任务，避免所有问题都被同一个金融系统提示词绑定。系统用 Spring AI `ChatClient` 承接模型调用，用 Prompt Registry 治理不同能力模式的 system prompt，用 Milvus 承接知识库检索，用 Agent Loop 编排业务工具，并通过 AOP 记录调用成本和可观测数据。
+> 这是一个面向 AI 应用开发学习和工程实践的综合项目。它以金融助贷为主要业务场景，但通过显式 `ChatMode` 区分常规聊天、金融 RAG 和 Agent 任务，避免所有问题都被同一个金融系统提示词绑定。系统用 Spring AI `ChatClient` 承接模型调用，用 Prompt Registry 治理不同能力模式的 system prompt，用 Milvus 承接知识库检索，用 Agent Loop 编排业务工具，并通过 AOP 记录调用成本和可观测数据。
 
 讲解顺序建议：
 

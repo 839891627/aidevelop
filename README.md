@@ -264,7 +264,7 @@ docs/                           # 学习文档和设计文档
 
 ## 学习文档
 
-所有学习文档统一放在 `docs/` 目录。推荐先读 [architecture](docs/architecture.md) 建立全局地图，再读 [case-execution-flows](docs/11-case-execution-flows.md) 用具体问题串代码链路，之后按 `01` 到 `10` 逐步阅读；如果只做面试复盘，优先看 `architecture`、`case-execution-flows`、`chat-basics`、`prompt-engineering`、`rag-basics`、`design/agent-loop` 和 `cost-and-observability`。
+所有学习文档统一放在 `docs/` 目录。推荐先读 [architecture](docs/architecture.md) 建立全局地图，再读 [case-execution-flows](docs/11-case-execution-flows.md) 用具体问题串代码链路，之后按 `01` 到 `10` 逐步阅读；如果只做项目复盘，优先看 `architecture`、`case-execution-flows`、`chat-basics`、`prompt-engineering`、`rag-basics`、`design/agent-loop` 和 `cost-and-observability`。
 
 | 文档 | 主题 | 难度 |
 |------|------|------|
@@ -281,7 +281,7 @@ docs/                           # 学习文档和设计文档
 | [10-chat-memory](docs/10-chat-memory.md) | Chat Memory 持久化与流式会话续聊 | ★★★ |
 | [11-case-execution-flows](docs/11-case-execution-flows.md) | 常规聊天、金融 RAG、Agent、Prompt、成本等 case 链路执行说明 | ★★ |
 | [multi-agent-architecture](docs/multi-agent-architecture.md) | 多 Agent 协作架构文档 | 架构 |
-| [interview-guide](docs/interview-guide.md) | AI 大模型应用开发面试问答手册 | 面试 |
+| [project-guide](docs/project-guide.md) | AI 大模型应用开发项目讲解指南 | 项目说明 |
 | [design/agent-loop](docs/design/agent-loop.md) | Agent Loop 设计文档 | 设计稿 |
 | [design/enterprise-ai-evolution-todo](docs/design/enterprise-ai-evolution-todo.md) | 企业级 AI 系统演进 TODO | 设计稿 |
 

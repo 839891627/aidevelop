@@ -32,7 +32,7 @@
 6. **理解工具与 RAG 能力**：[05 function-calling](05-function-calling.md) -> [06 rag-basics](06-rag-basics.md) -> [07 rag-advanced](07-rag-advanced.md) -> [09 embedding-and-chunking](09-embedding-and-chunking.md)。
 7. **理解 Agent 与生产化能力**：[design/agent-loop](design/agent-loop.md) -> [08 cost-and-observability](08-cost-and-observability.md)，重点看多步工具编排、trace、调用日志和成本统计。
 
-如果只是为了面试复盘，可以优先阅读 `architecture.md`、`11-case-execution-flows.md`、`02-chat-basics.md`、`04-prompt-engineering.md`、`06-rag-basics.md`、`design/agent-loop.md` 和 `08-cost-and-observability.md`。
+如果只是为了项目复盘，可以优先阅读 `architecture.md`、`11-case-execution-flows.md`、`02-chat-basics.md`、`04-prompt-engineering.md`、`06-rag-basics.md`、`design/agent-loop.md` 和 `08-cost-and-observability.md`。
 
 ## 学习路线
 

@@ -321,7 +321,7 @@ while (true) {
 
 在 Prompt Registry 中创建并发布新的 `system.default` 版本。例如：
 
-- 将角色从"金融系统AI助手"改为"技术面试官"
+- 将角色从"金融系统AI助手"改为"技术导师"
 - 移除 Function Calling 相关的提示
 - 添加新的回答格式要求
 
