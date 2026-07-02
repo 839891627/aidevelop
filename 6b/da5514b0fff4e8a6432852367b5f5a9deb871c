@@ -1,0 +1,27 @@
+.env.example
+  s_8b42b000859c35::t_6630252ff8370d 33-34
+src/main/java/com/example/aidevelop/config/AiHttpProperties.java
+  s_8b42b000859c35::t_cb3946bea9d743 1-14
+src/main/java/com/example/aidevelop/config/OpenAiHttpClientConfig.java
+  s_8b42b000859c35::t_4838396a8c8009 1-27
+src/main/resources/application.yml
+  s_8b42b000859c35::t_641b77196192e3 93-95
+src/test/java/com/example/aidevelop/config/OpenAiHttpClientConfigTest.java
+  s_8b42b000859c35::t_d47292c542de55 1-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "6bda5514b0fff4e8a6432852367b5f5a9deb871c",
+  "prompts": {},
+  "sessions": {
+    "s_8b42b000859c35": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "7493d369-168d-48f4-baf2-6dc7aea19941",
+        "model": "gpt-5.5"
+      },
+      "human_author": "jinliang.cao <arvin.cao2@xinfei.cn>"
+    }
+  }
+}
