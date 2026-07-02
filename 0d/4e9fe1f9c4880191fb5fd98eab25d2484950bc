@@ -1,0 +1,46 @@
+docs/design/agent-loop.md
+  s_d5ef618bcdf77f::t_c43cf7562dd537 107-388
+docs/README.md
+  s_1b67e7abb42122::t_ce521b179aec37 33,106
+  s_d5ef618bcdf77f::t_0c0867b7d3dd39 113
+docs/multi-agent-architecture.md
+  s_1b67e7abb42122::t_44ac31c461a3c5 1,3,5,7,9,11,13,15,17,19,21-25,27,29-33,35,37-42,44-45,47-69,72-104,106,108,110-113,115-119,122,124-129,131-134,136-141,143-145,147-148,150-152,154,156-161,163,165-174,177,179-183,185-202,204-252,255-265,267,270-314,317,319-321,323,325-358,361-393,397,402-435,437-469,472,474,476,478-485,488,490-498,500,502-505,507,509-519,521,523,525,527-531,534-547,550,554-563,567-577,579,581,583,585,587-594,596,598,600-607,609
+src/main/resources/static/css/chat.css
+  s_d5ef618bcdf77f::t_cc565cc840205a 86,142,147,151,157,163,165
+  s_d5ef618bcdf77f::t_e38c3dfea3a5f7 376,399,757-758,783-822
+  s_d5ef618bcdf77f::t_ce2c6427a8439b 76,96-97,311
+src/test/java/com/example/aidevelop/staticpage/StaticChatPageTest.java
+  s_d5ef618bcdf77f::t_64c7ca78715eed 8,82-83
+  s_d5ef618bcdf77f::t_b94a14401f685a 79-81,84-86
+  s_d5ef618bcdf77f::t_055cc527cb08b4 100-111
+  s_d5ef618bcdf77f::t_2a2e29ee81eed2 87-99
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "0d4e9fe1f9c4880191fb5fd98eab25d2484950bc",
+  "prompts": {},
+  "humans": {
+    "h_db905cd1f0b88f": {
+      "author": "jinliang.cao <arvin.cao2@xinfei.cn>"
+    }
+  },
+  "sessions": {
+    "s_1b67e7abb42122": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "296de7bc-ab40-467c-9fea-ab13b7dad47d",
+        "model": "gpt-5.5"
+      },
+      "human_author": "jinliang.cao <arvin.cao2@xinfei.cn>"
+    },
+    "s_d5ef618bcdf77f": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "464963a4-1b34-42ec-b093-c53f844dd3ad",
+        "model": "gpt-5.5"
+      },
+      "human_author": "jinliang.cao <arvin.cao2@xinfei.cn>"
+    }
+  }
+}
