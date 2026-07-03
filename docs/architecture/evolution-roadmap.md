@@ -12,6 +12,7 @@
 | 结构化输出 | 已通过 `AgentStructuredOutputValidator` 统一校验 |
 | 超时控制 | Agent LLM 调用已通过 `AgentLlmClient` 设置超时 |
 | 预算控制 | 已有 `AgentBudgetTracker` 记录每轮调用预算 |
+| 资源限流 | 已有 `AgentRateLimiter` 单机令牌桶，LLM 全局 + 工具按名分桶 |
 | 步骤状态 | 已有 `AgentStepStatus` |
 | 失败分类 | 已有 `AgentFailureReason` |
 | Trace 持久化 | 已有 `agent_trace`、`agent_step` 和查询接口 |
@@ -55,6 +56,8 @@
 - 按 `traceId` 汇总一次 Agent 请求总成本
 
 原因：Agent 和多 Agent 链路天然会放大调用次数，成本预算必须前置。
+
+> 补充：跨请求的速率限流（`AgentRateLimiter`）已落地单机令牌桶版本，保护 LLM provider 和工具后端；多实例部署时仍需升级为 Redis 分布式限流，并可叠加基于 P99 延迟/错误率的自适应限流。
 
 ### P1：数据库迁移工程化
 

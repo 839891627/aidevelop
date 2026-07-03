@@ -41,7 +41,7 @@ docs/
 |---|---|---|
 | 架构 | [面试讲解指南](architecture/interview-guide.md) | 项目介绍、亮点、取舍和追问准备 |
 | 架构 | [架构总览](architecture/overview.md) | 当前系统架构、模块边界、核心链路 |
-| 架构 | [Agent Loop](architecture/agent-loop.md) | Agent Runtime、结构化输出、预算、超时、trace |
+| 架构 | [Agent Loop](architecture/agent-loop.md) | Agent Runtime、结构化输出、预算、超时、限流、trace |
 | 架构 | [多 Agent](architecture/multi-agent.md) | Supervisor、SubAgent、工具白名单、Agent-as-Tool |
 | 架构 | [演进路线](architecture/evolution-roadmap.md) | 后续可优化方向 |
 | 指南 | [快速开始](guides/quick-start.md) | 环境变量、数据库、启动和演示路径 |

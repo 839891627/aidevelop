@@ -23,7 +23,7 @@
 |---|---|
 | ChatMode 显式分流 | 普通聊天、金融 RAG、Agent 任务不混用同一套 prompt 和工具 |
 | 统一 RAG Facade | 移除了公开 RAG 调试链路，生产能力统一收口到 `RagFacade` |
-| Agent Runtime 强化 | LLM 输出必须结构化校验，调用有超时和预算，步骤有状态和失败原因 |
+| Agent Runtime 强化 | LLM 输出必须结构化校验，调用有超时、预算和限流，步骤有状态和失败原因 |
 | Trace 持久化 | Agent 响应返回 `traceId`，可回放 PLAN/TOOL/REFLECT/RESPOND 等步骤 |
 | 成本可观测 | `ai_call_log` 记录 token、耗时、费用，并通过 `traceId` 关联 Agent 阶段 |
 | 多 Agent 编排 | Supervisor 负责调度，SubAgent 复用单 Agent Runtime，工具权限按角色隔离 |
@@ -51,6 +51,12 @@ Agent 里 LLM 的输出会决定工具调用和下一步流程。如果直接解
 
 单 Agent 适合处理简单工具任务；多 Agent 适合跨域问题，例如同时需要借款数据、还款数据、知识库规则和风险判断。多 Agent 的价值不在于“更多模型调用”，而在于职责分离、工具隔离和可观测的分工链路。
 
+### 为什么 Agent 要单独做限流？
+
+普通接口限流防的是"压垮系统"，Agent 限流要防三件事：一次用户请求会被放大成多次 LLM/工具调用（调用放大）；单请求耗时几十秒到两分钟，长占用线程和连接（慢响应）；LLM 按 token 计费，限流同时是防账单失控（成本敏感）；LLM provider 和工具后端还有 RPM/TPM 硬配额（下游脆）。
+
+因此限流分两层：`AgentBudgetTracker` 限单请求内部不失控，`AgentRateLimiter` 限跨请求全局不超载。实现上 LLM 全局一桶 + 工具按名分桶，每个桶同时控 QPS（令牌桶）和并发（`Semaphore`），拿不到令牌先排队、超时再走兜底回答。默认单机令牌桶，接口预留了 Redis 分布式实现。
+
 ## 5. 典型演示问题
 
 | 场景 | 示例问题 | 展示点 |
@@ -70,7 +76,7 @@ Agent 里 LLM 的输出会决定工具调用和下一步流程。如果直接解
 
 - LLM 调用统一走 `AgentLlmClient`
 - 输出统一走 `AgentStructuredOutputValidator`
-- 每轮执行有 `AgentBudgetTracker`
+- 每轮执行有 `AgentBudgetTracker`，跨请求有 `AgentRateLimiter` 限流
 - 步骤有 `AgentStepStatus` 和 `AgentFailureReason`
 - 结果由 `AgentTraceService` 持久化
 
@@ -91,6 +97,7 @@ Agent 里 LLM 的输出会决定工具调用和下一步流程。如果直接解
 
 - RAG 缺少离线评测集和召回指标看板
 - `AgentBudgetTracker` 目前偏调用次数控制，后续应扩展到 token 和金额预算
+- 资源限流目前是单机令牌桶，多实例部署应升级为 Redis 分布式限流，并可叠加基于延迟/错误率的自适应限流
 - 安全治理还可以补 API 鉴权、脱敏、租户隔离
 - 数据库迁移可以从 SQL 脚本升级为 Flyway/Liquibase
 

@@ -85,6 +85,7 @@ sequenceDiagram
 | `AgentLlmClient` | 统一 LLM 调用、超时和 trace 上下文 |
 | `AgentStructuredOutputValidator` | JSON 提取、解析和结构校验 |
 | `AgentBudgetTracker` | 每轮 LLM/tool 调用预算 |
+| `AgentRateLimiter` | L3 资源限流：LLM 全局 + 工具按名分桶（令牌桶 + 并发） |
 | `AgentTraceService` | 持久化 trace 和 step |
 
 ## 5. 结构化输出校验
@@ -100,17 +101,28 @@ Planner、Reflector、Responder 和 Supervisor 不再各自散落解析 JSON，�
 
 这能减少“模型多说一句话导致 JSON 解析失败”的不确定性，并把失败原因明确写入 step。
 
-## 6. 预算与超时
+## 6. 预算、超时与限流
 
-`AgentBudgetTracker` 记录：
+Agent Runtime 在三个层面约束资源消耗，层层互补：
 
-- 当前 round
-- LLM 调用次数
-- 工具调用次数
-- token 预算预留字段
-- request 级别预算摘要
+| 层面 | 组件 | 作用 |
+|---|---|---|
+| 单请求预算 | `AgentBudgetTracker` | 限单次请求的 round / LLM 调用 / tool 调用次数，防一个请求自己跑飞 |
+| 单次超时 | `AgentLlmClient` | `CompletableFuture.orTimeout(...)` 控单次 LLM 调用超时 |
+| 全局限流 | `AgentRateLimiter` | 跨请求保护 LLM provider 和工具后端，防多请求一起打爆下游 |
 
-`AgentLlmClient` 使用 `CompletableFuture.orTimeout(...)` 控制单次 LLM 调用超时。超时会被分类为 `AgentLlmTimeoutException`，最终映射到 `AgentFailureReason.LLM_TIMEOUT`。
+`AgentBudgetTracker` 记录：当前 round、LLM 调用次数、工具调用次数、token 预算预留字段、request 级别预算摘要；超限映射为 `AgentFailureReason.BUDGET_EXCEEDED`。
+
+`AgentLlmClient` 超时被分类为 `AgentLlmTimeoutException`，映射到 `AgentFailureReason.LLM_TIMEOUT`。
+
+`AgentRateLimiter`（默认 `TokenBucketRateLimiter` 单机令牌桶）在 `AgentLlmClient.call()` 和 `AgentToolExecutor.executeWithRetry()` 两个统一入口拦截：
+
+- **LLM 全局桶**（key=`llm:global`）：RPM + 并发数，保护 provider 配额
+- **工具按名分桶**（key=`tool:<name>`）：QPS + 并发数，不同工具后端能力不同
+- 每个桶同时控制 QPS（令牌桶，惰性填充）和并发（`Semaphore`），`Permit` 用 try-with-resources 归还并发许可
+- 排队等待 + 超时降级：`acquire-timeout-ms` 内拿不到令牌，LLM 抛 `AgentRateLimitedException`、工具返回 `RATE_LIMITED` 失败 result，二者都走现有兜底回答
+
+限流与预算的区别：预算（`AgentBudgetTracker`）管单请求内部不失控，限流（`AgentRateLimiter`）管跨请求全局不超载，两者互补。
 
 ## 7. Step 状态与失败原因
 
@@ -130,6 +142,7 @@ Planner、Reflector、Responder 和 Supervisor 不再各自散落解析 JSON，�
 - 工具失败
 - LLM 超时
 - 预算超限
+- 限流降级（`RATE_LIMITED`）
 - 结构化输出解析失败
 - 自检失败
 - 降级成功
@@ -168,7 +181,7 @@ ToolRouter
 
 当前 Agent Runtime 已经具备面试中值得重点讲的工程化特征：
 
-- 可控：预算、超时、最大步数、工具白名单。
+- 可控：预算、超时、最大步数、工具白名单、资源限流。
 - 可观测：step 状态、失败原因、traceId、callPhase。
 - 可复用：Planner/Reflector/Responder 被单 Agent 和多 Agent 复用。
 - 可扩展：新增工具只需要实现 `AgentTool` 并注册到 `ToolRouter`。

@@ -182,12 +182,13 @@ Agent Runtime 现在由以下组件组成：
 | `AgentLlmClient` | 统一 LLM 调用、超时、TraceContext |
 | `AgentStructuredOutputValidator` | 统一 JSON 提取和结构化校验 |
 | `AgentBudgetTracker` | 每轮 LLM 调用预算和工具调用计数 |
+| `AgentRateLimiter` | L3 资源限流：LLM 全局 + 工具按名分桶 |
 | `AgentTraceService` | 持久化 `agent_trace` 和 `agent_step` |
 
 Agent 步骤现在有明确状态和失败分类：
 
 - `AgentStepStatus`：`SUCCEEDED`、`FAILED`、`DEGRADED`、`TIMED_OUT` 等
-- `AgentFailureReason`：`PLAN_PARSE_ERROR`、`LLM_TIMEOUT`、`TOOL_TIMEOUT`、`SELF_CHECK_FAILED`、`BUDGET_EXCEEDED` 等
+- `AgentFailureReason`：`PLAN_PARSE_ERROR`、`LLM_TIMEOUT`、`TOOL_TIMEOUT`、`SELF_CHECK_FAILED`、`BUDGET_EXCEEDED`、`RATE_LIMITED` 等
 
 ## 6. 多 Agent 架构
 
@@ -247,4 +248,5 @@ Agent 响应会返回 `traceId`，同时 `AgentTraceService` 会以 best-effort 
 
 - 让 `RagProfile` 真正驱动不同检索策略。
 - 将 `AgentBudgetTracker` 从调用次数扩展到 token/cost 预算。
+- 将 `AgentRateLimiter` 从单机令牌桶升级为 Redis 分布式限流，并叠加自适应限流。
 - 补齐 `HYBRID_WITH_RERANK` 的完整重排实现。

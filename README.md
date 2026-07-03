@@ -66,6 +66,7 @@ flowchart TB
   RuntimeCore --> LlmClient["AgentLlmClient<br/>LLM 超时 / TraceContext"]
   RuntimeCore --> OutputValidator["AgentStructuredOutputValidator"]
   RuntimeCore --> BudgetTracker["AgentBudgetTracker"]
+  RuntimeCore --> RateLimiter["AgentRateLimiter<br/>LLM/工具限流"]
   RuntimeCore --> TraceService["AgentTraceService"]
 
   LlmClient --> LLM
