@@ -33,6 +33,11 @@ class ChatApp {
         this.chatMessages = document.getElementById('chatMessages');
         this.conversationHistory = document.getElementById('conversationHistory');
         this.modeDescription = document.getElementById('modeDescription');
+        this.traceInspector = document.getElementById('traceInspector');
+        this.traceStatusPill = document.getElementById('traceStatusPill');
+        this.traceSummary = document.getElementById('traceSummary');
+        this.traceTimeline = document.getElementById('traceTimeline');
+        this.traceStepDetail = document.getElementById('traceStepDetail');
 
         this.modeCopy = {
             general: '常规知识、技术解释、写作和方案设计，不套用金融助贷提示词。',
@@ -44,6 +49,7 @@ class ChatApp {
         this.updateModeDescription();
         this.autoResizeTextarea();
         this.loadConversationHistory();
+        this.clearTraceInspector();
     }
 
     initEventListeners() {
@@ -167,8 +173,10 @@ class ChatApp {
             this.conversationIds.agent = data.traceId || requestBody.conversationId;
             this.activeConversationId = this.conversationIds.agent;
             this.renderMarkdown(contentDiv, this.formatAgentResponse(data));
+            this.renderTraceInspector(data);
         } catch (error) {
             contentDiv.innerHTML = this.escapeHtml(`抱歉，Agent 处理失败：${error.message}`);
+            this.clearTraceInspector('Agent 处理失败');
         }
     }
 
@@ -258,15 +266,232 @@ class ChatApp {
             Number.isFinite(data.responseTimeMs) ? `耗时：${data.responseTimeMs}ms` : null
         ].filter(Boolean);
 
-        const steps = Array.isArray(data.steps) && data.steps.length > 0
-            ? `\n\n### 执行轨迹\n${data.steps.map((step) => {
-                const title = step.name || step.toolName || `Step ${step.stepIndex || '-'}`;
-                const state = step.success === false ? '失败' : '完成';
-                return `- ${title}：${state}`;
-            }).join('\n')}`
+        return `${answer}${meta.length ? `\n\n---\n${meta.join(' · ')}` : ''}`;
+    }
+
+    renderTraceInspector(data) {
+        if (!this.traceSummary || !this.traceTimeline || !this.traceStepDetail) {
+            return;
+        }
+
+        const steps = Array.isArray(data.steps) ? data.steps : [];
+        this.renderTraceStatus(data.status);
+        this.renderTraceSummary(data, steps);
+        this.renderTraceTimeline(steps);
+
+        if (steps.length > 0) {
+            this.renderTraceStepDetail(steps[steps.length - 1]);
+            this.markActiveTraceStep(steps[steps.length - 1].stepIndex);
+        } else {
+            this.traceStepDetail.innerHTML = '<span>本次响应没有返回步骤明细。</span>';
+        }
+    }
+
+    renderTraceStatus(status) {
+        if (!this.traceStatusPill) {
+            return;
+        }
+        const normalized = status || 'UNKNOWN';
+        this.traceStatusPill.className = `trace-status-pill ${this.getTraceStatusClass(normalized)}`;
+        this.traceStatusPill.textContent = this.formatTraceStatus(normalized);
+    }
+
+    renderTraceSummary(data, steps) {
+        const budget = data.budgetSummary || {};
+        const cards = [
+            ['traceId', this.shortTraceId(data.traceId)],
+            ['状态', this.formatTraceStatus(data.status)],
+            ['路由', data.routeType || '-'],
+            ['步骤', Number.isFinite(data.executedSteps) ? data.executedSteps : steps.length],
+            ['耗时', Number.isFinite(data.responseTimeMs) ? this.formatDuration(data.responseTimeMs) : '-'],
+            ['调用', this.formatBudgetCalls(budget)]
+        ];
+        const failure = data.failureReason && data.failureReason !== 'NONE'
+            ? `<div class="trace-alert">Failure: ${this.escapeHtml(data.failureReason)}</div>`
+            : '';
+        const budgetReason = budget.budgetExceeded && budget.reason
+            ? `<div class="trace-alert">Budget: ${this.escapeHtml(budget.reason)}</div>`
             : '';
 
-        return `${answer}${meta.length ? `\n\n---\n${meta.join(' · ')}` : ''}${steps}`;
+        this.traceSummary.className = 'trace-summary';
+        this.traceSummary.innerHTML = `
+            <div class="trace-summary-grid compact">
+                ${cards.map(([label, value]) => `
+                    <div class="trace-metric">
+                        <span>${this.escapeHtml(label)}</span>
+                        <strong title="${this.escapeHtml(String(value || '-'))}">${this.escapeHtml(String(value || '-'))}</strong>
+                    </div>
+                `).join('')}
+            </div>
+            ${failure}
+            ${budgetReason}
+        `;
+    }
+
+    renderTraceTimeline(steps) {
+        this.traceTimeline.innerHTML = '';
+        if (!steps.length) {
+            this.traceTimeline.innerHTML = '<p class="trace-empty-line">暂无步骤。</p>';
+            return;
+        }
+
+        steps.forEach((step) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `trace-step-card ${this.getTraceStepClass(step)}`;
+            button.dataset.stepIndex = step.stepIndex;
+            button.innerHTML = `
+                <span class="trace-step-index">${this.escapeHtml(String(step.stepIndex || '-'))}</span>
+                <span class="trace-step-main">
+                    <strong>${this.escapeHtml(this.getTraceStepTitle(step))}</strong>
+                    <small>${this.escapeHtml(this.getTraceStepSubtitle(step))}</small>
+                </span>
+                <span class="trace-step-latency">${this.escapeHtml(this.formatDuration(step.latencyMs))}</span>
+            `;
+            button.addEventListener('click', () => {
+                this.renderTraceStepDetail(step);
+                this.markActiveTraceStep(step.stepIndex);
+            });
+            this.traceTimeline.appendChild(button);
+        });
+    }
+
+    renderTraceStepDetail(step) {
+        const rows = [
+            ['Action', step.actionType || '-'],
+            ['Status', step.status || (step.success === false ? 'FAILED' : 'SUCCEEDED')],
+            ['Failure', step.failureReason || '-'],
+            ['Round', Number.isFinite(step.roundIndex) ? `#${step.roundIndex}` : '-'],
+            ['Latency', this.formatDuration(step.latencyMs)],
+            ['Tool', step.toolName || '-']
+        ];
+        const input = this.formatTracePayload(step.toolInput);
+        const output = this.formatTracePayload(step.toolOutput);
+
+        this.traceStepDetail.innerHTML = `
+            <div class="trace-detail-heading">
+                <span>Step ${this.escapeHtml(String(step.stepIndex || '-'))}</span>
+                <strong>${this.escapeHtml(this.getTraceStepTitle(step))}</strong>
+            </div>
+            <dl class="trace-detail-list">
+                ${rows.map(([label, value]) => `
+                    <div>
+                        <dt>${this.escapeHtml(label)}</dt>
+                        <dd>${this.escapeHtml(String(value || '-'))}</dd>
+                    </div>
+                `).join('')}
+            </dl>
+            ${input ? `<div class="trace-payload"><span>Input</span><pre>${this.escapeHtml(input)}</pre></div>` : ''}
+            ${output ? `<div class="trace-payload"><span>Output</span><pre>${this.escapeHtml(output)}</pre></div>` : ''}
+        `;
+    }
+
+    clearTraceInspector(message = '暂无 Trace') {
+        if (!this.traceSummary || !this.traceTimeline || !this.traceStepDetail) {
+            return;
+        }
+        this.renderTraceStatus('UNKNOWN');
+        this.traceSummary.className = 'trace-empty';
+        this.traceSummary.innerHTML = `
+            <strong>${this.escapeHtml(message)}</strong>
+            <span>切换到 Agent 任务并发送问题后，这里会展示 traceId、状态、预算和执行步骤。</span>
+        `;
+        this.traceTimeline.innerHTML = '';
+        this.traceStepDetail.innerHTML = '<span>选择一个步骤查看输入、输出和耗时。</span>';
+    }
+
+    markActiveTraceStep(stepIndex) {
+        this.traceTimeline.querySelectorAll('.trace-step-card').forEach((button) => {
+            button.classList.toggle('active', button.dataset.stepIndex === String(stepIndex));
+        });
+    }
+
+    getTraceStepTitle(step) {
+        return step.toolName || step.actionType || `Step ${step.stepIndex || '-'}`;
+    }
+
+    getTraceStepSubtitle(step) {
+        const status = step.status || (step.success === false ? 'FAILED' : 'SUCCEEDED');
+        const reason = step.failureReason && step.failureReason !== 'NONE' ? ` · ${step.failureReason}` : '';
+        return `${status}${reason}`;
+    }
+
+    getTraceStepClass(step) {
+        if (step.success === false || step.status === 'FAILED' || step.status === 'TIMED_OUT') {
+            return 'failed';
+        }
+        if (step.status === 'DEGRADED') {
+            return 'degraded';
+        }
+        return 'succeeded';
+    }
+
+    getTraceStatusClass(status) {
+        if (status === 'SUCCEEDED') {
+            return 'succeeded';
+        }
+        if (status === 'DEGRADED') {
+            return 'degraded';
+        }
+        if (status === 'FAILED' || status === 'TIMED_OUT') {
+            return 'failed';
+        }
+        return 'muted';
+    }
+
+    formatTraceStatus(status) {
+        return {
+            SUCCEEDED: '成功',
+            DEGRADED: '降级',
+            FAILED: '失败',
+            TIMED_OUT: '超时',
+            UNKNOWN: '等待'
+        }[status] || status || '等待';
+    }
+
+    formatDuration(value) {
+        if (!Number.isFinite(value)) {
+            return '-';
+        }
+        if (value >= 1000) {
+            return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}s`;
+        }
+        return `${value}ms`;
+    }
+
+    formatBudgetCalls(budget) {
+        const parts = [];
+        if (Number.isFinite(budget.llmCalls)) {
+            parts.push(`LLM ${budget.llmCalls}`);
+        }
+        if (Number.isFinite(budget.toolCalls)) {
+            parts.push(`Tool ${budget.toolCalls}`);
+        }
+        if (Number.isFinite(budget.roundIndex)) {
+            parts.push(`#${budget.roundIndex}`);
+        }
+        return parts.length ? parts.join(' / ') : '-';
+    }
+
+    shortTraceId(traceId) {
+        if (!traceId) {
+            return '-';
+        }
+        return traceId.length > 12 ? `${traceId.slice(0, 8)}…${traceId.slice(-4)}` : traceId;
+    }
+
+    formatTracePayload(payload) {
+        if (payload === null || payload === undefined || payload === '') {
+            return '';
+        }
+        if (typeof payload === 'string') {
+            return payload.length > 2200 ? `${payload.slice(0, 2200)}\n...` : payload;
+        }
+        try {
+            return JSON.stringify(payload, null, 2);
+        } catch (error) {
+            return String(payload);
+        }
     }
 
     renderMarkdown(contentDiv, text) {
@@ -457,6 +682,7 @@ class ChatApp {
         };
         this.activeConversationId = null;
         this.showEmptyState();
+        this.clearTraceInspector();
         this.renderConversationHistoryActiveState();
         this.messageInput.focus();
     }

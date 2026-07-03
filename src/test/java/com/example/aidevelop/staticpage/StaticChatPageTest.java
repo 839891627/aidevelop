@@ -34,7 +34,7 @@ class StaticChatPageTest {
             "data-mode=\"agent\"",
             "class=\"chip-tag\""
         );
-        assertThat(html).doesNotContain("CUST1001");
+        assertThat(html).doesNotContain("USER1001");
     }
 
     @Test
@@ -43,7 +43,7 @@ class StaticChatPageTest {
 
         assertThat(script).contains("/api/chat/stream", "/api/chat", "/api/agent/chat");
         assertThat(script).contains("sendAgentMessage", "apiModeSelect", "button.dataset.mode", "mode: mode", "USER001");
-        assertThat(script).doesNotContain("CUST1001");
+        assertThat(script).doesNotContain("USER1001");
     }
 
     @Test
@@ -73,6 +73,49 @@ class StaticChatPageTest {
         String css = readStaticFile("css/chat.css");
 
         assertThat(css).contains(".app-shell", ".sidebar", ".composer-card", ".api-switcher");
+    }
+
+    @Test
+    void chatPageExposesAgentTraceInspectorPanel() throws IOException {
+        String html = readStaticFile("index.html");
+
+        assertThat(html).contains(
+            "class=\"trace-inspector\"",
+            "id=\"traceInspector\"",
+            "id=\"traceSummary\"",
+            "id=\"traceTimeline\"",
+            "id=\"traceStepDetail\""
+        );
+    }
+
+    @Test
+    void chatScriptRendersAgentTraceInspector() throws IOException {
+        String script = readStaticFile("js/chat.js");
+
+        assertThat(script).contains(
+            "renderTraceInspector",
+            "renderTraceSummary",
+            "renderTraceTimeline",
+            "renderTraceStepDetail",
+            "clearTraceInspector",
+            "budgetSummary",
+            "failureReason"
+        );
+    }
+
+    @Test
+    void chatStylesDefineAgentTraceInspectorLayout() throws IOException {
+        String css = readStaticFile("css/chat.css");
+
+        assertThat(css).contains(
+            ".workspace-grid",
+            ".trace-inspector",
+            ".trace-summary-grid.compact",
+            ".trace-timeline",
+            ".trace-step-card",
+            ".trace-step-detail"
+        );
+        assertThat(css).contains("grid-template-rows: auto auto minmax(260px, 1fr) minmax(120px, 0.42fr);");
     }
 
     @Test
