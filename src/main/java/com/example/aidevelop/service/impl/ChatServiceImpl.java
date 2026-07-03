@@ -13,14 +13,15 @@ import com.example.aidevelop.repository.ConversationRepository;
 import com.example.aidevelop.service.ChatService;
 import com.example.aidevelop.service.IntentRoutingService;
 import com.example.aidevelop.service.prompt.PromptRegistryService;
+import com.example.aidevelop.service.rag.RagContextFormatter;
+import com.example.aidevelop.service.rag.RagFacade;
+import com.example.aidevelop.model.rag.RagProfile;
+import com.example.aidevelop.model.rag.RagRequest;
+import com.example.aidevelop.model.rag.RagRetrievalResult;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.ai.vectorstore.SearchRequest;
-import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -45,7 +46,9 @@ public class ChatServiceImpl implements ChatService {
     @Resource
     private PromptRegistryService promptRegistryService;
     @Resource
-    private ObjectProvider<VectorStore> vectorStoreProvider;
+    private RagFacade ragFacade;
+    @Resource
+    private RagContextFormatter ragContextFormatter;
 
     @Override
     public ChatResponse chat(ChatRequest request) {
@@ -75,6 +78,7 @@ public class ChatServiceImpl implements ChatService {
             ChatMode chatMode = ChatMode.from(request.getMode());
             IntentRoutingService.RoutePlan routePlan = resolveRoutePlan(chatMode, request.getMessage());
             var promptSpec = preparePromptSpec(chatMode, routePlan);
+            prompt = enrichPromptWithRagContext(prompt, request, routePlan);
             if (runtimeOptions != null) {
                 promptSpec = promptSpec.options(runtimeOptions);
             }
@@ -145,6 +149,7 @@ public class ChatServiceImpl implements ChatService {
             ChatMode chatMode = ChatMode.from(request.getMode());
             IntentRoutingService.RoutePlan routePlan = resolveRoutePlan(chatMode, request.getMessage());
             var promptSpec = preparePromptSpec(chatMode, routePlan);
+            prompt = enrichPromptWithRagContext(prompt, request, routePlan);
             if (runtimeOptions != null) {
                 promptSpec = promptSpec.options(runtimeOptions);
             }
@@ -350,23 +355,29 @@ public class ChatServiceImpl implements ChatService {
             promptSpec = promptSpec.toolNames(routePlan.allowedToolNames().toArray(new String[0]));
         }
 
-        if (routePlan != null && routePlan.ragEnabled()) {
-            VectorStore vectorStore = vectorStoreProvider.getIfAvailable();
-            if (vectorStore != null) {
-                // RAG 参数来自 RoutePlan，不同链路可以使用不同 topK 和相似度阈值。
-                SearchRequest searchRequest = SearchRequest.builder()
-                    .topK(routePlan.ragTopK())
-                    .similarityThreshold(routePlan.ragSimilarityThreshold())
-                    .build();
-                promptSpec = promptSpec.advisors(QuestionAnswerAdvisor.builder(vectorStore)
-                    .searchRequest(searchRequest)
-                    .build());
-            } else {
-                log.warn("路由要求启用 RAG，但未找到 VectorStore，自动降级为非 RAG");
-            }
-        }
-
         return promptSpec;
+    }
+
+    private String enrichPromptWithRagContext(String prompt, ChatRequest request, IntentRoutingService.RoutePlan routePlan) {
+        if (routePlan == null || !routePlan.ragEnabled()) {
+            return prompt;
+        }
+        RagRetrievalResult result = ragFacade.retrieve(new RagRequest(
+            request.getMessage(),
+            request.getConversationId(),
+            routePlan.ragTopK(),
+            routePlan.ragSimilarityThreshold(),
+            RagProfile.CHAT,
+            null
+        ));
+        String ragContext = ragContextFormatter.formatForPrompt(result);
+        return """
+            【知识库证据】
+            %s
+
+            【对话上下文】
+            %s
+            """.formatted(ragContext, prompt);
     }
 
     private String resolveSystemPrompt(ChatMode chatMode) {

@@ -1,22 +1,22 @@
 package com.example.aidevelop.agent.multi;
 
 import com.example.aidevelop.agent.model.AgentActionType;
+import com.example.aidevelop.agent.model.AgentFailureReason;
 import com.example.aidevelop.agent.model.AgentRequest;
 import com.example.aidevelop.agent.model.AgentResponse;
 import com.example.aidevelop.agent.model.AgentStep;
+import com.example.aidevelop.agent.model.AgentStepStatus;
+import com.example.aidevelop.agent.service.AgentBudgetTracker;
+import com.example.aidevelop.agent.service.AgentLlmClient;
 import com.example.aidevelop.agent.service.AgentService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.Resource;
+import com.example.aidevelop.agent.service.AgentStructuredOutputValidator;
+import com.example.aidevelop.agent.service.AgentTraceContext;
+import com.example.aidevelop.agent.service.AgentTraceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Component
@@ -24,86 +24,115 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SupervisorOrchestrator implements AgentService {
 
-    private static final Pattern JSON_BLOCK_PATTERN = Pattern.compile("\\{[\\s\\S]*}");
-
     private final SubAgentRunner subAgentRunner;
     private final MultiAgentProperties multiAgentProperties;
-    private final ObjectMapper objectMapper;
-
-    @Resource(name = "chatClientForOpenAI")
-    private ChatClient chatClient;
+    private final AgentLlmClient agentLlmClient;
+    private final AgentStructuredOutputValidator structuredOutputValidator;
+    private final com.example.aidevelop.config.AgentProperties agentProperties;
+    private final AgentTraceService agentTraceService;
 
     @Override
     public AgentResponse chat(AgentRequest request) {
         long startedAt = System.currentTimeMillis();
         String traceId = UUID.randomUUID().toString();
         MultiAgentState state = new MultiAgentState(traceId);
+        AgentBudgetTracker budgetTracker = new AgentBudgetTracker(agentProperties);
+        AgentTraceContext.set(new AgentTraceContext.Context(traceId, request.getConversationId(), "SUPERVISOR", 0, budgetTracker));
 
         log.info("Supervisor 开始编排: traceId={}, message={}", traceId, request.getMessage());
 
         int maxRounds = multiAgentProperties.getMaxSupervisorRounds();
 
-        for (int round = 1; round <= maxRounds; round++) {
-            long decisionStart = System.currentTimeMillis();
-            SupervisorDecision decision = decideNext(request, state);
+        try {
+            for (int round = 1; round <= maxRounds; round++) {
+                if (System.currentTimeMillis() - startedAt > multiAgentProperties.getSupervisorTimeoutMs()) {
+                    state.addSteps(java.util.List.of(AgentStep.builder()
+                        .stepIndex(state.getTotalExecutedSteps() + 1)
+                        .roundIndex(round)
+                        .actionType(AgentActionType.DELEGATE)
+                        .status(AgentStepStatus.TIMED_OUT)
+                        .failureReason(AgentFailureReason.LLM_TIMEOUT)
+                        .toolName("supervisor")
+                        .toolOutput("Supervisor 超过总超时限制")
+                        .latencyMs(System.currentTimeMillis() - startedAt)
+                        .success(false)
+                        .errorMessage("supervisor timeout")
+                        .build()));
+                    break;
+                }
+                budgetTracker.startRound(round);
+                AgentTraceContext.set(new AgentTraceContext.Context(traceId, request.getConversationId(), "SUPERVISOR", round, budgetTracker));
+                long decisionStart = System.currentTimeMillis();
+                SupervisorDecision decision = decideNext(request, state);
 
-            state.addSteps(java.util.List.of(AgentStep.builder()
-                .stepIndex(state.getTotalExecutedSteps() + 1)
-                .actionType(AgentActionType.DELEGATE)
-                .toolName("supervisor")
-                .toolOutput("round=%d; action=%s; target=%s; reason=%s".formatted(
-                    round, decision.action(), decision.targetAgent(), decision.reason()))
-                .latencyMs(System.currentTimeMillis() - decisionStart)
-                .success(true)
-                .build()));
+                state.addSteps(java.util.List.of(AgentStep.builder()
+                    .stepIndex(state.getTotalExecutedSteps() + 1)
+                    .roundIndex(round)
+                    .actionType(AgentActionType.DELEGATE)
+                    .status(AgentStepStatus.SUCCEEDED)
+                    .failureReason(AgentFailureReason.NONE)
+                    .toolName("supervisor")
+                    .toolOutput("round=%d; action=%s; target=%s; reason=%s".formatted(
+                        round, decision.action(), decision.targetAgent(), decision.reason()))
+                    .latencyMs(System.currentTimeMillis() - decisionStart)
+                    .success(true)
+                    .build()));
 
-            if (decision.isFinish()) {
-                log.info("Supervisor 决定 FINISH: round={}, reason={}", round, decision.reason());
-                break;
+                if (decision.isFinish()) {
+                    log.info("Supervisor 决定 FINISH: round={}, reason={}", round, decision.reason());
+                    break;
+                }
+
+                String targetAgent = decision.targetAgent();
+                if (targetAgent == null || !multiAgentProperties.getAgents().containsKey(targetAgent)) {
+                    log.warn("Supervisor 指定了未知 Agent: {}, 终止编排", targetAgent);
+                    break;
+                }
+
+                SubAgentDefinition definition = multiAgentProperties.toDefinition(targetAgent);
+                long subStart = System.currentTimeMillis();
+                try {
+                    AgentResponse subResponse = subAgentRunner.execute(request, definition, state);
+                    long subLatency = System.currentTimeMillis() - subStart;
+
+                    state.put(definition.outputKey(), subResponse.getFinalAnswer());
+                    state.recordExecution(new SubAgentExecution(
+                        targetAgent, definition.outputKey(), subResponse, subLatency));
+
+                    log.info("SubAgent [{}] 执行完成: round={}, latency={}ms", targetAgent, round, subLatency);
+                } catch (Exception ex) {
+                    long subLatency = System.currentTimeMillis() - subStart;
+                    String errorMsg = targetAgent + " 执行异常: " + ex.getMessage();
+                    state.put(definition.outputKey(), errorMsg);
+                    log.warn("SubAgent [{}] 执行失败: round={}, latency={}ms, error={}",
+                        targetAgent, round, subLatency, ex.getMessage());
+                }
             }
 
-            String targetAgent = decision.targetAgent();
-            if (targetAgent == null || !multiAgentProperties.getAgents().containsKey(targetAgent)) {
-                log.warn("Supervisor 指定了未知 Agent: {}, 终止编排", targetAgent);
-                break;
-            }
+            String finalAnswer = synthesize(request, state);
+            long responseTime = System.currentTimeMillis() - startedAt;
 
-            SubAgentDefinition definition = multiAgentProperties.toDefinition(targetAgent);
-            long subStart = System.currentTimeMillis();
-            try {
-                AgentResponse subResponse = subAgentRunner.execute(request, definition, state);
-                long subLatency = System.currentTimeMillis() - subStart;
+            log.info("Supervisor 编排完成: traceId={}, totalSteps={}, subAgents={}, responseTime={}ms",
+                traceId, state.getTotalExecutedSteps(), state.getExecutions().size(), responseTime);
 
-                state.put(definition.outputKey(), subResponse.getFinalAnswer());
-                state.recordExecution(new SubAgentExecution(
-                    targetAgent, definition.outputKey(), subResponse, subLatency));
-
-                log.info("SubAgent [{}] 执行完成: round={}, latency={}ms", targetAgent, round, subLatency);
-            } catch (Exception ex) {
-                long subLatency = System.currentTimeMillis() - subStart;
-                String errorMsg = targetAgent + " 执行异常: " + ex.getMessage();
-                state.put(definition.outputKey(), errorMsg);
-                log.warn("SubAgent [{}] 执行失败: round={}, latency={}ms, error={}",
-                    targetAgent, round, subLatency, ex.getMessage());
-            }
+            AgentResponse response = AgentResponse.builder()
+                .traceId(traceId)
+                .routeType("MULTI_AGENT")
+                .status(AgentStepStatus.SUCCEEDED)
+                .failureReason(AgentFailureReason.NONE)
+                .finalAnswer(finalAnswer)
+                .completed(true)
+                .executedSteps(state.getTotalExecutedSteps())
+                .responseTimeMs(responseTime)
+                .budgetSummary(budgetTracker.toSummary())
+                .steps(state.getAllSteps())
+                .subAgentExecutions(state.getExecutions())
+                .build();
+            response.setTracePersisted(agentTraceService.persistTrace(request, response, "MULTI"));
+            return response;
+        } finally {
+            AgentTraceContext.clear();
         }
-
-        String finalAnswer = synthesize(request, state);
-        long responseTime = System.currentTimeMillis() - startedAt;
-
-        log.info("Supervisor 编排完成: traceId={}, totalSteps={}, subAgents={}, responseTime={}ms",
-            traceId, state.getTotalExecutedSteps(), state.getExecutions().size(), responseTime);
-
-        return AgentResponse.builder()
-            .traceId(traceId)
-            .routeType("MULTI_AGENT")
-            .finalAnswer(finalAnswer)
-            .completed(true)
-            .executedSteps(state.getTotalExecutedSteps())
-            .responseTimeMs(responseTime)
-            .steps(state.getAllSteps())
-            .subAgentExecutions(state.getExecutions())
-            .build();
     }
 
     private SupervisorDecision decideNext(AgentRequest request, MultiAgentState state) {
@@ -130,8 +159,8 @@ public class SupervisorOrchestrator implements AgentService {
             """.formatted(systemPrompt, agentDescriptions, contextSummary, request.getMessage());
 
         try {
-            String raw = chatClient.prompt().user(prompt).call().content();
-            return parseSupervisorDecision(raw);
+            String raw = agentLlmClient.call("SUPERVISOR_DECIDE", prompt);
+            return structuredOutputValidator.parseSupervisorDecision(raw);
         } catch (Exception ex) {
             log.warn("Supervisor 决策失败，终止编排: {}", ex.getMessage());
             return new SupervisorDecision(SupervisorDecision.FINISH, null, "决策异常: " + ex.getMessage());
@@ -159,37 +188,12 @@ public class SupervisorOrchestrator implements AgentService {
             """.formatted(request.getMessage(), contextSummary);
 
         try {
-            return chatClient.prompt().user(prompt).call().content();
+            return agentLlmClient.call("SUPERVISOR_SYNTHESIZE", prompt);
         } catch (Exception ex) {
             log.warn("Supervisor 综合生成失败，拼接原始结果: {}", ex.getMessage());
             return state.getExecutions().stream()
                 .map(e -> "【" + e.agentName() + "】\n" + e.response().getFinalAnswer())
                 .collect(Collectors.joining("\n\n"));
         }
-    }
-
-    private SupervisorDecision parseSupervisorDecision(String raw) {
-        String json = extractJson(raw);
-        try {
-            JsonNode node = objectMapper.readTree(json);
-            String action = node.path("action").asText(SupervisorDecision.FINISH);
-            String targetAgent = node.path("targetAgent").asText(null);
-            String reason = node.path("reason").asText("");
-            return new SupervisorDecision(action, targetAgent, reason);
-        } catch (Exception ex) {
-            log.warn("Supervisor 决策 JSON 解析失败: {}", ex.getMessage());
-            return new SupervisorDecision(SupervisorDecision.FINISH, null, "JSON 解析失败");
-        }
-    }
-
-    private String extractJson(String text) {
-        if (text == null || text.isBlank()) {
-            return "{}";
-        }
-        Matcher matcher = JSON_BLOCK_PATTERN.matcher(text.trim());
-        if (matcher.find()) {
-            return matcher.group();
-        }
-        return text.trim();
     }
 }

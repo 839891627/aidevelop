@@ -2,27 +2,17 @@ package com.example.aidevelop.agent.service;
 
 import com.example.aidevelop.agent.model.AgentRequest;
 import com.example.aidevelop.service.IntentRoutingService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class AgentReflector {
 
-    private static final Pattern JSON_BLOCK_PATTERN = Pattern.compile("\\{[\\s\\S]*}");
-
-    @Resource(name = "chatClientForOpenAI")
-    private ChatClient chatClient;
-
-    private final ObjectMapper objectMapper;
+    private final AgentLlmClient agentLlmClient;
+    private final AgentStructuredOutputValidator structuredOutputValidator;
 
     public AgentReflectDecision reflect(AgentRequest request, IntentRoutingService.RoutePlan routePlan, List<String> observations) {
         long startedAt = System.currentTimeMillis();
@@ -39,27 +29,12 @@ public class AgentReflector {
             %s
             """.formatted(routePlan.routeType(), request.getMessage(), observationText);
         try {
-            String raw = chatClient.prompt().user(prompt).call().content();
-            JsonNode node = objectMapper.readTree(extractJson(raw));
-            boolean done = node.path("done").asBoolean(false);
-            String reason = node.path("reason").asText(done ? "信息已充足，可结束工具调用" : "信息不足，继续执行后续步骤");
-            return new AgentReflectDecision(done, reason, System.currentTimeMillis() - startedAt);
+            String raw = agentLlmClient.call("REFLECT", prompt);
+            return structuredOutputValidator.parseReflectDecision(raw, System.currentTimeMillis() - startedAt);
         } catch (Exception ex) {
             boolean done = !observations.isEmpty();
             String reason = done ? "Reflect 解析失败，按保守策略结束" : "Reflect 解析失败且无观察，继续尝试";
             return new AgentReflectDecision(done, reason, System.currentTimeMillis() - startedAt);
         }
-    }
-
-    private String extractJson(String text) {
-        if (text == null || text.isBlank()) {
-            return "{}";
-        }
-        String trimmed = text.trim();
-        Matcher matcher = JSON_BLOCK_PATTERN.matcher(trimmed);
-        if (matcher.find()) {
-            return matcher.group();
-        }
-        return trimmed;
     }
 }

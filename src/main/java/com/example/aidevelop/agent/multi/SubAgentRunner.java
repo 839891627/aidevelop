@@ -1,10 +1,14 @@
 package com.example.aidevelop.agent.multi;
 
 import com.example.aidevelop.agent.model.AgentActionType;
+import com.example.aidevelop.agent.model.AgentFailureReason;
 import com.example.aidevelop.agent.model.AgentRequest;
 import com.example.aidevelop.agent.model.AgentResponse;
 import com.example.aidevelop.agent.model.AgentStep;
+import com.example.aidevelop.agent.model.AgentStepStatus;
+import com.example.aidevelop.agent.service.AgentBudgetTracker;
 import com.example.aidevelop.agent.model.ToolCall;
+import com.example.aidevelop.config.AgentProperties;
 import com.example.aidevelop.agent.service.AgentPlanResult;
 import com.example.aidevelop.agent.service.AgentPlanner;
 import com.example.aidevelop.agent.service.AgentReflectDecision;
@@ -14,6 +18,7 @@ import com.example.aidevelop.agent.service.AgentSelfCheckDecision;
 import com.example.aidevelop.agent.service.AgentState;
 import com.example.aidevelop.agent.service.AgentToolExecutionResult;
 import com.example.aidevelop.agent.service.AgentToolExecutor;
+import com.example.aidevelop.agent.service.AgentTraceContext;
 import com.example.aidevelop.service.IntentRoutingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +36,7 @@ public class SubAgentRunner {
     private final AgentToolExecutor agentToolExecutor;
     private final AgentReflector agentReflector;
     private final AgentResponder agentResponder;
+    private final AgentProperties agentProperties;
 
     public AgentResponse execute(AgentRequest request, SubAgentDefinition definition, MultiAgentState sharedState) {
         long startedAt = System.currentTimeMillis();
@@ -40,7 +46,10 @@ public class SubAgentRunner {
         List<String> allowedTools = definition.allowedTools();
         int maxSteps = definition.maxSteps();
 
-        AgentState state = new AgentState(traceId, routePlan, maxSteps, allowedTools);
+        AgentBudgetTracker budgetTracker = new AgentBudgetTracker(agentProperties);
+        budgetTracker.startRound(0);
+        AgentTraceContext.set(new AgentTraceContext.Context(traceId, request.getConversationId(), definition.name(), 0, budgetTracker));
+        AgentState state = new AgentState(traceId, routePlan, maxSteps, allowedTools, budgetTracker);
 
         log.info("SubAgent [{}] 开始执行: traceId={}, maxSteps={}, tools={}",
             definition.name(), traceId, maxSteps, allowedTools);
@@ -50,10 +59,13 @@ public class SubAgentRunner {
         AgentPlanResult planResult = agentPlanner.buildPlan(enrichedRequest, routePlan, allowedTools, maxSteps);
         state.addStep(AgentStep.builder()
             .stepIndex(state.nextStepIndex())
+            .roundIndex(0)
             .actionType(AgentActionType.PLAN)
+            .status(planResult.fromError() ? AgentStepStatus.DEGRADED : AgentStepStatus.SUCCEEDED)
+            .failureReason(planResult.fromError() ? AgentFailureReason.PLAN_PARSE_ERROR : AgentFailureReason.NONE)
             .toolOutput(planResult.rawPlan())
             .latencyMs(planResult.latencyMs())
-            .success(true)
+            .success(!planResult.fromError())
             .build());
 
         executeToolCalls(enrichedRequest, routePlan, definition, state, planResult.toolCalls());
@@ -65,6 +77,8 @@ public class SubAgentRunner {
             && state.getExecutedToolCalls() < maxSteps) {
 
             int remainingSteps = maxSteps - state.getExecutedToolCalls();
+            budgetTracker.startRound(replanRound + 1);
+            AgentTraceContext.set(new AgentTraceContext.Context(traceId, request.getConversationId(), definition.name(), replanRound + 1, budgetTracker));
             AgentPlanResult replanResult = agentPlanner.buildReplan(
                 enrichedRequest, routePlan, allowedTools, remainingSteps,
                 state.getObservations(), state.getExecutedToolNames()
@@ -78,10 +92,13 @@ public class SubAgentRunner {
             replanRound++;
             state.addStep(AgentStep.builder()
                 .stepIndex(state.nextStepIndex())
+                .roundIndex(replanRound)
                 .actionType(AgentActionType.PLAN)
+                .status(replanResult.fromError() ? AgentStepStatus.DEGRADED : AgentStepStatus.SUCCEEDED)
+                .failureReason(replanResult.fromError() ? AgentFailureReason.PLAN_PARSE_ERROR : AgentFailureReason.NONE)
                 .toolOutput("replan#" + replanRound + ": " + replanResult.rawPlan())
                 .latencyMs(replanResult.latencyMs())
-                .success(true)
+                .success(!replanResult.fromError())
                 .build());
 
             executeToolCalls(enrichedRequest, routePlan, definition, state, replanResult.toolCalls());
@@ -95,14 +112,18 @@ public class SubAgentRunner {
                 enrichedRequest, routePlan, state.getObservations(), draftAnswer);
             state.addStep(AgentStep.builder()
                 .stepIndex(state.nextStepIndex())
+                .roundIndex(state.getBudgetTracker().toSummary().getRoundIndex())
                 .actionType(AgentActionType.SELF_CHECK)
+                .status(selfCheck.pass() ? AgentStepStatus.SUCCEEDED : AgentStepStatus.DEGRADED)
+                .failureReason(selfCheck.pass() ? AgentFailureReason.NONE : AgentFailureReason.SELF_CHECK_FAILED)
                 .toolOutput("pass=%s; score=%d; reason=%s".formatted(
                     selfCheck.pass(), selfCheck.score(), selfCheck.reason()))
                 .latencyMs(selfCheck.latencyMs())
-                .success(true)
+                .success(selfCheck.pass())
                 .build());
 
             if (!selfCheck.pass()) {
+                state.markDegraded(AgentFailureReason.SELF_CHECK_FAILED);
                 draftAnswer = agentResponder.buildFallbackAnswer(
                     enrichedRequest, routePlan, state.getObservations(),
                     selfCheck.reason(), state.isReplanFailed());
@@ -111,7 +132,10 @@ public class SubAgentRunner {
 
         state.addStep(AgentStep.builder()
             .stepIndex(state.nextStepIndex())
+            .roundIndex(state.getBudgetTracker().toSummary().getRoundIndex())
             .actionType(AgentActionType.RESPOND)
+            .status(state.getStatus() == AgentStepStatus.SUCCEEDED ? AgentStepStatus.SUCCEEDED : AgentStepStatus.DEGRADED)
+            .failureReason(state.getFailureReason())
             .toolOutput(draftAnswer)
             .latencyMs(System.currentTimeMillis() - respondStart)
             .success(true)
@@ -126,10 +150,13 @@ public class SubAgentRunner {
         return AgentResponse.builder()
             .traceId(traceId)
             .routeType(routePlan.routeType().name())
+            .status(state.getStatus())
+            .failureReason(state.getFailureReason())
             .finalAnswer(draftAnswer)
             .completed(true)
             .executedSteps(state.getSteps().size())
             .responseTimeMs(responseTime)
+            .budgetSummary(budgetTracker.toSummary())
             .steps(state.getSteps())
             .build();
     }
@@ -148,7 +175,10 @@ public class SubAgentRunner {
 
             state.addStep(AgentStep.builder()
                 .stepIndex(state.nextStepIndex())
+                .roundIndex(state.getBudgetTracker().toSummary().getRoundIndex())
                 .actionType(AgentActionType.TOOL)
+                .status(executionResult.success() ? AgentStepStatus.SUCCEEDED : AgentStepStatus.FAILED)
+                .failureReason(executionResult.success() ? AgentFailureReason.NONE : classifyToolFailure(executionResult.errorMessage()))
                 .toolName(toolCall.toolName())
                 .toolInput(toolCall.args())
                 .toolOutput("attempts=%d; result=%s".formatted(
@@ -157,12 +187,18 @@ public class SubAgentRunner {
                 .success(executionResult.success())
                 .errorMessage(executionResult.success() ? null : executionResult.errorMessage())
                 .build());
+            if (!executionResult.success()) {
+                state.markDegraded(classifyToolFailure(executionResult.errorMessage()));
+            }
 
             if (definition.reflectEnabled()) {
                 AgentReflectDecision decision = agentReflector.reflect(request, routePlan, state.getObservations());
                 state.addStep(AgentStep.builder()
                     .stepIndex(state.nextStepIndex())
+                    .roundIndex(state.getBudgetTracker().toSummary().getRoundIndex())
                     .actionType(AgentActionType.REFLECT)
+                    .status(AgentStepStatus.SUCCEEDED)
+                    .failureReason(AgentFailureReason.NONE)
                     .toolOutput(decision.reason())
                     .latencyMs(decision.latencyMs())
                     .success(true)
@@ -204,5 +240,18 @@ public class SubAgentRunner {
             15000,
             "sub-agent: " + definition.name()
         );
+    }
+
+    private AgentFailureReason classifyToolFailure(String errorMessage) {
+        if (errorMessage == null) {
+            return AgentFailureReason.TOOL_EXECUTION_FAILED;
+        }
+        if (errorMessage.contains("超时")) {
+            return AgentFailureReason.TOOL_TIMEOUT;
+        }
+        if (errorMessage.contains("未授权")) {
+            return AgentFailureReason.TOOL_UNAUTHORIZED;
+        }
+        return AgentFailureReason.TOOL_EXECUTION_FAILED;
     }
 }

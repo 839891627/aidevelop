@@ -24,8 +24,10 @@ class AgentContextCycleTest {
         .withBean(AgentProperties.class, AgentProperties::new)
         .withBean(MultiAgentProperties.class, MultiAgentProperties::new)
         .withBean(AgentToolExecutor.class, () -> new AgentToolExecutor(null, null, null))
-        .withBean(AgentReflector.class, () -> new AgentReflector(new ObjectMapper()))
-        .withBean(AgentResponder.class, () -> new AgentResponder(new ObjectMapper(), new AgentProperties(), null))
+        .withBean(AgentStructuredOutputValidator.class, () -> new AgentStructuredOutputValidator(new ObjectMapper()))
+        .withBean(AgentLlmClient.class)
+        .withBean(AgentReflector.class)
+        .withBean(AgentResponder.class)
         .withBean("chatClientForOpenAI", ChatClient.class, AgentContextCycleTest::noopChatClient);
 
     @Test

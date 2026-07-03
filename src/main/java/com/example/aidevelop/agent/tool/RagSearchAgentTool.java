@@ -1,17 +1,22 @@
 package com.example.aidevelop.agent.tool;
 
+import com.example.aidevelop.model.rag.RagDocumentResult;
+import com.example.aidevelop.model.rag.RagProfile;
+import com.example.aidevelop.model.rag.RagRequest;
+import com.example.aidevelop.model.rag.RagRetrievalResult;
 import com.example.aidevelop.model.dto.rag.PipelineSearchResultDTO;
-import com.example.aidevelop.service.rag.RagOrchestrationService;
+import com.example.aidevelop.service.rag.RagFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
 public class RagSearchAgentTool implements AgentTool {
 
-    private final RagOrchestrationService ragOrchestrationService;
+    private final RagFacade ragFacade;
 
     @Override
     public String name() {
@@ -28,8 +33,33 @@ public class RagSearchAgentTool implements AgentTool {
         String query = readString(args, "query", "");
         String conversationId = readString(args, "conversationId", null);
         int topK = readInt(args, "topK", 5);
-        PipelineSearchResultDTO result = ragOrchestrationService.pipelineSearch(query, conversationId, topK);
-        return result;
+        RagRetrievalResult result = ragFacade.retrieve(new RagRequest(
+            query,
+            conversationId,
+            topK,
+            0.2,
+            RagProfile.AGENT,
+            null
+        ));
+        List<PipelineSearchResultDTO.DocumentResult> documents = result.documents().stream()
+            .map(this::toDocumentResult)
+            .toList();
+        return new PipelineSearchResultDTO(
+            result.originalQuery(),
+            result.rewrittenQuery(),
+            result.expandedQuery(),
+            result.strategy(),
+            result.transformationSummary(),
+            documents
+        );
+    }
+
+    private PipelineSearchResultDTO.DocumentResult toDocumentResult(RagDocumentResult document) {
+        return new PipelineSearchResultDTO.DocumentResult(
+            document.content(),
+            document.metadata(),
+            document.score()
+        );
     }
 
     private String readString(Map<String, Object> args, String key, String defaultValue) {

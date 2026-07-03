@@ -28,6 +28,31 @@ public class AgentProperties {
     private int timeoutMs = 15000;
 
     /**
+     * 单次 LLM 阶段调用超时（毫秒）。
+     */
+    private int llmTimeoutMs = 30000;
+
+    /**
+     * 单次 Agent 请求总截止时间（毫秒）。
+     */
+    private int requestDeadlineMs = 120000;
+
+    /**
+     * 单个规划轮次最多允许的 LLM 调用数。
+     */
+    private int maxLlmCallsPerRound = 3;
+
+    /**
+     * 单个规划轮次最大输出 token 预算。
+     */
+    private int maxTokensPerRound = 4000;
+
+    /**
+     * 单次 Agent 请求最大输出 token 预算。
+     */
+    private int maxTokensPerRequest = 12000;
+
+    /**
      * 工具失败重试次数（不含首次调用）。
      */
     private int toolMaxRetries = 1;

@@ -55,9 +55,19 @@ public class AgentToolExecutor {
     }
 
     private Object executeWithTimeout(ToolCall toolCall) {
+        AgentTraceContext.Context context = AgentTraceContext.get();
         try {
             return CompletableFuture
-                .supplyAsync(() -> toolRouter.execute(toolCall.toolName(), toolCall.args()))
+                .supplyAsync(() -> {
+                    if (context != null) {
+                        AgentTraceContext.set(context);
+                    }
+                    try {
+                        return toolRouter.execute(toolCall.toolName(), toolCall.args());
+                    } finally {
+                        AgentTraceContext.clear();
+                    }
+                })
                 .orTimeout(agentProperties.getTimeoutMs(), TimeUnit.MILLISECONDS)
                 .join();
         } catch (CompletionException ex) {

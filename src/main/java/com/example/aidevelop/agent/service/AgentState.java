@@ -1,6 +1,8 @@
 package com.example.aidevelop.agent.service;
 
 import com.example.aidevelop.agent.model.AgentStep;
+import com.example.aidevelop.agent.model.AgentFailureReason;
+import com.example.aidevelop.agent.model.AgentStepStatus;
 import com.example.aidevelop.service.IntentRoutingService;
 import lombok.Getter;
 
@@ -21,12 +23,17 @@ public class AgentState {
     private int executedToolCalls;
     private boolean shouldStop;
     private boolean replanFailed;
+    private final AgentBudgetTracker budgetTracker;
+    private AgentStepStatus status = AgentStepStatus.SUCCEEDED;
+    private AgentFailureReason failureReason = AgentFailureReason.NONE;
 
-    public AgentState(String traceId, IntentRoutingService.RoutePlan routePlan, int maxSteps, List<String> allowedTools) {
+    public AgentState(String traceId, IntentRoutingService.RoutePlan routePlan, int maxSteps,
+                      List<String> allowedTools, AgentBudgetTracker budgetTracker) {
         this.traceId = traceId;
         this.routePlan = routePlan;
         this.maxSteps = maxSteps;
         this.allowedTools = allowedTools;
+        this.budgetTracker = budgetTracker;
     }
 
     public int nextStepIndex() {
@@ -47,6 +54,9 @@ public class AgentState {
 
     public void incrementExecutedToolCalls() {
         executedToolCalls++;
+        if (budgetTracker != null) {
+            budgetTracker.recordToolCall();
+        }
     }
 
     public void markShouldStop() {
@@ -55,5 +65,18 @@ public class AgentState {
 
     public void markReplanFailed() {
         replanFailed = true;
+        markDegraded(AgentFailureReason.REPLAN_EXHAUSTED);
+    }
+
+    public void markFailed(AgentFailureReason reason) {
+        status = AgentStepStatus.FAILED;
+        failureReason = reason == null ? AgentFailureReason.UNKNOWN : reason;
+    }
+
+    public void markDegraded(AgentFailureReason reason) {
+        if (status != AgentStepStatus.FAILED) {
+            status = AgentStepStatus.DEGRADED;
+            failureReason = reason == null ? AgentFailureReason.UNKNOWN : reason;
+        }
     }
 }

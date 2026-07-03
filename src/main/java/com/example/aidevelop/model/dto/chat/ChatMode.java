@@ -5,7 +5,7 @@ import java.util.Locale;
 public enum ChatMode {
     // 常规聊天：不挂载金融 RAG，也不暴露业务工具，避免普通问题被金融提示词影响。
     GENERAL("general"),
-    // 金融 RAG：只做金融助贷知识库问答，走 QuestionAnswerAdvisor 检索增强。
+    // 金融 RAG：只做金融助贷知识库问答，通过 RagFacade 检索证据。
     FINANCIAL_RAG("financial_rag"),
     // 自动路由：保留旧链路，由 IntentRoutingService 判断 Tool/RAG/Hybrid。
     AUTO("auto");

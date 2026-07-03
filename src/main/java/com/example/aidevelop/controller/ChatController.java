@@ -25,8 +25,7 @@ import java.util.List;
 
 /**
  * 聊天控制器 - 提供对话 API。
- * 说明：此控制器走 ChatClient 内置 Advisor 链路（可按配置启用基础 RAG）。
- * 若要体验可编排的高级 RAG 检索能力，请使用 /api/rag 下的接口。
+ * 说明：金融 RAG 与 Agent 工具检索统一通过 RagFacade 获取证据。
  */
 @Slf4j
 @RestController

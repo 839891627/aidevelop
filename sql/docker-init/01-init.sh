@@ -12,6 +12,7 @@ for sql_file in \
     /sql-source/demo_tables.sql \
     /sql-source/chat_memory.sql \
     /sql-source/ai_cost_tracking.sql \
+    /sql-source/agent_trace.sql \
     /sql-source/prompt_registry.sql
 do
     echo "执行: $(basename $sql_file)"

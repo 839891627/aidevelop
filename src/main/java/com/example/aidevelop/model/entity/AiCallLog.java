@@ -29,6 +29,12 @@ public class AiCallLog {
     @Column(name = "session_id", length = 64)
     private String sessionId;
 
+    @Column(name = "trace_id", length = 128)
+    private String traceId;
+
+    @Column(name = "call_phase", length = 64)
+    private String callPhase;
+
     /**
      * 用户ID
      */

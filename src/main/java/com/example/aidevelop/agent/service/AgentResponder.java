@@ -3,29 +3,19 @@ package com.example.aidevelop.agent.service;
 import com.example.aidevelop.agent.model.AgentRequest;
 import com.example.aidevelop.config.AgentProperties;
 import com.example.aidevelop.service.IntentRoutingService;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class AgentResponder {
 
-    private static final Pattern JSON_BLOCK_PATTERN = Pattern.compile("\\{[\\s\\S]*}");
-
-    @Resource(name = "chatClientForOpenAI")
-    private ChatClient chatClient;
-
-    private final ObjectMapper objectMapper;
     private final AgentProperties agentProperties;
     private final AgentPolicyEnforcer agentPolicyEnforcer;
+    private final AgentLlmClient agentLlmClient;
+    private final AgentStructuredOutputValidator structuredOutputValidator;
 
     public String buildFinalAnswer(AgentRequest request, IntentRoutingService.RoutePlan routePlan, List<String> observations) {
         String observationText = observations.isEmpty()
@@ -42,7 +32,7 @@ public class AgentResponder {
             工具观察：
             %s
             """.formatted(routePlan.routeType(), request.getMessage(), observationText);
-        return chatClient.prompt().user(responderPrompt).call().content();
+        return agentLlmClient.call("RESPOND", responderPrompt);
     }
 
     public AgentSelfCheckDecision selfCheck(AgentRequest request, IntentRoutingService.RoutePlan routePlan,
@@ -67,11 +57,12 @@ public class AgentResponder {
             %s
             """.formatted(request.getMessage(), routePlan.routeType(), observationText, draftAnswer);
         try {
-            String raw = chatClient.prompt().user(prompt).call().content();
-            JsonNode node = objectMapper.readTree(extractJson(raw));
-            int score = Math.max(0, Math.min(100, node.path("score").asInt(0)));
-            boolean pass = node.path("pass").asBoolean(score >= agentProperties.getSelfCheckMinScore());
-            String reason = node.path("reason").asText(pass ? "自检通过" : "自检未通过");
+            String raw = agentLlmClient.call("SELF_CHECK", prompt);
+            AgentSelfCheckDecision parsed = structuredOutputValidator.parseSelfCheckDecision(
+                raw, agentProperties.getSelfCheckMinScore(), System.currentTimeMillis() - startedAt);
+            int score = parsed.score();
+            boolean pass = parsed.pass();
+            String reason = parsed.reason();
             if (agentProperties.isRequireRagEvidenceForRisk()
                 && agentPolicyEnforcer.isRiskIntent(request.getMessage())
                 && !agentPolicyEnforcer.hasRagEvidence(observations)) {
@@ -127,17 +118,5 @@ public class AgentResponder {
             return "N/A";
         }
         return text;
-    }
-
-    private String extractJson(String text) {
-        if (text == null || text.isBlank()) {
-            return "{}";
-        }
-        String trimmed = text.trim();
-        Matcher matcher = JSON_BLOCK_PATTERN.matcher(trimmed);
-        if (matcher.find()) {
-            return matcher.group();
-        }
-        return trimmed;
     }
 }

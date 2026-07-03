@@ -27,6 +27,8 @@ public interface AiCallLogRepository extends JpaRepository<AiCallLog, Long> {
      */
     List<AiCallLog> findBySessionId(String sessionId);
 
+    List<AiCallLog> findByTraceId(String traceId);
+
     /**
      * 统计指定时间范围内的总成本
      */

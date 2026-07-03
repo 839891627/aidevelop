@@ -40,12 +40,15 @@ class AgentLoopServiceTest {
     @Mock
     private ChatClient.CallResponseSpec callResponseSpec;
 
+    private AgentTraceService agentTraceService;
+
     private AgentLoopService agentLoopService;
     private ToolRouter toolRouter;
 
     @BeforeEach
     void setUp() {
         AgentProperties agentProperties = new AgentProperties();
+        agentTraceService = new NoopAgentTraceService();
         agentProperties.setEnabled(true);
         agentProperties.setMaxSteps(3);
         agentProperties.setTimeoutMs(5000);
@@ -74,12 +77,12 @@ class AgentLoopServiceTest {
 
         AgentPolicyEnforcer policyEnforcer = new AgentPolicyEnforcer(agentProperties, toolRouter);
         AgentToolExecutor toolExecutor = new AgentToolExecutor(toolRouter, agentProperties, new ObjectMapper());
-        AgentPlanner planner = new AgentPlanner(new ObjectMapper(), policyEnforcer);
-        AgentReflector reflector = new AgentReflector(new ObjectMapper());
-        AgentResponder responder = new AgentResponder(new ObjectMapper(), agentProperties, policyEnforcer);
-        ReflectionTestUtils.setField(planner, "chatClient", chatClient);
-        ReflectionTestUtils.setField(reflector, "chatClient", chatClient);
-        ReflectionTestUtils.setField(responder, "chatClient", chatClient);
+        AgentLlmClient agentLlmClient = new AgentLlmClient(agentProperties);
+        ReflectionTestUtils.setField(agentLlmClient, "chatClient", chatClient);
+        AgentStructuredOutputValidator validator = new AgentStructuredOutputValidator(new ObjectMapper());
+        AgentPlanner planner = new AgentPlanner(policyEnforcer, toolRouter, agentLlmClient, validator);
+        AgentReflector reflector = new AgentReflector(agentLlmClient, validator);
+        AgentResponder responder = new AgentResponder(agentProperties, policyEnforcer, agentLlmClient, validator);
         agentLoopService = new AgentLoopService(
             intentRoutingService,
             agentProperties,
@@ -87,7 +90,8 @@ class AgentLoopServiceTest {
             toolExecutor,
             planner,
             reflector,
-            responder
+            responder,
+            agentTraceService
         );
         when(chatClient.prompt()).thenReturn(requestSpec);
         when(requestSpec.user(anyString())).thenReturn(requestSpec);
@@ -140,12 +144,12 @@ class AgentLoopServiceTest {
         ToolRouter flakyRouter = new ToolRouter(List.of(new FlakyAgentTool()), retryProperties);
         AgentPolicyEnforcer retryPolicyEnforcer = new AgentPolicyEnforcer(retryProperties, flakyRouter);
         AgentToolExecutor retryToolExecutor = new AgentToolExecutor(flakyRouter, retryProperties, new ObjectMapper());
-        AgentPlanner retryPlanner = new AgentPlanner(new ObjectMapper(), retryPolicyEnforcer);
-        AgentReflector retryReflector = new AgentReflector(new ObjectMapper());
-        AgentResponder retryResponder = new AgentResponder(new ObjectMapper(), retryProperties, retryPolicyEnforcer);
-        ReflectionTestUtils.setField(retryPlanner, "chatClient", chatClient);
-        ReflectionTestUtils.setField(retryReflector, "chatClient", chatClient);
-        ReflectionTestUtils.setField(retryResponder, "chatClient", chatClient);
+        AgentLlmClient retryLlmClient = new AgentLlmClient(retryProperties);
+        ReflectionTestUtils.setField(retryLlmClient, "chatClient", chatClient);
+        AgentStructuredOutputValidator retryValidator = new AgentStructuredOutputValidator(new ObjectMapper());
+        AgentPlanner retryPlanner = new AgentPlanner(retryPolicyEnforcer, flakyRouter, retryLlmClient, retryValidator);
+        AgentReflector retryReflector = new AgentReflector(retryLlmClient, retryValidator);
+        AgentResponder retryResponder = new AgentResponder(retryProperties, retryPolicyEnforcer, retryLlmClient, retryValidator);
         AgentLoopService retryService = new AgentLoopService(
             intentRoutingService,
             retryProperties,
@@ -153,7 +157,8 @@ class AgentLoopServiceTest {
             retryToolExecutor,
             retryPlanner,
             retryReflector,
-            retryResponder
+            retryResponder,
+            agentTraceService
         );
         when(callResponseSpec.content())
             .thenReturn("{\"toolCalls\":[{\"toolName\":\"loan.query\",\"args\":{\"userNo\":\"CUST1001\"}}],\"done\":false}")
@@ -273,6 +278,17 @@ class AgentLoopServiceTest {
                 throw new IllegalStateException("first attempt failed");
             }
             return Map.of("totalCount", 1);
+        }
+    }
+
+    private static class NoopAgentTraceService extends AgentTraceService {
+        private NoopAgentTraceService() {
+            super(null, null, null);
+        }
+
+        @Override
+        public boolean persistTrace(AgentRequest request, AgentResponse response, String mode) {
+            return true;
         }
     }
 }

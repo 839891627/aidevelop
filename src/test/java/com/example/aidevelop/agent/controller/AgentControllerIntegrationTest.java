@@ -4,6 +4,7 @@ import com.example.aidevelop.agent.model.AgentRequest;
 import com.example.aidevelop.agent.model.AgentResponse;
 import com.example.aidevelop.agent.model.AgentStep;
 import com.example.aidevelop.agent.service.AgentService;
+import com.example.aidevelop.agent.service.AgentTraceService;
 import com.example.aidevelop.exception.GlobalExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,7 +35,7 @@ class AgentControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new AgentController(agentService))
+        mockMvc = MockMvcBuilders.standaloneSetup(new AgentController(agentService, new NoopAgentTraceService()))
             .setControllerAdvice(new GlobalExceptionHandler())
             .build();
     }
@@ -62,5 +63,11 @@ class AgentControllerIntegrationTest {
             .andExpect(jsonPath("$.traceId").value("trace-1"))
             .andExpect(jsonPath("$.routeType").value("HYBRID"))
             .andExpect(jsonPath("$.finalAnswer").value("这是 Agent 回答"));
+    }
+
+    private static class NoopAgentTraceService extends AgentTraceService {
+        private NoopAgentTraceService() {
+            super(null, null, null);
+        }
     }
 }

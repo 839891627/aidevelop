@@ -1,5 +1,6 @@
 package com.example.aidevelop.interceptor;
 
+import com.example.aidevelop.agent.service.AgentTraceContext;
 import com.example.aidevelop.model.entity.AiCallLog;
 import com.example.aidevelop.repository.AiCallLogRepository;
 import com.example.aidevelop.service.cost.AiCostCalculator;
@@ -63,7 +64,12 @@ public class AiCallLoggerAspect {
     @Transactional
     protected Object logAiCall(ProceedingJoinPoint joinPoint, ModelType modelType) throws Throwable {
         long startTime = System.currentTimeMillis();
-        String sessionId = UUID.randomUUID().toString();
+        AgentTraceContext.Context traceContext = AgentTraceContext.get();
+        String sessionId = traceContext != null && traceContext.traceId() != null
+            ? traceContext.traceId()
+            : UUID.randomUUID().toString();
+        String traceId = traceContext == null ? null : traceContext.traceId();
+        String phase = traceContext == null ? null : traceContext.phase();
         String modelName = "unknown";
         String provider = "unknown";
         String status = "SUCCESS";
@@ -87,7 +93,7 @@ public class AiCallLoggerAspect {
 
             // 记录成功的调用
             long latency = System.currentTimeMillis() - startTime;
-            saveCallLog(sessionId, modelName, provider, modelType, result, latency, status, null);
+            saveCallLog(sessionId, traceId, phase, modelName, provider, modelType, result, latency, status, null);
 
             return result;
 
@@ -97,7 +103,7 @@ public class AiCallLoggerAspect {
             long latency = System.currentTimeMillis() - startTime;
 
             // 记录失败的调用
-            saveCallLog(sessionId, modelName, provider, modelType, null, latency, status, errorMessage);
+            saveCallLog(sessionId, traceId, phase, modelName, provider, modelType, null, latency, status, errorMessage);
 
             throw e;
         }
@@ -106,12 +112,14 @@ public class AiCallLoggerAspect {
     /**
      * 保存调用日志
      */
-    private void saveCallLog(String sessionId, String modelName, String provider,
+    private void saveCallLog(String sessionId, String traceId, String phase, String modelName, String provider,
                              ModelType modelType, Object result, long latency,
                              String status, String errorMessage) {
         try {
             AiCallLog callLog = new AiCallLog();
             callLog.setSessionId(sessionId);
+            callLog.setTraceId(traceId);
+            callLog.setCallPhase(phase);
             callLog.setUserId("anonymous"); // 可以从 SecurityContext 获取
             callLog.setModelName(modelName);
             callLog.setModelType(modelType.name());
