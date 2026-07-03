@@ -1,6 +1,7 @@
 # AI Credit Assistant — 智能金融信贷助手
 
 基于 Spring Boot 3.3 + Spring AI 1.1.6 构建的 AI 应用工程化样板。项目以金融信贷为业务场景，覆盖常规 Chat、统一 RAG、Function Calling、Agent Loop、多 Agent Supervisor、Prompt 治理、成本观测与 Agent Trace 持久化。
+![img.png](img.png)
 
 ## 核心定位
 
