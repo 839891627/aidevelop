@@ -1,0 +1,14 @@
+README.md
+  h_db905cd1f0b88f 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "0dd38c87da7c1c6116c82d342f99ebac90ded9bc",
+  "prompts": {},
+  "humans": {
+    "h_db905cd1f0b88f": {
+      "author": "jinliang.cao <arvin.cao2@xinfei.cn>"
+    }
+  }
+}
