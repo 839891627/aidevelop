@@ -1,0 +1,156 @@
+src/main/java/com/example/aidevelop/agent/service/AgentBudgetTracker.java
+  s_f18bf0fe9faf2d::t_cf62eebdf4937d 1-50
+docs/guides/cost-observability.md
+  s_f18bf0fe9faf2d::t_31aaeb1d5fb886 1-111
+docs/examples/execution-flows.md
+  s_f18bf0fe9faf2d::t_3837e9e12daf55 1-218
+docs/guides/quick-start.md
+  s_f18bf0fe9faf2d::t_9c2b7cead2a673 94
+  s_f18bf0fe9faf2d::t_f96240f31f3ed8 1-93,95-117
+sql/ai_cost_tracking.sql
+  s_f18bf0fe9faf2d::t_378678d8bc417f 13-14,41-42
+docs/guides/rag.md
+  s_f18bf0fe9faf2d::t_0a1ebb34c38b2d 1-2,4-164
+  s_f18bf0fe9faf2d::t_7a3a723006f305 3
+src/main/java/com/example/aidevelop/agent/service/AgentTraceContext.java
+  s_f18bf0fe9faf2d::t_c493d03d457718 1-50
+src/main/java/com/example/aidevelop/service/impl/ChatServiceImpl.java
+  s_f18bf0fe9faf2d::t_757b964e444018 16-20,49-51,81,152,361-380
+src/main/java/com/example/aidevelop/model/entity/AgentTraceEntity.java
+  s_f18bf0fe9faf2d::t_6135f8a0491a05 1-70
+docs/guides/chat.md
+  s_f18bf0fe9faf2d::t_b5bcd9f707198c 100
+  s_f18bf0fe9faf2d::t_88a009fe09bbc7 1-99,101-136
+src/main/java/com/example/aidevelop/model/entity/AgentStepEntity.java
+  s_f18bf0fe9faf2d::t_7d2acbfc7bfdba 1-72
+src/main/java/com/example/aidevelop/agent/tool/RagSearchAgentTool.java
+  s_f18bf0fe9faf2d::t_6bfa5fbe4edec9 3-6,8,12,19,36-62
+docs/guides/prompt-engineering.md
+  s_f18bf0fe9faf2d::t_eb70fbf13f64d1 1-111
+src/main/java/com/example/aidevelop/agent/service/AgentLlmTimeoutException.java
+  s_f18bf0fe9faf2d::t_cb4d115c36bb7d 1-8
+src/main/java/com/example/aidevelop/model/rag/RagProfile.java
+  s_f18bf0fe9faf2d::t_758edb1be78993 1-10
+sql/agent_trace.sql
+  s_f18bf0fe9faf2d::t_ae0a475eb9fbc8 1-43
+src/test/java/com/example/aidevelop/agent/service/AgentContextCycleTest.java
+  s_f18bf0fe9faf2d::t_4803bcb0e82bf7 27-30
+docs/architecture/multi-agent.md
+  s_f18bf0fe9faf2d::t_e69c1443b06e4d 1-195
+src/main/java/com/example/aidevelop/agent/service/AgentReflector.java
+  s_f18bf0fe9faf2d::t_ab7a2e39a19cf3 14-15,32-33
+src/main/java/com/example/aidevelop/agent/model/AgentStep.java
+  s_f18bf0fe9faf2d::t_d1ff5062c12bbc 24-32
+src/main/java/com/example/aidevelop/model/rag/RagRetrievalResult.java
+  s_f18bf0fe9faf2d::t_273102c7af29e0 1-22
+src/main/java/com/example/aidevelop/agent/service/AgentPlanner.java
+  s_f18bf0fe9faf2d::t_2bdc4fb4e3cbda 20-21,41-42,79-80
+src/main/java/com/example/aidevelop/interceptor/AiCallLoggerAspect.java
+  s_f18bf0fe9faf2d::t_5f3e744d46f3f9 3,67-72,96,106,115,121-122
+docs/guides/multi-llm.md
+  s_f18bf0fe9faf2d::t_85a03c6e554a09 1-91
+src/main/java/com/example/aidevelop/agent/service/AgentLoopService.java
+  s_f18bf0fe9faf2d::t_fbc15725873ad9 32,258,270-271,294,306-307
+  s_f18bf0fe9faf2d::t_0fef2a81821bfc 4-5,47-50,54,59,61-62,65,67-69,83,85-86,94-96,104,106-107,122-123,142,144-145,148,163,165-166,174-176,182,184-185,207,209-210,223,225-226,230,232-234,247,249-250,261-262,267,290-293,295-305,308-310,318-329
+  s_f18bf0fe9faf2d::t_da5c09fd421cac 272-289
+src/main/java/com/example/aidevelop/agent/service/AgentBudgetExceededException.java
+  s_f18bf0fe9faf2d::t_67df2b5ab3dcde 1-8
+docs/architecture/overview.md
+  s_f18bf0fe9faf2d::t_31e3d14eacfb89 17
+  s_f18bf0fe9faf2d::t_6324aaf029ba29 1-16,18-112,114-250
+  s_f18bf0fe9faf2d::t_a54c26f9360581 113
+docs/architecture/evolution-roadmap.md
+  s_f18bf0fe9faf2d::t_cb318270ce4b42 1-130
+src/main/java/com/example/aidevelop/service/rag/RagFacade.java
+  s_f18bf0fe9faf2d::t_9e4484b1c11355 1-91
+src/main/java/com/example/aidevelop/agent/service/AgentResponder.java
+  s_f18bf0fe9faf2d::t_698d9d4276e408 17-18,35,60-65
+src/main/java/com/example/aidevelop/agent/model/AgentStepStatus.java
+  s_f18bf0fe9faf2d::t_23efda83e4a221 1-10
+src/main/java/com/example/aidevelop/model/dto/chat/ChatMode.java
+  s_f18bf0fe9faf2d::t_84964d9a6d5f34 8
+docs/README.md
+  s_f18bf0fe9faf2d::t_ea392096c6ef36 7-13,22,42
+  s_f18bf0fe9faf2d::t_b6a1b394bda236 1,3,14-21,23-35,38-41,43-54
+src/main/java/com/example/aidevelop/repository/AgentTraceRepository.java
+  s_f18bf0fe9faf2d::t_061f10b0c168d6 1-13
+src/main/java/com/example/aidevelop/agent/multi/SupervisorOrchestrator.java
+  s_f18bf0fe9faf2d::t_90a30394ca2a60 4,8-10,12-13,29-31,39-40,46,68-71,74,79,133-134,162-163,191
+  s_f18bf0fe9faf2d::t_1f99061a4b9de8 47-67,72-73,75-78,81-109,112-117,119-130
+  s_f18bf0fe9faf2d::t_4d765871a2b9c1 14,32,118,131-132
+sql/docker-init/01-init.sh
+  s_f18bf0fe9faf2d::t_9bd803bc9ef5f8 15
+src/main/java/com/example/aidevelop/agent/service/AgentStructuredOutputException.java
+  s_f18bf0fe9faf2d::t_7491d472c33817 1-17
+src/main/java/com/example/aidevelop/agent/model/AgentFailureReason.java
+  s_f18bf0fe9faf2d::t_3a74c804bb75e5 1-18
+README.md
+  s_f18bf0fe9faf2d::t_d69256d6a2a6de 169
+  s_f18bf0fe9faf2d::t_ee7a30ec91b8fc 110
+  s_f18bf0fe9faf2d::t_310cab218c373d 168,173
+  s_f18bf0fe9faf2d::t_0f5eea93e91998 1-81,84-109,112,114-124,130-151,154-167,170-172,174-188
+src/main/java/com/example/aidevelop/agent/controller/AgentController.java
+  s_f18bf0fe9faf2d::t_58c01a68af2cfb 6,12-13,27,35-39
+src/main/java/com/example/aidevelop/agent/multi/SubAgentRunner.java
+  s_f18bf0fe9faf2d::t_eda318ef9a6806 4,8-9,11,21,39,49-52,62,64-65,68,80-81,95,97-98,101,153-154,159,178,180-181,190-192,198,200-201,244-255
+  s_f18bf0fe9faf2d::t_1e93ceddc1ea4f 115,117-118,122,126,135,137-138
+src/main/java/com/example/aidevelop/model/rag/RagRequest.java
+  s_f18bf0fe9faf2d::t_6cc5ce34baf8f3 1-18
+src/main/java/com/example/aidevelop/agent/model/AgentBudgetSummary.java
+  s_f18bf0fe9faf2d::t_7c5ed3d105a65f 1-21
+src/main/java/com/example/aidevelop/agent/service/AgentToolExecutor.java
+  s_f18bf0fe9faf2d::t_1a2280695237ab 58,61-70
+src/main/java/com/example/aidevelop/repository/AiCallLogRepository.java
+  s_f18bf0fe9faf2d::t_334168f8cc9de5 30-31
+src/main/java/com/example/aidevelop/agent/service/AgentTraceService.java
+  s_f18bf0fe9faf2d::t_a1e7be8c11320c 1-126
+src/main/java/com/example/aidevelop/repository/AgentStepRepository.java
+  s_f18bf0fe9faf2d::t_873d04959d78e9 1-13
+src/main/java/com/example/aidevelop/model/entity/AiCallLog.java
+  s_f18bf0fe9faf2d::t_3b1da5e12a2fa9 32-37
+docs/architecture/agent-loop.md
+  s_f18bf0fe9faf2d::t_71f83e64a4494f 1-174
+src/main/java/com/example/aidevelop/controller/ChatController.java
+  s_f18bf0fe9faf2d::t_36df6a24005bc0 28
+src/test/java/com/example/aidevelop/agent/controller/AgentControllerIntegrationTest.java
+  s_f18bf0fe9faf2d::t_37390655704768 38,67-71
+  s_f18bf0fe9faf2d::t_aec077d5b7f165 7
+docs/architecture/interview-guide.md
+  s_f18bf0fe9faf2d::t_859a347338f4b0 40,42
+  s_f18bf0fe9faf2d::t_b22412991fe695 1-39,41,43-97
+src/main/java/com/example/aidevelop/agent/model/AgentResponse.java
+  s_f18bf0fe9faf2d::t_00f11ba981fa99 25-30,43-47
+src/main/java/com/example/aidevelop/service/rag/RagContextFormatter.java
+  s_f18bf0fe9faf2d::t_06d0372ee5f89d 1-40
+src/main/java/com/example/aidevelop/model/rag/RagDocumentResult.java
+  s_f18bf0fe9faf2d::t_36d04407519553 1-13
+src/test/java/com/example/aidevelop/agent/service/AgentLoopServiceTest.java
+  s_f18bf0fe9faf2d::t_8986c354bf84b5 43-44,80-85,93-94,147-152,160-161
+  s_f18bf0fe9faf2d::t_76bb73d3662d33 51,283-291
+src/main/java/com/example/aidevelop/config/AgentProperties.java
+  s_f18bf0fe9faf2d::t_335352bca3ef63 31-54
+src/main/java/com/example/aidevelop/agent/service/AgentStructuredOutputValidator.java
+  s_f18bf0fe9faf2d::t_17440258133fcd 1-115
+src/main/java/com/example/aidevelop/agent/service/AgentLlmClient.java
+  s_f18bf0fe9faf2d::t_2a4e11fa6b2ec9 1-65
+src/main/java/com/example/aidevelop/agent/service/AgentState.java
+  s_f18bf0fe9faf2d::t_13ecfeae80e831 4-5,26-28,30-31,36,57-59,68-80
+docs/guides/function-calling.md
+  s_f18bf0fe9faf2d::t_3b3451c03603c8 1-119
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "aeb32b062f26f3a7f8380406a0f608bbe565b2d2",
+  "prompts": {},
+  "sessions": {
+    "s_f18bf0fe9faf2d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "1ef3cc6c-3cf5-433d-bac2-96669b7969a6",
+        "model": "gpt-5.5"
+      },
+      "human_author": "jinliang.cao <arvin.cao2@xinfei.cn>"
+    }
+  }
+}
