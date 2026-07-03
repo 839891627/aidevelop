@@ -180,11 +180,3 @@ src/main/java/com/example/aidevelop/
 | [Prompt 工程](docs/guides/prompt-engineering.md) | Prompt Registry 和版本治理 |
 | [成本观测](docs/guides/cost-observability.md) | AI 调用日志、成本统计、traceId 关联 |
 | [执行链路示例](docs/examples/execution-flows.md) | 核心请求链路走读 |
-
-## 求职展示建议
-
-可以将本项目概括为：
-
-> 一个金融信贷场景下的企业 AI 应用工程化样板，重点展示统一 RAG、Agent Runtime、多 Agent 编排、Prompt 治理、成本观测和执行 Trace。
-
-当前实现已经具备核心工程化闭环，适合用于 Java 后端 + AI 应用工程方向的项目展示。
