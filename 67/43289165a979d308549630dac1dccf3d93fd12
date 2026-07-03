@@ -1,0 +1,37 @@
+src/test/java/com/example/aidevelop/staticpage/StaticChatPageTest.java
+  s_bb60315a6db949::t_fc475633b8e8bf 79-112,114-117,119-120
+  s_bb60315a6db949::t_7d4dd4f3119d8e 113,118
+  h_db905cd1f0b88f 37,46
+src/main/resources/static/index.html
+  s_bb60315a6db949::t_22d5b96be09c4f 76-94,96,98-103,105,107-115
+  ai_agent 97
+src/main/resources/static/css/chat.css
+  ai_agent 18,28,59,91,173,202,205,232,278,299,312,314-317,325,338,368,384,401-402,404-408,422,426-429,554,585-586,626,701-705,707,710-714,716,721-730,749,788,803,805,825,838,853,888,979,997-998,1007,1037,1058,1119-1126,1155-1156
+  s_bb60315a6db949::t_62f5fceb30c231 403,409,433,435,499,506-510,515,526,535,537,543,568,628,639,658-659,685,689
+  s_bb60315a6db949::t_957fb682e9f872 329-335,399-400,410-421,423-425,430-432,434,436-498,500-505,511-514,516-525,527-534,536,538-542,544-553,555-567,569-584,587-625,627,629-638,640-657,660-684,686-688,690-698
+  s_bb60315a6db949::t_26c528cd8c91a4 1127-1134,1152-1154,1157-1164,1216-1217,1222-1224
+src/main/resources/static/js/chat.js
+  s_bb60315a6db949::t_f4a02e90103b74 36-40,52,176,179,269-306,308-313,316-317,319-459,474-494,685
+  s_bb60315a6db949::t_61c9e51e8bbc4a 307,318,460-473
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "6743289165a979d308549630dac1dccf3d93fd12",
+  "prompts": {},
+  "humans": {
+    "h_db905cd1f0b88f": {
+      "author": "jinliang.cao <arvin.cao2@xinfei.cn>"
+    }
+  },
+  "sessions": {
+    "s_bb60315a6db949": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "46affa53-62a8-45b6-9662-928d48f79e78",
+        "model": "gpt-5.5"
+      },
+      "human_author": "jinliang.cao <arvin.cao2@xinfei.cn>"
+    }
+  }
+}
