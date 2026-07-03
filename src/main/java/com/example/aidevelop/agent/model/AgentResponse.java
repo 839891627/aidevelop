@@ -1,5 +1,6 @@
 package com.example.aidevelop.agent.model;
 
+import com.example.aidevelop.agent.multi.SubAgentExecution;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,6 +22,12 @@ public class AgentResponse {
     @Schema(description = "路由类型", example = "HYBRID")
     private String routeType;
 
+    @Schema(description = "执行状态")
+    private AgentStepStatus status;
+
+    @Schema(description = "失败原因分类")
+    private AgentFailureReason failureReason;
+
     @Schema(description = "最终回答")
     private String finalAnswer;
 
@@ -33,6 +40,15 @@ public class AgentResponse {
     @Schema(description = "总耗时（毫秒）", example = "350")
     private long responseTimeMs;
 
+    @Schema(description = "预算使用摘要")
+    private AgentBudgetSummary budgetSummary;
+
+    @Schema(description = "执行 trace 是否已持久化", example = "true")
+    private boolean tracePersisted;
+
     @Schema(description = "执行步骤详情")
     private List<AgentStep> steps;
+
+    @Schema(description = "子 Agent 执行记录（仅多 Agent 模式）")
+    private List<SubAgentExecution> subAgentExecutions;
 }

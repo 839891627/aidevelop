@@ -23,4 +23,7 @@ public class AgentRequest {
     @Min(value = 1, message = "maxSteps 不能小于 1")
     @Max(value = 10, message = "maxSteps 不能大于 10")
     private Integer maxSteps;
+
+    @Schema(description = "是否强制使用多 Agent 模式（可选，为 null 时由路由自动决定）", example = "true")
+    private Boolean multiAgent;
 }

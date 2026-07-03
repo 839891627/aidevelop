@@ -22,12 +22,41 @@ import org.springframework.util.StringUtils;
 public class PromptRegistryService {
 
     public static final String SYSTEM_PROMPT_KEY = "system.default";
+    public static final String GENERAL_CHAT_PROMPT_KEY = "chat.general";
+    public static final String FINANCIAL_RAG_PROMPT_KEY = "chat.financial.rag";
     public static final String RAG_QA_PROMPT_KEY = "rag.qa";
     public static final String FUNCTION_CALLING_PROMPT_KEY = "function.calling";
 
     private static final String STATUS_DRAFT = "DRAFT";
     private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String STATUS_ARCHIVED = "ARCHIVED";
+    private static final String DEFAULT_GENERAL_CHAT_PROMPT = """
+        你是一个通用 AI 助手。
+
+        你的职责：
+        1. 回答常规知识、技术解释、写作润色、方案设计和代码理解类问题。
+        2. 不要把所有问题都限定到金融助贷领域。
+        3. 如果用户的问题需要具体业务系统数据、金融知识库证据或工具执行，请提示用户切换到“金融 RAG”或“Agent 任务”。
+
+        回答要求：
+        - 直接回答用户问题。
+        - 不编造事实。
+        - 信息不足时说明假设或向用户追问。
+        """;
+    private static final String DEFAULT_FINANCIAL_RAG_PROMPT = """
+        你是一个金融助贷知识库问答助手。
+
+        你的职责：
+        1. 回答借款规则、还款规则、风控政策、产品流程、额度、利率、期限等金融助贷知识库问题。
+        2. 优先依据检索到的知识库资料回答。
+        3. 如果检索资料不足以支持结论，必须明确说明“当前知识库证据不足”。
+        4. 不查询或编造具体用户业务数据；涉及用户编号、借款记录、还款记录、风险评估时，提示用户切换到“Agent 任务”。
+
+        回答要求：
+        - 先给结论，再给依据。
+        - 区分知识库事实和推断。
+        - 不编造规则、阈值、流程或数值。
+        """;
 
     private final PromptProperties promptProperties;
     private final PromptTemplateRepository promptTemplateRepository;
@@ -121,6 +150,16 @@ public class PromptRegistryService {
         return resolvePrompt(SYSTEM_PROMPT_KEY);
     }
 
+    public String getGeneralChatPrompt() {
+        // 常规聊天的兜底 prompt 很重要：即使数据库还没初始化新 key，也不能退回金融助贷提示词。
+        return resolvePromptOrDefault(GENERAL_CHAT_PROMPT_KEY, DEFAULT_GENERAL_CHAT_PROMPT);
+    }
+
+    public String getFinancialRagPrompt() {
+        // 金融 RAG 独立 prompt，负责要求模型基于知识库证据回答，不查询具体用户业务数据。
+        return resolvePromptOrDefault(FINANCIAL_RAG_PROMPT_KEY, DEFAULT_FINANCIAL_RAG_PROMPT);
+    }
+
     public String getRagQaPrompt() {
         return resolvePrompt(RAG_QA_PROMPT_KEY);
     }
@@ -153,6 +192,17 @@ public class PromptRegistryService {
         log.info("命中 Prompt Registry: key={}, env={}, version={}",
                 promptKey, template.getEnv(), template.getVersion());
         return template.getContent();
+    }
+
+    private String resolvePromptOrDefault(String promptKey, String defaultContent) {
+        try {
+            return resolvePrompt(promptKey);
+        } catch (IllegalStateException ex) {
+            // 仅新模式 prompt 允许兜底，避免本地库未执行 sql/prompt_registry.sql 时聊天页不可用。
+            log.warn("未命中 Prompt Registry，使用内置默认 Prompt: key={}, env={}",
+                promptKey, promptProperties.getEnv());
+            return defaultContent;
+        }
     }
 
     private String normalizeEnv(String env) {

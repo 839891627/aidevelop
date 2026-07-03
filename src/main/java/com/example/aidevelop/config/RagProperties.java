@@ -12,6 +12,7 @@ public class RagProperties {
     private boolean enabled = true;
     private double similarityThreshold = 0.2;
     private int topK = 5;
+    private int embeddingBatchSize = 10;
     private Chunking chunking = new Chunking();
 
     @Data

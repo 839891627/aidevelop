@@ -30,7 +30,7 @@ class ToolRouterTest {
 
     @Test
     void shouldExecuteAllowedTool() {
-        Object result = toolRouter.execute("loan.query", Map.of("userNo", "CUST1001"));
+        Object result = toolRouter.execute("loan.query", Map.of("userNo", "USER1001"));
 
         assertEquals(Map.of("source", "loan"), result);
     }
@@ -47,6 +47,28 @@ class ToolRouterTest {
     void shouldExposeAllToolNames() {
         Set<String> names = toolRouter.allToolNames();
         assertEquals(Set.of("rag.search", "loan.query", "repayment.query"), names);
+    }
+
+    @Test
+    void shouldRejectUnknownToolName() {
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+            () -> toolRouter.execute("unknown.tool", Map.of()));
+
+        assertTrue(ex.getMessage().contains("工具未授权"));
+    }
+
+    @Test
+    void shouldAllowAllRegisteredToolsWhenAllowedListIsEmpty() {
+        AgentProperties agentProperties = new AgentProperties();
+        agentProperties.setAllowedTools(List.of());
+        ToolRouter router = new ToolRouter(List.of(
+            new FixedAgentTool("rag.search", Map.of("source", "rag")),
+            new FixedAgentTool("repayment.query", Map.of("source", "repayment"))
+        ), agentProperties);
+
+        Object result = router.execute("repayment.query", Map.of());
+
+        assertEquals(Map.of("source", "repayment"), result);
     }
 
     private static class FixedAgentTool implements AgentTool {

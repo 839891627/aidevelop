@@ -1,130 +1,206 @@
 /**
- * AI 智能助手 - 聊天应用
- * 采用现代化设计，支持流式输出和 Markdown 渲染
+ * AI 工作台 - ChatGPT 风格聊天页
+ * 支持常规聊天、金融 RAG 与 Agent 任务三种能力模式。
  */
+function normalizeMarkdownText(text) {
+    return text
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
+        // 兼容模型常见输出：#标题、##一、标题。CommonMark 要求 # 后有空格。
+        .replace(/(^|\n)(#{1,6})([^#\s\n])/g, '$1$2 $3')
+        // 兼容 1.列表项 / 1.中文列表项，否则 marked 会当普通段落。
+        .replace(/(^|\n)(\s*\d+\.)([^\s\n])/g, '$1$2 $3')
+        // 兼容 -列表项 / *列表项 / +列表项。
+        .replace(/(^|\n)(\s*[-*+])([^\s\n])/g, '$1$2 $3')
+        .replace(/\n{3,}/g, '\n\n');
+}
 
 class ChatApp {
     constructor() {
-        this.conversationId = null;
+        this.conversationIds = {
+            general: null,
+            financial_rag: null,
+            agent: null
+        };
+        this.hasMessages = false;
+        this.activeConversationId = null;
+
         this.messageInput = document.getElementById('messageInput');
         this.sendBtn = document.getElementById('sendBtn');
         this.clearBtn = document.getElementById('clearBtn');
-        this.modeSelect = document.getElementById('modeSelect');
+        this.newChatBtn = document.getElementById('newChatBtn');
+        this.apiModeSelect = document.getElementById('apiModeSelect');
         this.chatMessages = document.getElementById('chatMessages');
-        this.hasMessages = false;
+        this.conversationHistory = document.getElementById('conversationHistory');
+        this.modeDescription = document.getElementById('modeDescription');
+        this.traceInspector = document.getElementById('traceInspector');
+        this.traceStatusPill = document.getElementById('traceStatusPill');
+        this.traceSummary = document.getElementById('traceSummary');
+        this.traceTimeline = document.getElementById('traceTimeline');
+        this.traceStepDetail = document.getElementById('traceStepDetail');
+
+        this.modeCopy = {
+            general: '常规知识、技术解释、写作和方案设计，不套用金融助贷提示词。',
+            financial_rag: '金融助贷知识库问答，使用检索资料回答规则、政策和流程问题。',
+            agent: '业务任务编排，适合查询借款/还款记录、风险评估和规则结合判断。'
+        };
 
         this.initEventListeners();
+        this.updateModeDescription();
         this.autoResizeTextarea();
+        this.loadConversationHistory();
+        this.clearTraceInspector();
     }
 
     initEventListeners() {
         this.sendBtn.addEventListener('click', () => this.sendMessage());
         this.clearBtn.addEventListener('click', () => this.clearConversation());
+        this.newChatBtn.addEventListener('click', () => this.startNewConversation());
+        this.apiModeSelect.addEventListener('change', () => this.updateModeDescription());
 
-        this.messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
+        this.messageInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
                 this.sendMessage();
             }
         });
 
-        // 输入框自动调整高度
-        this.messageInput.addEventListener('input', () => {
-            this.autoResizeTextarea();
+        this.messageInput.addEventListener('input', () => this.autoResizeTextarea());
+
+        document.querySelectorAll('[data-prompt]').forEach((button) => {
+            button.addEventListener('click', () => {
+                if (button.dataset.mode) {
+                    this.apiModeSelect.value = button.dataset.mode;
+                    this.updateModeDescription();
+                }
+                this.messageInput.value = button.dataset.prompt;
+                this.autoResizeTextarea();
+                this.messageInput.focus();
+            });
         });
+    }
+
+    get currentMode() {
+        return this.apiModeSelect.value;
+    }
+
+    updateModeDescription() {
+        this.modeDescription.textContent = this.modeCopy[this.currentMode];
     }
 
     autoResizeTextarea() {
         this.messageInput.style.height = 'auto';
-        this.messageInput.style.height = Math.min(this.messageInput.scrollHeight, 120) + 'px';
+        this.messageInput.style.height = `${Math.min(this.messageInput.scrollHeight, 180)}px`;
     }
 
     async sendMessage() {
         const message = this.messageInput.value.trim();
-        if (!message) return;
-
-        // 移除空状态
-        this.removeEmptyState();
-
-        // 禁用输入
-        this.setInputEnabled(false);
-
-        // 显示用户消息
-        this.addMessage('user', message);
-        this.messageInput.value = '';
-        this.autoResizeTextarea();
-
-        const mode = this.modeSelect.value;
-        const requestBody = {
-            message: message,
-            conversationId: this.conversationId
-        };
-
-        if (mode === 'stream') {
-            await this.sendStreamMessage(requestBody);
-        } else {
-            await this.sendNormalMessage(requestBody);
+        if (!message) {
+            return;
         }
 
-        // 恢复输入
-        this.setInputEnabled(true);
-        this.messageInput.focus();
+        const mode = this.currentMode;
+        const requestBody = {
+            message,
+            conversationId: this.conversationIds[mode] || this.activeConversationId,
+            mode: mode
+        };
+
+        this.removeEmptyState();
+        this.addMessage('user', message, this.getModeLabel(mode));
+        this.messageInput.value = '';
+        this.autoResizeTextarea();
+        this.setInputEnabled(false);
+
+        try {
+            // Agent 是独立编排链路；常规聊天和金融 RAG 共用 /api/chat/stream，通过 mode 区分能力。
+            if (mode === 'agent') {
+                await this.sendAgentMessage(requestBody);
+            } else {
+                await this.sendStreamMessage(requestBody);
+            }
+        } finally {
+            this.setInputEnabled(true);
+            this.messageInput.focus();
+            this.loadConversationHistory();
+        }
     }
 
     async sendNormalMessage(requestBody) {
         try {
             const response = await fetch('/api/chat', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody)
             });
 
             if (!response.ok) {
-                throw new Error('请求失败');
+                throw new Error('普通聊天请求失败');
             }
 
             const data = await response.json();
-            this.conversationId = data.conversationId;
-            this.addMessage('assistant', data.message);
-
+            this.conversationIds[requestBody.mode] = data.conversationId;
+            this.activeConversationId = data.conversationId;
+            this.addMessage('assistant', data.message, this.getModeLabel(requestBody.mode));
         } catch (error) {
-            console.error('Error:', error);
-            this.addMessage('assistant', '抱歉，发生了错误。请稍后重试。');
+            this.addErrorMessage(error);
+        }
+    }
+
+    async sendAgentMessage(requestBody) {
+        const messageDiv = this.addMessage('assistant', '', 'Agent 聊天');
+        const contentDiv = messageDiv.querySelector('.message-content');
+        contentDiv.innerHTML = this.getThinkingMarkup('Agent 正在规划与执行');
+
+        try {
+            // Agent 接口返回 traceId 和 steps，前端会把执行步骤格式化出来，便于观察工具链。
+            const response = await fetch('/api/agent/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: requestBody.message,
+                    conversationId: requestBody.conversationId,
+                    maxSteps: 5,
+                    multiAgent: false
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Agent 聊天请求失败');
+            }
+
+            const data = await response.json();
+            this.conversationIds.agent = data.traceId || requestBody.conversationId;
+            this.activeConversationId = this.conversationIds.agent;
+            this.renderMarkdown(contentDiv, this.formatAgentResponse(data));
+            this.renderTraceInspector(data);
+        } catch (error) {
+            contentDiv.innerHTML = this.escapeHtml(`抱歉，Agent 处理失败：${error.message}`);
+            this.clearTraceInspector('Agent 处理失败');
         }
     }
 
     async sendStreamMessage(requestBody) {
-        // 创建消息容器并添加正在输入动画
-        const messageDiv = this.addMessage('assistant', '');
+        const messageDiv = this.addMessage('assistant', '', this.getModeLabel(requestBody.mode));
         const contentDiv = messageDiv.querySelector('.message-content');
-        contentDiv.innerHTML = '<div class="thinking-dots"><span></span><span></span><span></span></div>';
-
-        console.log('[流式模式] 开始发送请求');
+        contentDiv.innerHTML = this.getThinkingMarkup('正在生成回答');
 
         try {
             const response = await fetch('/api/chat/stream', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody)
             });
 
             if (!response.ok) {
-                throw new Error('请求失败');
+                throw new Error('流式聊天请求失败');
             }
-
-            console.log('[流式模式] 响应成功，开始读取流');
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder('utf-8');
-
             let buffer = '';
             let fullText = '';
-            let chunkCount = 0;
-            let extractedCount = 0;
+
             const processEventBlock = (eventBlock) => {
                 const parsed = this.parseSseEvent(eventBlock);
                 if (!parsed) {
@@ -135,17 +211,17 @@ class ChatApp {
                     try {
                         const meta = JSON.parse(parsed.data);
                         if (meta.conversationId) {
-                            this.conversationId = meta.conversationId;
+                            this.conversationIds[requestBody.mode] = meta.conversationId;
+                            this.activeConversationId = meta.conversationId;
                         }
-                    } catch (e) {
-                        console.warn('[流式模式] 解析 meta 事件失败:', e);
+                    } catch (error) {
+                        console.warn('解析流式 meta 事件失败:', error);
                     }
                     return;
                 }
 
                 if (parsed.data) {
                     fullText += parsed.data;
-                    extractedCount++;
                     this.renderMarkdown(contentDiv, fullText);
                     this.scrollToBottom();
                 }
@@ -158,41 +234,263 @@ class ChatApp {
                     if (finalChunk) {
                         buffer += finalChunk;
                     }
-                    console.log('[流式模式] 流读取完成，共接收', chunkCount, '个chunk');
-                    console.log('[流式模式] 提取到', extractedCount, '个SSE事件');
                     break;
                 }
 
-                const chunk = decoder.decode(value, { stream: true });
-                chunkCount++;
-
-                buffer += chunk;
-
+                buffer += decoder.decode(value, { stream: true });
                 const eventBlocks = buffer.split('\n\n');
                 buffer = eventBlocks.pop() || '';
-                for (const eventBlock of eventBlocks) {
-                    processEventBlock(eventBlock);
-                }
+                eventBlocks.forEach(processEventBlock);
             }
 
-            // 处理缓冲区中剩余的内容
             if (buffer.trim()) {
                 processEventBlock(buffer);
             }
 
-            console.log('[流式模式] 总共提取到', extractedCount, '个数据块');
-
-            // 最终渲染Markdown
             if (fullText.trim()) {
                 this.renderMarkdown(contentDiv, fullText);
-                console.log('[流式模式] Markdown最终渲染完成');
             } else {
                 contentDiv.textContent = '未收到响应数据，请检查网络连接或稍后重试。';
+                contentDiv.classList.add('text-only');
             }
-
         } catch (error) {
-            console.error('[流式模式] 发生错误:', error);
-            contentDiv.innerHTML = '抱歉，发生了错误：' + this.escapeHtml(error.message);
+            contentDiv.innerHTML = this.escapeHtml(`抱歉，流式处理失败：${error.message}`);
+        }
+    }
+
+    formatAgentResponse(data) {
+        const answer = data.finalAnswer || 'Agent 未返回最终答案。';
+        const meta = [
+            data.routeType ? `路由类型：${data.routeType}` : null,
+            Number.isFinite(data.executedSteps) ? `执行步骤：${data.executedSteps}` : null,
+            Number.isFinite(data.responseTimeMs) ? `耗时：${data.responseTimeMs}ms` : null
+        ].filter(Boolean);
+
+        return `${answer}${meta.length ? `\n\n---\n${meta.join(' · ')}` : ''}`;
+    }
+
+    renderTraceInspector(data) {
+        if (!this.traceSummary || !this.traceTimeline || !this.traceStepDetail) {
+            return;
+        }
+
+        const steps = Array.isArray(data.steps) ? data.steps : [];
+        this.renderTraceStatus(data.status);
+        this.renderTraceSummary(data, steps);
+        this.renderTraceTimeline(steps);
+
+        if (steps.length > 0) {
+            this.renderTraceStepDetail(steps[steps.length - 1]);
+            this.markActiveTraceStep(steps[steps.length - 1].stepIndex);
+        } else {
+            this.traceStepDetail.innerHTML = '<span>本次响应没有返回步骤明细。</span>';
+        }
+    }
+
+    renderTraceStatus(status) {
+        if (!this.traceStatusPill) {
+            return;
+        }
+        const normalized = status || 'UNKNOWN';
+        this.traceStatusPill.className = `trace-status-pill ${this.getTraceStatusClass(normalized)}`;
+        this.traceStatusPill.textContent = this.formatTraceStatus(normalized);
+    }
+
+    renderTraceSummary(data, steps) {
+        const budget = data.budgetSummary || {};
+        const cards = [
+            ['traceId', this.shortTraceId(data.traceId)],
+            ['状态', this.formatTraceStatus(data.status)],
+            ['路由', data.routeType || '-'],
+            ['步骤', Number.isFinite(data.executedSteps) ? data.executedSteps : steps.length],
+            ['耗时', Number.isFinite(data.responseTimeMs) ? this.formatDuration(data.responseTimeMs) : '-'],
+            ['调用', this.formatBudgetCalls(budget)]
+        ];
+        const failure = data.failureReason && data.failureReason !== 'NONE'
+            ? `<div class="trace-alert">Failure: ${this.escapeHtml(data.failureReason)}</div>`
+            : '';
+        const budgetReason = budget.budgetExceeded && budget.reason
+            ? `<div class="trace-alert">Budget: ${this.escapeHtml(budget.reason)}</div>`
+            : '';
+
+        this.traceSummary.className = 'trace-summary';
+        this.traceSummary.innerHTML = `
+            <div class="trace-summary-grid compact">
+                ${cards.map(([label, value]) => `
+                    <div class="trace-metric">
+                        <span>${this.escapeHtml(label)}</span>
+                        <strong title="${this.escapeHtml(String(value || '-'))}">${this.escapeHtml(String(value || '-'))}</strong>
+                    </div>
+                `).join('')}
+            </div>
+            ${failure}
+            ${budgetReason}
+        `;
+    }
+
+    renderTraceTimeline(steps) {
+        this.traceTimeline.innerHTML = '';
+        if (!steps.length) {
+            this.traceTimeline.innerHTML = '<p class="trace-empty-line">暂无步骤。</p>';
+            return;
+        }
+
+        steps.forEach((step) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `trace-step-card ${this.getTraceStepClass(step)}`;
+            button.dataset.stepIndex = step.stepIndex;
+            button.innerHTML = `
+                <span class="trace-step-index">${this.escapeHtml(String(step.stepIndex || '-'))}</span>
+                <span class="trace-step-main">
+                    <strong>${this.escapeHtml(this.getTraceStepTitle(step))}</strong>
+                    <small>${this.escapeHtml(this.getTraceStepSubtitle(step))}</small>
+                </span>
+                <span class="trace-step-latency">${this.escapeHtml(this.formatDuration(step.latencyMs))}</span>
+            `;
+            button.addEventListener('click', () => {
+                this.renderTraceStepDetail(step);
+                this.markActiveTraceStep(step.stepIndex);
+            });
+            this.traceTimeline.appendChild(button);
+        });
+    }
+
+    renderTraceStepDetail(step) {
+        const rows = [
+            ['Action', step.actionType || '-'],
+            ['Status', step.status || (step.success === false ? 'FAILED' : 'SUCCEEDED')],
+            ['Failure', step.failureReason || '-'],
+            ['Round', Number.isFinite(step.roundIndex) ? `#${step.roundIndex}` : '-'],
+            ['Latency', this.formatDuration(step.latencyMs)],
+            ['Tool', step.toolName || '-']
+        ];
+        const input = this.formatTracePayload(step.toolInput);
+        const output = this.formatTracePayload(step.toolOutput);
+
+        this.traceStepDetail.innerHTML = `
+            <div class="trace-detail-heading">
+                <span>Step ${this.escapeHtml(String(step.stepIndex || '-'))}</span>
+                <strong>${this.escapeHtml(this.getTraceStepTitle(step))}</strong>
+            </div>
+            <dl class="trace-detail-list">
+                ${rows.map(([label, value]) => `
+                    <div>
+                        <dt>${this.escapeHtml(label)}</dt>
+                        <dd>${this.escapeHtml(String(value || '-'))}</dd>
+                    </div>
+                `).join('')}
+            </dl>
+            ${input ? `<div class="trace-payload"><span>Input</span><pre>${this.escapeHtml(input)}</pre></div>` : ''}
+            ${output ? `<div class="trace-payload"><span>Output</span><pre>${this.escapeHtml(output)}</pre></div>` : ''}
+        `;
+    }
+
+    clearTraceInspector(message = '暂无 Trace') {
+        if (!this.traceSummary || !this.traceTimeline || !this.traceStepDetail) {
+            return;
+        }
+        this.renderTraceStatus('UNKNOWN');
+        this.traceSummary.className = 'trace-empty';
+        this.traceSummary.innerHTML = `
+            <strong>${this.escapeHtml(message)}</strong>
+            <span>切换到 Agent 任务并发送问题后，这里会展示 traceId、状态、预算和执行步骤。</span>
+        `;
+        this.traceTimeline.innerHTML = '';
+        this.traceStepDetail.innerHTML = '<span>选择一个步骤查看输入、输出和耗时。</span>';
+    }
+
+    markActiveTraceStep(stepIndex) {
+        this.traceTimeline.querySelectorAll('.trace-step-card').forEach((button) => {
+            button.classList.toggle('active', button.dataset.stepIndex === String(stepIndex));
+        });
+    }
+
+    getTraceStepTitle(step) {
+        return step.toolName || step.actionType || `Step ${step.stepIndex || '-'}`;
+    }
+
+    getTraceStepSubtitle(step) {
+        const status = step.status || (step.success === false ? 'FAILED' : 'SUCCEEDED');
+        const reason = step.failureReason && step.failureReason !== 'NONE' ? ` · ${step.failureReason}` : '';
+        return `${status}${reason}`;
+    }
+
+    getTraceStepClass(step) {
+        if (step.success === false || step.status === 'FAILED' || step.status === 'TIMED_OUT') {
+            return 'failed';
+        }
+        if (step.status === 'DEGRADED') {
+            return 'degraded';
+        }
+        return 'succeeded';
+    }
+
+    getTraceStatusClass(status) {
+        if (status === 'SUCCEEDED') {
+            return 'succeeded';
+        }
+        if (status === 'DEGRADED') {
+            return 'degraded';
+        }
+        if (status === 'FAILED' || status === 'TIMED_OUT') {
+            return 'failed';
+        }
+        return 'muted';
+    }
+
+    formatTraceStatus(status) {
+        return {
+            SUCCEEDED: '成功',
+            DEGRADED: '降级',
+            FAILED: '失败',
+            TIMED_OUT: '超时',
+            UNKNOWN: '等待'
+        }[status] || status || '等待';
+    }
+
+    formatDuration(value) {
+        if (!Number.isFinite(value)) {
+            return '-';
+        }
+        if (value >= 1000) {
+            return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}s`;
+        }
+        return `${value}ms`;
+    }
+
+    formatBudgetCalls(budget) {
+        const parts = [];
+        if (Number.isFinite(budget.llmCalls)) {
+            parts.push(`LLM ${budget.llmCalls}`);
+        }
+        if (Number.isFinite(budget.toolCalls)) {
+            parts.push(`Tool ${budget.toolCalls}`);
+        }
+        if (Number.isFinite(budget.roundIndex)) {
+            parts.push(`#${budget.roundIndex}`);
+        }
+        return parts.length ? parts.join(' / ') : '-';
+    }
+
+    shortTraceId(traceId) {
+        if (!traceId) {
+            return '-';
+        }
+        return traceId.length > 12 ? `${traceId.slice(0, 8)}…${traceId.slice(-4)}` : traceId;
+    }
+
+    formatTracePayload(payload) {
+        if (payload === null || payload === undefined || payload === '') {
+            return '';
+        }
+        if (typeof payload === 'string') {
+            return payload.length > 2200 ? `${payload.slice(0, 2200)}\n...` : payload;
+        }
+        try {
+            return JSON.stringify(payload, null, 2);
+        } catch (error) {
+            return String(payload);
         }
     }
 
@@ -201,36 +499,15 @@ class ChatApp {
             return;
         }
 
-        // 检查marked库是否已加载
         if (typeof marked === 'undefined') {
-            console.warn('[流式模式] marked库未加载，使用纯文本显示');
             contentDiv.textContent = text;
             contentDiv.classList.add('text-only');
             return;
         }
 
         try {
-            // 预处理文本：确保Markdown格式正确
-            let processedText = text
-                .replace(/\r\n/g, '\n')
-                .replace(/\r/g, '\n');
+            const processedText = normalizeMarkdownText(text);
 
-            // 确保标题前后有换行
-            processedText = processedText.replace(/([^\n])##/g, '$1\n\n##');
-            processedText = processedText.replace(/([^\n])###/g, '$1\n\n###');
-
-            // 确保列表项前后有换行
-            processedText = processedText.replace(/([^\n])-\s/g, '$1\n- ');
-            processedText = processedText.replace(/([^\n])\*\s/g, '$1\n* ');
-            processedText = processedText.replace(/([^\n])\+\s/g, '$1\n+ ');
-
-            // 确保标题和内容之间有换行
-            processedText = processedText.replace(/##([^\n]+)-/g, '##$1\n-');
-
-            // 清理多余的换行
-            processedText = processedText.replace(/\n{3,}/g, '\n\n');
-
-            // 使用marked解析
             const html = marked.parse(processedText, {
                 breaks: true,
                 gfm: true,
@@ -238,40 +515,36 @@ class ChatApp {
                 mangle: false
             });
 
-            // 移除text-only类
             contentDiv.classList.remove('text-only');
             contentDiv.innerHTML = html;
-
-            // 添加打字机光标效果（仅在流式输出时）
-            if (text.endsWith('...') || text.length < 100) {
-                contentDiv.innerHTML += '<span class="typing-cursor"></span>';
-            }
-
-        } catch (e) {
-            console.error('[流式模式] Markdown渲染失败:', e);
+        } catch (error) {
+            console.error('Markdown 渲染失败:', error);
             contentDiv.textContent = text;
             contentDiv.classList.add('text-only');
         }
     }
 
-    addMessage(role, content) {
-        // 移除空状态
+    addMessage(role, content, metaLabel = '') {
         this.removeEmptyState();
 
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${role}`;
 
-        // 添加头像（仅助手消息）
-        if (role === 'assistant') {
-            const avatar = document.createElement('div');
-            avatar.className = 'message-avatar';
-            messageDiv.appendChild(avatar);
-        }
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.textContent = role === 'user' ? '你' : 'AI';
+        messageDiv.appendChild(avatar);
+
+        const bodyDiv = document.createElement('div');
+        bodyDiv.className = 'message-body';
+
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'message-meta';
+        metaDiv.textContent = role === 'user' ? '你' : metaLabel || 'AI 助手';
+        bodyDiv.appendChild(metaDiv);
 
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
-
-        // 如果是assistant消息且包含Markdown，使用渲染方法
         if (role === 'assistant' && content && typeof marked !== 'undefined') {
             this.renderMarkdown(contentDiv, content);
         } else if (content) {
@@ -279,18 +552,104 @@ class ChatApp {
             contentDiv.classList.add('text-only');
         }
 
-        messageDiv.appendChild(contentDiv);
+        bodyDiv.appendChild(contentDiv);
+        messageDiv.appendChild(bodyDiv);
         this.chatMessages.appendChild(messageDiv);
 
         this.hasMessages = true;
         this.scrollToBottom();
 
-        // 触发消息进入动画
-        setTimeout(() => {
-            messageDiv.style.opacity = '1';
-        }, 10);
-
         return messageDiv;
+    }
+
+    addErrorMessage(error) {
+        console.error(error);
+        this.addMessage('assistant', `抱歉，发生了错误：${error.message}`, '系统提示');
+    }
+
+    async loadConversationHistory() {
+        if (!this.conversationHistory) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/chat/conversations');
+            if (!response.ok) {
+                throw new Error('历史会话加载失败');
+            }
+
+            const conversations = await response.json();
+            this.renderConversationHistory(Array.isArray(conversations) ? conversations : []);
+        } catch (error) {
+            console.error(error);
+            this.conversationHistory.innerHTML = '<p class="history-empty">历史会话加载失败</p>';
+        }
+    }
+
+    renderConversationHistory(conversations) {
+        if (conversations.length === 0) {
+            this.conversationHistory.innerHTML = '<p class="history-empty">暂无历史会话</p>';
+            return;
+        }
+
+        this.conversationHistory.innerHTML = '';
+        conversations.forEach((conversation) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'history-item';
+            if (conversation.conversationId === this.activeConversationId) {
+                button.classList.add('active');
+            }
+            button.dataset.conversationId = conversation.conversationId;
+            button.innerHTML = `
+                <span>${this.escapeHtml(conversation.title || '未命名会话')}</span>
+                <small>${conversation.messageCount || 0} 条消息</small>
+            `;
+            button.addEventListener('click', () => this.loadConversationMessages(conversation.conversationId));
+            this.conversationHistory.appendChild(button);
+        });
+    }
+
+    async loadConversationMessages(conversationId) {
+        if (!conversationId) {
+            return;
+        }
+
+        this.setInputEnabled(false);
+        try {
+            const response = await fetch(`/api/chat/${conversationId}/messages`);
+            if (!response.ok) {
+                throw new Error('历史消息加载失败');
+            }
+
+            const messages = await response.json();
+            this.activeConversationId = conversationId;
+            this.conversationIds[this.currentMode] = conversationId;
+            this.chatMessages.innerHTML = '';
+
+            if (!Array.isArray(messages) || messages.length === 0) {
+                this.showEmptyState();
+                return;
+            }
+
+            messages.forEach((message) => {
+                const role = message.role === 'USER' ? 'user' : 'assistant';
+                const label = role === 'user' ? '你' : (message.model || 'AI 助手');
+                this.addMessage(role, message.content, label);
+            });
+            this.hasMessages = true;
+            this.renderConversationHistoryActiveState();
+        } catch (error) {
+            this.addErrorMessage(error);
+        } finally {
+            this.setInputEnabled(true);
+        }
+    }
+
+    renderConversationHistoryActiveState() {
+        this.conversationHistory.querySelectorAll('.history-item').forEach((item) => {
+            item.classList.toggle('active', item.dataset.conversationId === this.activeConversationId);
+        });
     }
 
     removeEmptyState() {
@@ -300,24 +659,71 @@ class ChatApp {
         }
     }
 
-    clearConversation() {
-        if (this.conversationId) {
-            fetch(`/api/chat/${this.conversationId}`, {
-                method: 'DELETE'
-            }).catch(err => console.error('Clear error:', err));
-        }
+    async clearConversation() {
+        const chatConversationIds = Array.from(new Set([
+            this.activeConversationId,
+            this.conversationIds.general,
+            this.conversationIds.financial_rag
+        ].filter(Boolean)));
 
-        this.conversationId = null;
+        await Promise.allSettled(chatConversationIds.map((conversationId) => fetch(`/api/chat/${conversationId}`, {
+            method: 'DELETE'
+        })));
+
+        this.startNewConversation();
+        this.loadConversationHistory();
+    }
+
+    startNewConversation() {
+        this.conversationIds = {
+            general: null,
+            financial_rag: null,
+            agent: null
+        };
+        this.activeConversationId = null;
+        this.showEmptyState();
+        this.clearTraceInspector();
+        this.renderConversationHistoryActiveState();
+        this.messageInput.focus();
+    }
+
+    showEmptyState() {
         this.chatMessages.innerHTML = `
             <div class="empty-state">
-                <div class="empty-state-icon">✦</div>
+                <div class="empty-state-icon">?</div>
                 <div class="empty-state-text">
-                    <strong>开始新的对话</strong><br>
-                    输入您的问题，我将竭诚为您服务
+                    <strong>开始一段新的对话</strong>
+                    <span>预制问题会自动切换到对应能力模式：常规聊天、金融 RAG 或 Agent 任务。</span>
+                </div>
+                <div class="prompt-chips" aria-label="示例问题">
+                    <button type="button" data-mode="general" data-prompt="什么是 RAG？和 Agent 有什么区别？"><span class="chip-tag chip-tag-general">常规</span><span>解释 RAG 与 Agent</span></button>
+                    <button type="button" data-mode="general" data-prompt="帮我把这个项目的聊天、Prompt、成本管理能力总结成一段产品说明"><span class="chip-tag chip-tag-general">常规</span><span>生成产品说明</span></button>
+                    <button type="button" data-mode="financial_rag" data-prompt="请根据金融助贷知识库说明借款申请通常需要关注哪些规则"><span class="chip-tag chip-tag-rag">RAG</span><span>借款规则说明</span></button>
+                    <button type="button" data-mode="financial_rag" data-prompt="请根据金融助贷知识库总结还款逾期相关的处理原则"><span class="chip-tag chip-tag-rag">RAG</span><span>逾期处理原则</span></button>
+                    <button type="button" data-mode="agent" data-prompt="请查询 USER001 的借款记录，并总结当前借款状态"><span class="chip-tag">Agent</span><span>查询借款记录</span></button>
+                    <button type="button" data-mode="agent" data-prompt="请查询 USER001 的还款记录，重点说明是否存在逾期或异常状态"><span class="chip-tag">Agent</span><span>查询还款记录</span></button>
+                    <button type="button" data-mode="agent" data-prompt="请分析 USER001 的借款和还款信息，指出需要关注的问题"><span class="chip-tag">Agent</span><span>借还款综合分析</span></button>
+                    <button type="button" data-mode="agent" data-prompt="请对 USER001 做风险评估，并给出风险等级、依据和建议"><span class="chip-tag">Agent</span><span>风险评估</span></button>
+                    <button type="button" data-mode="agent" data-prompt="请检索知识库中的风控规则，并结合 USER001 的情况给出判断"><span class="chip-tag">Agent</span><span>规则 + 用户判断</span></button>
                 </div>
             </div>
         `;
         this.hasMessages = false;
+        this.initPromptChipListeners();
+    }
+
+    initPromptChipListeners() {
+        this.chatMessages.querySelectorAll('[data-prompt]').forEach((button) => {
+            button.addEventListener('click', () => {
+                if (button.dataset.mode) {
+                    this.apiModeSelect.value = button.dataset.mode;
+                    this.updateModeDescription();
+                }
+                this.messageInput.value = button.dataset.prompt;
+                this.autoResizeTextarea();
+                this.messageInput.focus();
+            });
+        });
     }
 
     scrollToBottom() {
@@ -327,12 +733,26 @@ class ChatApp {
     setInputEnabled(enabled) {
         this.messageInput.disabled = !enabled;
         this.sendBtn.disabled = !enabled;
+        this.apiModeSelect.disabled = !enabled;
 
-        if (!enabled) {
-            this.sendBtn.innerHTML = '<span>发送中</span>';
-        } else {
-            this.sendBtn.innerHTML = '<span>发送</span>';
-        }
+        this.sendBtn.innerHTML = enabled ? '<span>发送</span>' : '<span>思考中</span>';
+    }
+
+    getModeLabel(mode) {
+        return {
+            general: '常规聊天',
+            financial_rag: '金融 RAG',
+            agent: 'Agent 任务'
+        }[mode] || '聊天';
+    }
+
+    getThinkingMarkup(label) {
+        return `
+            <div class="thinking-line">
+                <span></span><span></span><span></span>
+                <em>${this.escapeHtml(label)}</em>
+            </div>
+        `;
     }
 
     escapeHtml(text) {
@@ -372,7 +792,6 @@ class ChatApp {
     }
 }
 
-// 初始化应用
 document.addEventListener('DOMContentLoaded', () => {
     new ChatApp();
 });

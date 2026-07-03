@@ -9,5 +9,9 @@ public interface AgentTool {
 
     String name();
 
+    default String description() {
+        return name();
+    }
+
     Object execute(Map<String, Object> args);
 }

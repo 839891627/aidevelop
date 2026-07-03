@@ -5,11 +5,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Component
-@ConfigurationProperties(prefix = "app.ai.agent")
+@ConfigurationProperties(prefix = "app.chat.agent")
 public class AgentProperties {
 
     /**
@@ -26,6 +28,41 @@ public class AgentProperties {
      * 工具调用超时（毫秒）。
      */
     private int timeoutMs = 15000;
+
+    /**
+     * 单个工具的超时覆盖（毫秒），key 为工具名。
+     */
+    private Map<String, Integer> toolTimeoutMs = new HashMap<>();
+
+    /**
+     * 单次 LLM 阶段调用超时（毫秒）。
+     */
+    private int llmTimeoutMs = 30000;
+
+    /**
+     * 单次 Agent 请求总截止时间（毫秒）。
+     */
+    private int requestDeadlineMs = 120000;
+
+    /**
+     * 单个规划轮次最多允许的 LLM 调用数。
+     */
+    private int maxLlmCallsPerRound = 3;
+
+    /**
+     * 单次 Agent 请求最多允许的 LLM 调用数，包含最终回答和自检阶段。
+     */
+    private int maxLlmCallsPerRequest = 6;
+
+    /**
+     * 单个规划轮次最大输出 token 预算。
+     */
+    private int maxTokensPerRound = 4000;
+
+    /**
+     * 单次 Agent 请求最大输出 token 预算。
+     */
+    private int maxTokensPerRequest = 12000;
 
     /**
      * 工具失败重试次数（不含首次调用）。

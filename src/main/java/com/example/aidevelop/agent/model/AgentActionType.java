@@ -8,5 +8,6 @@ public enum AgentActionType {
     TOOL,
     REFLECT,
     SELF_CHECK,
-    RESPOND
+    RESPOND,
+    DELEGATE
 }

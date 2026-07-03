@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt 管理 - AI 工作台</title>
+    <link rel="stylesheet" href="/css/prompt.css">
+</head>
+<body>
+    <div class="prompt-shell">
+        <header class="prompt-hero">
+            <nav class="prompt-nav" aria-label="主导航">
+                <a href="/index.html">Chat</a>
+                <a href="/prompt.html" class="active">Prompt</a>
+                <a href="/cost.html">Cost</a>
+            </nav>
+
+            <div class="hero-content">
+                <p class="eyebrow">Prompt Registry</p>
+                <h1>提示词管理</h1>
+                <p class="subtitle">集中查看、创建草稿、发布与回滚不同环境下的 Prompt 版本。</p>
+            </div>
+
+            <div class="env-selector">
+                <label for="envSelect">环境</label>
+                <select id="envSelect">
+                    <option value="dev">dev</option>
+                    <option value="test">test</option>
+                    <option value="prod">prod</option>
+                </select>
+            </div>
+        </header>
+
+        <main class="prompt-main">
+            <section class="prompt-grid prompt-cards" id="promptCards" aria-label="Prompt 列表"></section>
+
+            <section class="versions-section" id="versionsSection" style="display:none;">
+                <div class="section-header">
+                    <div>
+                        <p class="eyebrow">History</p>
+                        <h2 id="versionsTitle">版本历史</h2>
+                    </div>
+                    <button class="btn-close" onclick="promptManager.closeVersions()">关闭</button>
+                </div>
+                <div class="versions-list" id="versionsList"></div>
+            </section>
+
+            <div class="modal-overlay" id="modalOverlay" style="display:none;">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h2 id="modalTitle">Prompt 详情</h2>
+                        <button class="btn-close" onclick="promptManager.closeModal()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <textarea id="modalContent" rows="20" readonly></textarea>
+                    </div>
+                    <div class="modal-footer" id="modalFooter"></div>
+                </div>
+            </div>
+
+            <div class="modal-overlay" id="draftOverlay" style="display:none;">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h2>创建草稿</h2>
+                        <button class="btn-close" onclick="promptManager.closeDraft()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="draftKey">Prompt Key</label>
+                            <input type="text" id="draftKey" readonly>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="draftEnv">环境</label>
+                                <select id="draftEnv">
+                                    <option value="dev">dev</option>
+                                    <option value="test">test</option>
+                                    <option value="prod">prod</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="draftOperator">操作人</label>
+                                <input type="text" id="draftOperator" placeholder="your name">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="draftContent">内容</label>
+                            <textarea id="draftContent" rows="15" placeholder="输入 Prompt 内容..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-cancel" onclick="promptManager.closeDraft()">取消</button>
+                        <button class="btn-primary" onclick="promptManager.submitDraft()">创建</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/prompt.js"></script>
+</body>
+</html>

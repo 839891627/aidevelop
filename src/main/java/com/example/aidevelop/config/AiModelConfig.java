@@ -1,7 +1,6 @@
 package com.example.aidevelop.config;
 
 import com.example.aidevelop.service.function.AiToolProvider;
-import com.example.aidevelop.service.prompt.PromptRegistryService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
@@ -26,14 +25,11 @@ import java.util.Map;
 @Configuration
 public class AiModelConfig {
 
-    private final PromptRegistryService promptRegistryService;
     private final ToolsProperties toolsProperties;
     private final Map<String, AiToolProvider> toolBeans;
 
-    public AiModelConfig(PromptRegistryService promptRegistryService,
-                         ToolsProperties toolsProperties,
+    public AiModelConfig(ToolsProperties toolsProperties,
                          Map<String, AiToolProvider> toolBeans) {
-        this.promptRegistryService = promptRegistryService;
         this.toolsProperties = toolsProperties;
         this.toolBeans = toolBeans;
     }
@@ -48,8 +44,7 @@ public class AiModelConfig {
     public ChatClient chatClientForOpenAI(@Qualifier("openAiChatModel") ChatModel chatModel) {
         log.info("初始化 ChatClient，使用提供商: OpenAI (DeepSeek)");
         List<Object> activeTools = resolveActiveTools();
-        ChatClient.Builder builder = ChatClient.builder(chatModel)
-            .defaultSystem(promptRegistryService.getSystemPrompt());
+        ChatClient.Builder builder = ChatClient.builder(chatModel);
         if (!activeTools.isEmpty()) {
             builder.defaultTools(activeTools.toArray());
             log.info("注册 @Tool 工具数量: {}", activeTools.size());

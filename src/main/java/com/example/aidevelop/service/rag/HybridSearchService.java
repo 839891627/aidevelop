@@ -1,11 +1,8 @@
 package com.example.aidevelop.service.rag;
 
-import com.example.aidevelop.config.RagProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.vectorstore.SearchRequest;
-import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -39,9 +36,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class HybridSearchService {
 
-    private final VectorStore vectorStore;
+    private final VectorRetrievalService vectorRetrievalService;
     private final BM25Service bm25Service;
-    private final RagProperties ragProperties;
 
     // RRF 平滑参数
     private static final int RRF_K = 60;
@@ -92,13 +88,7 @@ public class HybridSearchService {
      */
     private List<Document> vectorSearch(String query, int topK) {
         try {
-            SearchRequest searchRequest = SearchRequest.builder()
-                .query(query)
-                .topK(topK)
-                .similarityThreshold(ragProperties.getSimilarityThreshold())
-                .build();
-
-            List<Document> results = vectorStore.similaritySearch(searchRequest);
+            List<Document> results = vectorRetrievalService.search(query, topK);
 
             log.debug("向量检索完成，返回 {} 个结果", results.size());
 

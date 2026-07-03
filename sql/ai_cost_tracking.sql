@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS ai_call_log (
 
     -- 会话信息
     session_id VARCHAR(64) COMMENT '会话ID（用于关联一次对话）',
+    trace_id VARCHAR(128) COMMENT 'Agent traceId',
+    call_phase VARCHAR(64) COMMENT 'Agent 调用阶段',
     user_id VARCHAR(64) COMMENT '用户ID',
 
     -- 模型信息
@@ -36,6 +38,8 @@ CREATE TABLE IF NOT EXISTS ai_call_log (
     created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
 
     INDEX idx_session (session_id),
+    INDEX idx_trace (trace_id),
+    INDEX idx_call_phase (call_phase),
     INDEX idx_user (user_id),
     INDEX idx_model (model_name),
     INDEX idx_created (created_time),

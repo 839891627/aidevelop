@@ -1,7 +1,6 @@
 package com.example.aidevelop.service.function;
 
-import com.example.aidevelop.model.entity.RepaymentRecord;
-import com.example.aidevelop.repository.RepaymentRecordRepository;
+import com.example.aidevelop.service.business.RepaymentQueryService;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
@@ -15,41 +14,15 @@ import java.util.List;
 @Description("查询用户的还款记录，支持按用户编号、状态等条件查询")
 public class RepaymentQueryFunction implements AiToolProvider {
 
-    private final RepaymentRecordRepository repaymentRecordRepository;
+    private final RepaymentQueryService repaymentQueryService;
 
-    public RepaymentQueryFunction(RepaymentRecordRepository repaymentRecordRepository) {
-        this.repaymentRecordRepository = repaymentRecordRepository;
+    public RepaymentQueryFunction(RepaymentQueryService repaymentQueryService) {
+        this.repaymentQueryService = repaymentQueryService;
     }
 
     @Tool(name = "repaymentQueryFunction", description = "查询用户还款记录，支持按 userNo 和 status 过滤")
-    public Response queryRepaymentRecords(Request request) {
-        log.info("执行还款查询: userNo={}, status={}", request.userNo(), request.status());
-
-        List<RepaymentRecord> records;
-        if (request.status() != null && !request.status().isEmpty()) {
-            // TODO: 需要在 RepaymentRecordRepository 中添加 findByUserNoAndStatus 方法
-            records = repaymentRecordRepository.findByUserNo(request.userNo()).stream()
-                .filter(record -> request.status().equals(record.getStatus()))
-                .toList();
-        } else {
-            records = repaymentRecordRepository.findByUserNo(request.userNo());
-        }
-
-        log.info("查询到 {} 条还款记录", records.size());
-
-        return new Response(
-            request.userNo(),
-            records.size(),
-            records.stream().map(record -> new RepaymentInfo(
-                record.getBizSerial(),
-                record.getUserNo(),
-                record.getLoanNo(),
-                record.getTotalAmt(),
-                record.getRepayType(),
-                record.getStatus(),
-                record.getRepaySuccessTime()
-            )).toList()
-        );
+    public RepaymentQueryService.Response queryRepaymentRecords(Request request) {
+        return repaymentQueryService.queryRepaymentRecords(request.userNo(), request.status());
     }
 
     /**

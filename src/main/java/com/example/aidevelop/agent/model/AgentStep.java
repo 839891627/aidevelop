@@ -21,6 +21,15 @@ public class AgentStep {
     @Schema(description = "步骤类型")
     private AgentActionType actionType;
 
+    @Schema(description = "步骤状态")
+    private AgentStepStatus status;
+
+    @Schema(description = "失败原因分类")
+    private AgentFailureReason failureReason;
+
+    @Schema(description = "所属规划轮次", example = "0")
+    private int roundIndex;
+
     @Schema(description = "工具名称（非工具步骤为空）", example = "rag.search")
     private String toolName;
 

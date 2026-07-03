@@ -56,22 +56,16 @@
             <artifactId>spring-ai-starter-model-openai</artifactId>
         </dependency>
 
-        <!-- Spring AI Ollama（本地 embedding） -->
-        <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-starter-model-ollama</artifactId>
-        </dependency>
-
         <!-- Spring AI PDF Document Reader (支持读取 PDF 文档) -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-pdf-document-reader</artifactId>
         </dependency>
 
-        <!-- Spring AI Vector Store API -->
+        <!-- Spring AI Milvus Vector Store -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-vector-store</artifactId>
+            <artifactId>spring-ai-starter-vector-store-milvus</artifactId>
         </dependency>
 
         <!-- Spring AI RAG Advisor (QuestionAnswerAdvisor) -->

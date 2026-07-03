@@ -1,6 +1,6 @@
 package com.example.aidevelop.agent.tool;
 
-import com.example.aidevelop.service.function.RepaymentQueryFunction;
+import com.example.aidevelop.service.business.RepaymentQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -10,7 +10,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class RepaymentQueryAgentTool implements AgentTool {
 
-    private final RepaymentQueryFunction repaymentQueryFunction;
+    private final RepaymentQueryService repaymentQueryService;
 
     @Override
     public String name() {
@@ -18,10 +18,15 @@ public class RepaymentQueryAgentTool implements AgentTool {
     }
 
     @Override
+    public String description() {
+        return "repayment.query: 查询用户还款记录。参数: userNo(string,用户编号), status(string,可选,枚举值: INIT|SUCCESS|FAIL|PENDING)";
+    }
+
+    @Override
     public Object execute(Map<String, Object> args) {
         String userNo = readString(args, "userNo", "");
         String status = readString(args, "status", null);
-        return repaymentQueryFunction.queryRepaymentRecords(new RepaymentQueryFunction.Request(userNo, status));
+        return repaymentQueryService.queryRepaymentRecords(userNo, status);
     }
 
     private String readString(Map<String, Object> args, String key, String defaultValue) {

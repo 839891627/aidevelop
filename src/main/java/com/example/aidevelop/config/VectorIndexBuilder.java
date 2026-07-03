@@ -8,7 +8,8 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.reader.TextReader;
 import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
-import org.springframework.ai.vectorstore.SimpleVectorStore;
+import org.springframework.ai.vectorstore.SearchRequest;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
@@ -33,8 +34,18 @@ public class VectorIndexBuilder {
         this.ragProperties = ragProperties;
     }
 
-    public void buildIndex(SimpleVectorStore vectorStore) {
+    public void buildIndex(VectorStore vectorStore) {
         try {
+            SearchRequest probe = SearchRequest.builder()
+                .query("test")
+                .topK(1)
+                .build();
+            List<Document> existing = vectorStore.similaritySearch(probe);
+            if (!existing.isEmpty()) {
+                log.info("向量库已有数据，跳过重建。如需强制重建请先清空 collection");
+                return;
+            }
+
             List<Document> allDocuments = new ArrayList<>();
             loadTextDocuments(allDocuments);
             loadPdfDocuments(allDocuments);
@@ -59,11 +70,24 @@ public class VectorIndexBuilder {
                 countByFileType(splitDocuments, "txt"),
                 countByFileType(splitDocuments, "pdf"));
 
-            vectorStore.add(splitDocuments);
+            addDocumentsInBatches(vectorStore, splitDocuments);
             log.info("文档向量化和入库完成");
         } catch (Exception e) {
             log.error("加载知识库失败: {}", e.getMessage(), e);
             throw new IllegalStateException("向量库初始化失败", e);
+        }
+    }
+
+    private void addDocumentsInBatches(VectorStore vectorStore, List<Document> documents) {
+        int batchSize = Math.max(1, ragProperties.getEmbeddingBatchSize());
+        for (int start = 0; start < documents.size(); start += batchSize) {
+            int end = Math.min(start + batchSize, documents.size());
+            List<Document> batch = documents.subList(start, end);
+            log.info("写入向量库批次: {}/{}, size={}",
+                (start / batchSize) + 1,
+                (documents.size() + batchSize - 1) / batchSize,
+                batch.size());
+            vectorStore.add(batch);
         }
     }
 

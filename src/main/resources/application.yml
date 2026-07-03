@@ -25,15 +25,18 @@ spring:
     retry:
       max-attempts: 3
       backoff-delay: 1000
-    ollama:
-      base-url: ${OLLAMA_BASE_URL}
-      chat:
-        enabled: false
-      embedding:
-        enabled: true
-        model: ${EMBEDDING_MODEL}
-        options:
-          model: ${EMBEDDING_MODEL}
+    vectorstore:
+      milvus:
+        enabled: ${MILVUS_ENABLED:false}
+        client:
+          host: ${MILVUS_HOST:localhost}
+          port: ${MILVUS_PORT:19530}
+        database-name: ${MILVUS_DATABASE:default}
+        collection-name: ${MILVUS_COLLECTION:knowledge_vectors}
+        embedding-dimension: ${MILVUS_EMBEDDING_DIMENSION:768}
+        index-type: IVF_FLAT
+        metric-type: COSINE
+        initialize-schema: true
 
 springdoc:
   api-docs:
@@ -70,11 +73,6 @@ knife4j:
 server:
   port: 8080
 
-vector:
-  store:
-    # 切换 embedding 模型后，请使用新的向量库文件路径（避免向量维度不一致）
-    path: ${VECTOR_STORE_PATH}
-
 logging:
   level:
     root: INFO
@@ -92,6 +90,9 @@ logging:
     name: logs/aidevelop.log
 app:
   ai:
+    http:
+      connect-timeout-ms: ${AI_HTTP_CONNECT_TIMEOUT_MS:10000}
+      read-timeout-ms: ${AI_HTTP_READ_TIMEOUT_MS:60000}
     pricing:
       chat-input: 0.001
       chat-output: 0.002
@@ -103,6 +104,7 @@ app:
     rag:
       # false: 纯聊天模式，不走向量检索；true: 启用 RAG（会调用 embedding）
       enabled: true
+      embedding-batch-size: ${RAG_EMBEDDING_BATCH_SIZE:10}
       similarity-threshold: 0.2
       top-k: 5
       chunking:
@@ -158,10 +160,18 @@ app:
       hybrid-similarity-threshold: 0.25
       max-tool-calls: 3
       timeout-ms: 30000
+      multi-agent-keywords:
+        - 综合评估
+        - 多维度分析
+        - 先查再评
     agent:
       enabled: true
       max-steps: 3
+      max-llm-calls-per-round: 3
+      max-llm-calls-per-request: 6
       timeout-ms: 15000
+      tool-timeout-ms:
+        rag.search: 45000
       tool-max-retries: 1
       retry-backoff-ms: 200
       reflect-enabled: true
@@ -191,6 +201,92 @@ app:
         - loan.query
         - repayment.query
         - risk.assess
+      rate-limit:
+        # L3 资源限流：保护 LLM provider 和工具后端，详见 AgentRateLimitProperties
+        enabled: true
+        llm:
+          enabled: true
+          rpm: 60              # 全局 LLM 每分钟调用上限
+          concurrency: 10      # 全局 LLM 最大并发
+          acquire-timeout-ms: 5000
+        tool:
+          enabled: true
+          default-qps: 5
+          default-concurrency: 3
+          acquire-timeout-ms: 2000
+          per-tool:
+            rag.search:
+              qps: 2
+              concurrency: 2
+            loan.query:
+              qps: 10
+              concurrency: 5
+    multi-agent:
+      enabled: true
+      max-supervisor-rounds: 5
+      supervisor-timeout-ms: 60000
+      supervisor-system-prompt: |
+        你是多 Agent 调度器。根据用户问题和已有结果决定下一步。
+        仅返回 JSON：{"action":"DISPATCH","targetAgent":"<name>","reason":"..."} 或 {"action":"FINISH","reason":"..."}
+        规则：
+        1) 每次只 DISPATCH 一个 Agent
+        2) 不要重复 DISPATCH 已完成的 Agent（除非结果不足）
+        3) 所有必要信息收集完毕后输出 FINISH
+      multi-agent-keywords:
+        - 综合评估
+        - 多维度分析
+        - 先查再评
+      require-multiple-intents: true
+      agents:
+        risk-agent:
+          description: "风险评估专家，负责用户信用风险分析"
+          system-prompt: |
+            你是风险评估专家。基于借款数据和知识库规则，为用户提供风险分析。
+            必须引用 RAG 证据支持结论。
+          allowed-tools:
+            - rag.search
+            - risk.assess
+          max-steps: 2
+          reflect-enabled: true
+          replan-enabled: false
+          self-check-enabled: true
+          temperature: 0.3
+          max-tokens: 800
+          output-key: risk_result
+        loan-agent:
+          description: "借款查询专家，负责贷款记录查询与解读"
+          system-prompt: |
+            你是借款查询助手。精确查询用户借款和还款记录并清晰呈现。
+          allowed-tools:
+            - loan.query
+            - repayment.query
+          max-steps: 2
+          reflect-enabled: true
+          replan-enabled: false
+          self-check-enabled: false
+          temperature: 0.5
+          max-tokens: 600
+          output-key: loan_result
+        rag-agent:
+          description: "知识检索专家，负责从规则政策库中检索相关信息"
+          system-prompt: |
+            你是金融产品知识专家。从知识库中精确检索规则和政策信息。
+          allowed-tools:
+            - rag.search
+          max-steps: 1
+          reflect-enabled: false
+          replan-enabled: false
+          self-check-enabled: false
+          temperature: 0.2
+          max-tokens: 500
+          output-key: rag_result
+      agent-as-tool:
+        enabled: true
+        tool-name: agent.delegate
+        delegatable-agents:
+          - risk-agent
+          - loan-agent
+          - rag-agent
   prompts:
     enabled: true
     registry-enabled: true

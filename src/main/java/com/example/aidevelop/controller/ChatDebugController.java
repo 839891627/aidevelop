@@ -5,14 +5,13 @@ import com.example.aidevelop.model.dto.rag.QueryExpansionDetailDTO;
 import com.example.aidevelop.model.dto.rag.QueryRewriteDetailDTO;
 import com.example.aidevelop.service.rag.QueryExpansionService;
 import com.example.aidevelop.service.rag.QueryRewriteService;
+import com.example.aidevelop.service.rag.VectorRetrievalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.vectorstore.SearchRequest;
-import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,10 +30,11 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/chat/debug")
 @RequiredArgsConstructor
+@Profile("dev")
 @Tag(name = "聊天调试接口", description = "仅开发环境启用的调试 API")
 public class ChatDebugController {
 
-    private final VectorStore vectorStore;
+    private final VectorRetrievalService vectorRetrievalService;
     private final RagProperties ragProperties;
     private final QueryExpansionService queryExpansionService;
     private final QueryRewriteService queryRewriteService;
@@ -47,13 +47,11 @@ public class ChatDebugController {
             @Parameter(description = "返回文档内容片段", required = false)
             @RequestParam(defaultValue = "false") boolean includeContent
     ) {
-        SearchRequest searchRequest = SearchRequest.builder()
-                .query(query)
-                .topK(ragProperties.getTopK())
-                .similarityThreshold(ragProperties.getSimilarityThreshold())
-                .build();
-
-        List<Document> documents = vectorStore.similaritySearch(searchRequest);
+        List<Document> documents = vectorRetrievalService.search(
+                query,
+                ragProperties.getTopK(),
+                ragProperties.getSimilarityThreshold()
+        );
         log.info("调试检索 - query: {}, docs: {}", query, documents.size());
 
         return documents.stream()
@@ -72,13 +70,11 @@ public class ChatDebugController {
     @GetMapping("/vector-store")
     @Operation(summary = "向量库状态", description = "返回向量库文档数量和类型分布，不返回完整文档内容")
     public VectorStoreDebugSummary vectorStoreDebug() {
-        SearchRequest allDocsRequest = SearchRequest.builder()
-                .query(".")
-                .topK(ragProperties.getTopK())
-                .similarityThreshold(ragProperties.getSimilarityThreshold())
-                .build();
-
-        List<Document> allDocs = vectorStore.similaritySearch(allDocsRequest);
+        List<Document> allDocs = vectorRetrievalService.search(
+                ".",
+                ragProperties.getTopK(),
+                ragProperties.getSimilarityThreshold()
+        );
 
         Map<String, Long> typeStats = allDocs.stream()
                 .collect(Collectors.groupingBy(
@@ -97,7 +93,7 @@ public class ChatDebugController {
 
         return new VectorStoreDebugSummary(
                 allDocs.size(),
-                vectorStore.getClass().getSimpleName(),
+                vectorRetrievalService.getClass().getSimpleName(),
                 typeStats,
                 samples
         );

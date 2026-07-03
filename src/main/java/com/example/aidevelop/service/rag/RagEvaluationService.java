@@ -2,10 +2,6 @@ package com.example.aidevelop.service.rag;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.vectorstore.SearchRequest;
-import org.springframework.ai.vectorstore.VectorStore;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -29,13 +25,10 @@ import java.util.stream.Collectors;
 @Slf4j
 public class RagEvaluationService {
 
-    private final VectorStore vectorStore;
+    private final VectorRetrievalService vectorRetrievalService;
 
-    @Value("${app.chat.rag.similarity-threshold:0.2}")
-    private double similarityThreshold;
-
-    public RagEvaluationService(@Qualifier("vectorStore") VectorStore vectorStore) {
-        this.vectorStore = vectorStore;
+    public RagEvaluationService(VectorRetrievalService vectorRetrievalService) {
+        this.vectorRetrievalService = vectorRetrievalService;
     }
 
     /**
@@ -89,13 +82,7 @@ public class RagEvaluationService {
      * 执行检索
      */
     private List<Document> retrieveDocuments(String query, int topK) {
-        SearchRequest searchRequest = SearchRequest.builder()
-                .query(query)
-                .topK(topK)
-                .similarityThreshold(similarityThreshold)
-                .build();
-
-        return vectorStore.similaritySearch(searchRequest);
+        return vectorRetrievalService.search(query, topK);
     }
 
     /**
