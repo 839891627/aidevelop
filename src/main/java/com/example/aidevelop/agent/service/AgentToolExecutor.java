@@ -22,13 +22,19 @@ public class AgentToolExecutor {
     private final ToolRouter toolRouter;
     private final AgentProperties agentProperties;
     private final ObjectMapper objectMapper;
+    private final AgentRateLimiter rateLimiter;
 
     public AgentToolExecutionResult executeWithRetry(ToolCall toolCall) {
         int totalAttempts = Math.max(1, agentProperties.getToolMaxRetries() + 1);
         long startedAt = System.currentTimeMillis();
         String lastError = null;
         for (int attempt = 1; attempt <= totalAttempts; attempt++) {
-            try {
+            // L3 限流：按 toolName 令牌桶 + 并发数，超时返回失败 result 走降级（不抛异常、不重试）。
+            try (AgentRateLimiter.Permit permit = rateLimiter.acquireTool(toolCall.toolName()).orElse(null)) {
+                if (permit == null) {
+                    return new AgentToolExecutionResult(false, "RATE_LIMITED",
+                        "工具限流: " + toolCall.toolName(), 0, System.currentTimeMillis() - startedAt);
+                }
                 Object result = executeWithTimeout(toolCall);
                 return new AgentToolExecutionResult(
                     true,
@@ -68,7 +74,7 @@ public class AgentToolExecutor {
                         AgentTraceContext.clear();
                     }
                 })
-                .orTimeout(agentProperties.getTimeoutMs(), TimeUnit.MILLISECONDS)
+                .orTimeout(resolveTimeoutMs(toolCall), TimeUnit.MILLISECONDS)
                 .join();
         } catch (CompletionException ex) {
             Throwable cause = ex.getCause();
@@ -88,5 +94,17 @@ public class AgentToolExecutor {
         } catch (Exception ex) {
             return String.valueOf(value);
         }
+    }
+
+    private int resolveTimeoutMs(ToolCall toolCall) {
+        if (toolCall != null
+            && agentProperties.getToolTimeoutMs() != null
+            && agentProperties.getToolTimeoutMs().containsKey(toolCall.toolName())) {
+            Integer timeout = agentProperties.getToolTimeoutMs().get(toolCall.toolName());
+            if (timeout != null && timeout > 0) {
+                return timeout;
+            }
+        }
+        return agentProperties.getTimeoutMs();
     }
 }

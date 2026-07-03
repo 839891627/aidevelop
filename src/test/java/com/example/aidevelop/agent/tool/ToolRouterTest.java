@@ -30,7 +30,7 @@ class ToolRouterTest {
 
     @Test
     void shouldExecuteAllowedTool() {
-        Object result = toolRouter.execute("loan.query", Map.of("userNo", "CUST1001"));
+        Object result = toolRouter.execute("loan.query", Map.of("userNo", "USER1001"));
 
         assertEquals(Map.of("source", "loan"), result);
     }

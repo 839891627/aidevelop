@@ -214,6 +214,11 @@ public class AgentLoopService implements AgentService {
                 .build());
         }
 
+        if (agentPolicyEnforcer.shouldSupplementRagEvidence(
+            request, allowedTools, state.getObservations(), state.getExecutedToolNames())) {
+            executeSupplementalRag(request, state, replanRound);
+        }
+
         long respondStart = System.currentTimeMillis();
         String draftAnswer = agentResponder.buildFinalAnswer(request, routePlan, state.getObservations());
         // SelfCheck 阶段：最终答案输出前再检查证据完整性和回答质量，失败时走兜底回答。
@@ -229,6 +234,25 @@ public class AgentLoopService implements AgentService {
             .latencyMs(selfCheckDecision.latencyMs())
             .success(selfCheckDecision.pass())
             .build());
+        if (!selfCheckDecision.pass()
+            && agentPolicyEnforcer.shouldSupplementRagEvidence(
+                request, allowedTools, state.getObservations(), state.getExecutedToolNames())) {
+            executeSupplementalRag(request, state, replanRound);
+            respondStart = System.currentTimeMillis();
+            draftAnswer = agentResponder.buildFinalAnswer(request, routePlan, state.getObservations());
+            selfCheckDecision = agentResponder.selfCheck(request, routePlan, state.getObservations(), draftAnswer);
+            state.addStep(AgentStep.builder()
+                .stepIndex(state.nextStepIndex())
+                .roundIndex(replanRound)
+                .actionType(AgentActionType.SELF_CHECK)
+                .status(selfCheckDecision.pass() ? AgentStepStatus.SUCCEEDED : AgentStepStatus.DEGRADED)
+                .failureReason(selfCheckDecision.pass() ? AgentFailureReason.NONE : AgentFailureReason.SELF_CHECK_FAILED)
+                .toolOutput("pass=%s; score=%d; reason=%s".formatted(
+                    selfCheckDecision.pass(), selfCheckDecision.score(), selfCheckDecision.reason()))
+                .latencyMs(selfCheckDecision.latencyMs())
+                .success(selfCheckDecision.pass())
+                .build());
+        }
         if (!selfCheckDecision.pass()) {
             state.markDegraded(AgentFailureReason.SELF_CHECK_FAILED);
         }
@@ -305,6 +329,24 @@ public class AgentLoopService implements AgentService {
                 .build();
             response.setTracePersisted(agentTraceService.persistTrace(request, response, "SINGLE"));
             return response;
+        } catch (AgentRateLimitedException ex) {
+            state.markFailed(AgentFailureReason.RATE_LIMITED);
+            long responseTime = System.currentTimeMillis() - startedAt;
+            String fallback = agentResponder.buildFallbackAnswer(request, routePlan, state.getObservations(), ex.getMessage(), false);
+            AgentResponse response = AgentResponse.builder()
+                .traceId(traceId)
+                .routeType(routePlan.routeType().name())
+                .status(AgentStepStatus.FAILED)
+                .failureReason(AgentFailureReason.RATE_LIMITED)
+                .finalAnswer(fallback)
+                .completed(false)
+                .executedSteps(state.getSteps().size())
+                .responseTimeMs(responseTime)
+                .budgetSummary(budgetTracker.toSummary())
+                .steps(state.getSteps())
+                .build();
+            response.setTracePersisted(agentTraceService.persistTrace(request, response, "SINGLE"));
+            return response;
         } finally {
             AgentTraceContext.clear();
         }
@@ -314,6 +356,34 @@ public class AgentLoopService implements AgentService {
         int fromRequest = requestMaxSteps == null ? agentProperties.getMaxSteps() : requestMaxSteps;
         int bounded = Math.max(1, Math.min(fromRequest, agentProperties.getMaxSteps()));
         return Math.max(1, Math.min(bounded, routeMaxToolCalls));
+    }
+
+    private void executeSupplementalRag(AgentRequest request, AgentState state, int roundIndex) {
+        ToolCall toolCall = agentPolicyEnforcer.buildRagToolCall(request, state.getRoutePlan());
+        AgentToolExecutionResult executionResult = agentToolExecutor.executeWithRetry(toolCall);
+        state.recordSupplementalToolCall();
+        state.addExecutedToolName(toolCall.toolName());
+        String observation = executionResult.success()
+            ? toolCall.toolName() + ": " + executionResult.outputText()
+            : toolCall.toolName() + " 执行失败: " + executionResult.errorMessage();
+        state.addObservation(observation);
+
+        state.addStep(AgentStep.builder()
+            .stepIndex(state.nextStepIndex())
+            .roundIndex(roundIndex)
+            .actionType(AgentActionType.TOOL)
+            .status(executionResult.success() ? AgentStepStatus.SUCCEEDED : AgentStepStatus.FAILED)
+            .failureReason(executionResult.success() ? AgentFailureReason.NONE : classifyToolFailure(executionResult.errorMessage()))
+            .toolName(toolCall.toolName())
+            .toolInput(toolCall.args())
+            .toolOutput("attempts=%d; result=%s".formatted(executionResult.attempts(), executionResult.outputText()))
+            .latencyMs(executionResult.latencyMs())
+            .success(executionResult.success())
+            .errorMessage(executionResult.success() ? null : executionResult.errorMessage())
+            .build());
+        if (!executionResult.success()) {
+            state.markDegraded(classifyToolFailure(executionResult.errorMessage()));
+        }
     }
 
     private AgentFailureReason classifyToolFailure(String errorMessage) {

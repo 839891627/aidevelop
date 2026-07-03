@@ -71,6 +71,8 @@ public class AgentResponder {
                 reason = "风险问题缺少知识库证据（rag.search）";
             }
             return new AgentSelfCheckDecision(pass, score, reason, System.currentTimeMillis() - startedAt);
+        } catch (AgentBudgetExceededException | AgentLlmTimeoutException ex) {
+            throw ex;
         } catch (Exception ex) {
             boolean pass = observations.size() >= agentProperties.getMinObservationCount();
             int score = pass ? agentProperties.getSelfCheckMinScore() : 0;

@@ -17,7 +17,7 @@ public class RouteProperties {
     /**
      * 识别业务订单/用户编号的正则。
      */
-    private String businessIdPattern = "(LOAN\\d+|REPAY\\d+|CUST\\d+|ORDER\\d+)";
+    private String businessIdPattern = "(LOAN\\d+|REPAY\\d+|USER\\d+|ORDER\\d+)";
 
     /**
      * 命中后优先走工具的关键词。

@@ -167,7 +167,11 @@ app:
     agent:
       enabled: true
       max-steps: 3
+      max-llm-calls-per-round: 3
+      max-llm-calls-per-request: 6
       timeout-ms: 15000
+      tool-timeout-ms:
+        rag.search: 45000
       tool-max-retries: 1
       retry-backoff-ms: 200
       reflect-enabled: true
@@ -197,6 +201,26 @@ app:
         - loan.query
         - repayment.query
         - risk.assess
+      rate-limit:
+        # L3 资源限流：保护 LLM provider 和工具后端，详见 AgentRateLimitProperties
+        enabled: true
+        llm:
+          enabled: true
+          rpm: 60              # 全局 LLM 每分钟调用上限
+          concurrency: 10      # 全局 LLM 最大并发
+          acquire-timeout-ms: 5000
+        tool:
+          enabled: true
+          default-qps: 5
+          default-concurrency: 3
+          acquire-timeout-ms: 2000
+          per-tool:
+            rag.search:
+              qps: 2
+              concurrency: 2
+            loan.query:
+              qps: 10
+              concurrency: 5
     multi-agent:
       enabled: true
       max-supervisor-rounds: 5

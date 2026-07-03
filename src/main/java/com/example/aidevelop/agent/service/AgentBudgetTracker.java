@@ -10,6 +10,7 @@ public class AgentBudgetTracker {
 
     private final AgentProperties agentProperties;
     private int llmCalls;
+    private int totalLlmCalls;
     private int toolCalls;
     private int roundIndex;
     private boolean budgetExceeded;
@@ -25,6 +26,18 @@ public class AgentBudgetTracker {
     }
 
     public void recordLlmCall(String phase) {
+        totalLlmCalls++;
+        int maxLlmCallsPerRequest = Math.max(1, agentProperties.getMaxLlmCallsPerRequest());
+        if (totalLlmCalls > maxLlmCallsPerRequest) {
+            budgetExceeded = true;
+            reason = "请求 LLM 调用超过上限 %d，phase=%s".formatted(maxLlmCallsPerRequest, phase);
+            throw new AgentBudgetExceededException(reason);
+        }
+
+        if (isFinalAnswerPhase(phase)) {
+            return;
+        }
+
         llmCalls++;
         int maxLlmCalls = Math.max(1, agentProperties.getMaxLlmCallsPerRound());
         if (llmCalls > maxLlmCalls) {
@@ -40,11 +53,15 @@ public class AgentBudgetTracker {
 
     public AgentBudgetSummary toSummary() {
         return AgentBudgetSummary.builder()
-            .llmCalls(llmCalls)
+            .llmCalls(totalLlmCalls)
             .toolCalls(toolCalls)
             .roundIndex(roundIndex)
             .budgetExceeded(budgetExceeded)
             .reason(reason)
             .build();
+    }
+
+    private boolean isFinalAnswerPhase(String phase) {
+        return "RESPOND".equals(phase) || "SELF_CHECK".equals(phase);
     }
 }

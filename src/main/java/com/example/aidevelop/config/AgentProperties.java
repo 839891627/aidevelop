@@ -5,7 +5,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Component
@@ -28,6 +30,11 @@ public class AgentProperties {
     private int timeoutMs = 15000;
 
     /**
+     * 单个工具的超时覆盖（毫秒），key 为工具名。
+     */
+    private Map<String, Integer> toolTimeoutMs = new HashMap<>();
+
+    /**
      * 单次 LLM 阶段调用超时（毫秒）。
      */
     private int llmTimeoutMs = 30000;
@@ -41,6 +48,11 @@ public class AgentProperties {
      * 单个规划轮次最多允许的 LLM 调用数。
      */
     private int maxLlmCallsPerRound = 3;
+
+    /**
+     * 单次 Agent 请求最多允许的 LLM 调用数，包含最终回答和自检阶段。
+     */
+    private int maxLlmCallsPerRequest = 6;
 
     /**
      * 单个规划轮次最大输出 token 预算。

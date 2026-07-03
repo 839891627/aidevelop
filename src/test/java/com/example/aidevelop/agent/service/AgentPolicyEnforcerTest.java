@@ -45,15 +45,15 @@ class AgentPolicyEnforcerTest {
             "test"
         );
 
-        List<String> allowedTools = policyEnforcer.resolveAllowedTools(routePlan, "请判断 CUST1001 风险");
+        List<String> allowedTools = policyEnforcer.resolveAllowedTools(routePlan, "请判断 USER1001 风险");
 
         assertEquals(List.of("loan.query", "risk.assess", "rag.search"), allowedTools);
     }
 
     @Test
-    void shouldPrependRequiredRiskToolsBeforePlannedCalls() {
+    void shouldKeepBusinessToolsBeforeSupplementalRagForRiskIntent() {
         AgentRequest request = new AgentRequest();
-        request.setMessage("请对 CUST1001 做风险评估");
+        request.setMessage("请对 USER1001 做风险评估");
         request.setConversationId("conv-1");
         IntentRoutingService.RoutePlan routePlan = new IntentRoutingService.RoutePlan(
             IntentRoutingService.RouteType.HYBRID,
@@ -70,14 +70,35 @@ class AgentPolicyEnforcerTest {
             request,
             routePlan,
             List.of("rag.search", "risk.assess"),
-            List.of(new ToolCall("risk.assess", Map.of("userNo", "CUST1001"))),
+            List.of(new ToolCall("risk.assess", Map.of("userNo", "USER1001"))),
             List.of(),
             3
         );
 
-        assertEquals("rag.search", enforced.get(0).toolName());
-        assertEquals("risk.assess", enforced.get(1).toolName());
-        assertTrue(enforced.get(0).args().containsKey("conversationId"));
+        assertEquals("risk.assess", enforced.get(0).toolName());
+        assertEquals(1, enforced.size());
+    }
+
+    @Test
+    void shouldAllowSupplementalRagOnlyWhenRiskEvidenceIsMissing() {
+        AgentRequest request = new AgentRequest();
+        request.setMessage("请对 USER1001 做风险评估");
+
+        boolean shouldSupplement = policyEnforcer.shouldSupplementRagEvidence(
+            request,
+            List.of("rag.search", "risk.assess"),
+            List.of("risk.assess: {\"riskLevel\":\"LOW\"}"),
+            List.of("risk.assess")
+        );
+        boolean shouldNotRepeat = policyEnforcer.shouldSupplementRagEvidence(
+            request,
+            List.of("rag.search", "risk.assess"),
+            List.of("risk.assess: {\"riskLevel\":\"LOW\"}", "rag.search: {\"documents\":[]}"),
+            List.of("risk.assess", "rag.search")
+        );
+
+        assertTrue(shouldSupplement);
+        assertTrue(!shouldNotRepeat);
     }
 
     private static class FixedTool implements AgentTool {

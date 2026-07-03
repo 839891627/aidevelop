@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class AgentPolicyEnforcer {
 
-    private static final Pattern USER_NO_PATTERN = Pattern.compile("(CUST\\d+)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern USER_NO_PATTERN = Pattern.compile("(USER\\d+)", Pattern.CASE_INSENSITIVE);
 
     private final AgentProperties agentProperties;
     private final ToolRouter toolRouter;
@@ -52,16 +52,6 @@ public class AgentPolicyEnforcer {
                                              List<String> executedToolNames, int maxSteps) {
         List<ToolCall> required = new ArrayList<>();
         if (isRiskIntent(request.getMessage())) {
-            if (agentProperties.isForceRagForRiskEvaluation()
-                && allowedTools.contains("rag.search")
-                && !executedToolNames.contains("rag.search")
-                && toolRouter.exists("rag.search")) {
-                Map<String, Object> ragArgs = new LinkedHashMap<>();
-                ragArgs.put("query", request.getMessage());
-                ragArgs.put("conversationId", request.getConversationId());
-                ragArgs.put("topK", routePlan.ragTopK());
-                required.add(new ToolCall("rag.search", ragArgs));
-            }
             String userNo = extractUserNo(request.getMessage());
             if (userNo != null
                 && allowedTools.contains("risk.assess")
@@ -116,6 +106,26 @@ public class AgentPolicyEnforcer {
 
     public boolean hasRagEvidence(List<String> observations) {
         return observations.stream().anyMatch(obs -> obs != null && obs.startsWith("rag.search:"));
+    }
+
+    public boolean shouldSupplementRagEvidence(AgentRequest request, List<String> allowedTools,
+                                               List<String> observations, List<String> executedToolNames) {
+        boolean requiresRiskRag = agentProperties.isForceRagForRiskEvaluation()
+            || agentProperties.isRequireRagEvidenceForRisk();
+        return requiresRiskRag
+            && isRiskIntent(request.getMessage())
+            && allowedTools.contains("rag.search")
+            && !hasRagEvidence(observations)
+            && !executedToolNames.contains("rag.search")
+            && toolRouter.exists("rag.search");
+    }
+
+    public ToolCall buildRagToolCall(AgentRequest request, IntentRoutingService.RoutePlan routePlan) {
+        Map<String, Object> ragArgs = new LinkedHashMap<>();
+        ragArgs.put("query", request.getMessage());
+        ragArgs.put("conversationId", request.getConversationId());
+        ragArgs.put("topK", routePlan.ragTopK());
+        return new ToolCall("rag.search", ragArgs);
     }
 
     private List<ToolCall> mergeToolCalls(List<ToolCall> required, List<ToolCall> planned, int maxSteps) {

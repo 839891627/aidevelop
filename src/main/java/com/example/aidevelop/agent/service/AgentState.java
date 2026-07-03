@@ -59,6 +59,12 @@ public class AgentState {
         }
     }
 
+    public void recordSupplementalToolCall() {
+        if (budgetTracker != null) {
+            budgetTracker.recordToolCall();
+        }
+    }
+
     public void markShouldStop() {
         shouldStop = true;
     }

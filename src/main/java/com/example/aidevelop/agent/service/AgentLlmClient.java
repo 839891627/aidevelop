@@ -23,6 +23,7 @@ public class AgentLlmClient {
     private ChatClient chatClient;
 
     private final AgentProperties agentProperties;
+    private final AgentRateLimiter rateLimiter;
 
     public String call(String phase, String prompt) {
         return call(phase, prompt, null);
@@ -34,32 +35,36 @@ public class AgentLlmClient {
             context.budgetTracker().recordLlmCall(phase);
         }
 
-        CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
-            if (context != null) {
-                AgentTraceContext.set(context);
-            }
-            try {
-                ChatClient.ChatClientRequestSpec spec = chatClient.prompt().user(prompt);
-                if (maxTokens != null && maxTokens > 0) {
-                    spec = spec.options(OpenAiChatOptions.builder().maxTokens(maxTokens).build());
+        // L3 限流：全局 LLM 令牌桶 + 并发数，排队等待超时则抛 AgentRateLimitedException 走降级。
+        try (AgentRateLimiter.Permit permit = rateLimiter.acquireLlm(phase)
+                .orElseThrow(() -> new AgentRateLimitedException("LLM 限流，phase=" + phase))) {
+            CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
+                if (context != null) {
+                    AgentTraceContext.set(context);
                 }
-                return spec.call().content();
-            } finally {
-                AgentTraceContext.clear();
-            }
-        });
+                try {
+                    ChatClient.ChatClientRequestSpec spec = chatClient.prompt().user(prompt);
+                    if (maxTokens != null && maxTokens > 0) {
+                        spec = spec.options(OpenAiChatOptions.builder().maxTokens(maxTokens).build());
+                    }
+                    return spec.call().content();
+                } finally {
+                    AgentTraceContext.clear();
+                }
+            });
 
-        try {
-            return future.orTimeout(Math.max(1, agentProperties.getLlmTimeoutMs()), TimeUnit.MILLISECONDS).join();
-        } catch (CompletionException ex) {
-            Throwable cause = ex.getCause();
-            if (cause instanceof TimeoutException) {
-                throw new AgentLlmTimeoutException("LLM 调用超时: " + phase, cause);
+            try {
+                return future.orTimeout(Math.max(1, agentProperties.getLlmTimeoutMs()), TimeUnit.MILLISECONDS).join();
+            } catch (CompletionException ex) {
+                Throwable cause = ex.getCause();
+                if (cause instanceof TimeoutException) {
+                    throw new AgentLlmTimeoutException("LLM 调用超时: " + phase, cause);
+                }
+                if (cause instanceof RuntimeException runtimeException) {
+                    throw runtimeException;
+                }
+                throw new IllegalStateException("LLM 调用失败: " + phase, cause);
             }
-            if (cause instanceof RuntimeException runtimeException) {
-                throw runtimeException;
-            }
-            throw new IllegalStateException("LLM 调用失败: " + phase, cause);
         }
     }
 }
