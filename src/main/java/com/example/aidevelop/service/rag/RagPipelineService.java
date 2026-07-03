@@ -226,7 +226,7 @@ public class RagPipelineService {
         // 包含数字（如 30天, 90天）
         boolean hasNumbers = query.matches(".*\\d+.*");
 
-        // 包含特殊符号（如 CUST001）
+        // 包含特殊符号（如 USER001）
         boolean hasSpecialChars = query.matches(".*[A-Z]+\\d+.*");
 
         return hasUpperCase || hasNumbers || hasSpecialChars;
