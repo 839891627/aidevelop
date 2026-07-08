@@ -1,0 +1,62 @@
+src/test/java/com/example/aidevelop/eval/RagasEvaluationExporterTest.java
+  s_371df2fe16cf03::t_c18e991ff2926f 1-8,10-34,36-43,48-50,56-62
+  s_371df2fe16cf03::t_4be0e8dc78eae1 9,35,44-47,51-55
+src/test/java/com/example/aidevelop/eval/RagasEvalJsonlSupportTest.java
+  s_371df2fe16cf03::t_7eaa30c9bdb7ed 1-56
+src/test/java/com/example/aidevelop/eval/RagasLikeMetricCalculatorTest.java
+  s_371df2fe16cf03::t_8d9dcc58ce5e14 1-55
+src/main/java/com/example/aidevelop/eval/RagasEvalJsonlSupport.java
+  s_371df2fe16cf03::t_f615a1b38b5fdc 1-55
+src/main/resources/application.yml
+  s_371df2fe16cf03::t_f87556d7882ca5 92-98
+src/main/java/com/example/aidevelop/eval/RagasEvaluationExporter.java
+  s_371df2fe16cf03::t_5f39202d652061 33-39,48
+  s_371df2fe16cf03::t_10d7c0b40931f3 12,19,23-28,40
+  s_371df2fe16cf03::t_d74f7ede9429fb 1-11,13-18,20-22,29-32,41-47,49-81
+docs/README.md
+  s_371df2fe16cf03::t_fee379076a6e30 11-14,31,52
+src/main/java/com/example/aidevelop/eval/RagasEvalScores.java
+  s_371df2fe16cf03::t_b92b3187c951dd 1-15
+src/main/java/com/example/aidevelop/eval/RagasEvalReportWriter.java
+  s_371df2fe16cf03::t_c41327af9a1b81 1-94
+src/main/java/com/example/aidevelop/eval/RagasEvalSample.java
+  s_371df2fe16cf03::t_c6bf8e4f3c891b 1-17
+src/main/java/com/example/aidevelop/eval/RagasEvaluationRunner.java
+  s_371df2fe16cf03::t_b6e861f84486c4 1-107
+eval/ragas/datasets/financial_rag_eval.jsonl
+  s_371df2fe16cf03::t_0c2502ce1c6e5b 1-10
+src/main/java/com/example/aidevelop/eval/RagasEvalResult.java
+  s_371df2fe16cf03::t_b2c2c67a04d64e 1-24
+src/test/java/com/example/aidevelop/eval/RagasEvalReportWriterTest.java
+  s_371df2fe16cf03::t_3627d4c7c983d6 1-39
+docs/guides/rag.md
+  s_371df2fe16cf03::t_d6f55efe264a5e 158-164
+docs/guides/rag-evaluation.md
+  s_371df2fe16cf03::t_97fbc080b997bd 1-111
+src/main/java/com/example/aidevelop/eval/RagasLikeMetricCalculator.java
+  s_371df2fe16cf03::t_50b31feb7f165d 89,97,112-122
+  s_371df2fe16cf03::t_b0a415de03e2fd 1-26,28-72,74-76,78,80-88,90-96,98-111,123-137,141-181
+  s_371df2fe16cf03::t_44185d0205c496 27,73,77,79
+  s_371df2fe16cf03::t_adf47634181d87 138-140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "37168246400ae528f28ce782482aac4f11fe7b7c",
+  "prompts": {},
+  "humans": {
+    "h_db905cd1f0b88f": {
+      "author": "jinliang.cao <arvin.cao2@xinfei.cn>"
+    }
+  },
+  "sessions": {
+    "s_371df2fe16cf03": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b52f09fb-fafb-443e-84c1-2fc4df36fe25",
+        "model": "gpt-5.5"
+      },
+      "human_author": "jinliang.cao <arvin.cao2@xinfei.cn>"
+    }
+  }
+}
