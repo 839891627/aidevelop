@@ -89,6 +89,13 @@ logging:
   file:
     name: logs/aidevelop.log
 app:
+  ragas:
+    dataset-path: ${RAGAS_DATASET_PATH:eval/ragas/datasets/financial_rag_eval.jsonl}
+    output-jsonl: ${RAGAS_OUTPUT_JSONL:eval/ragas/output/questions_answers_contexts.jsonl}
+    output-summary: ${RAGAS_OUTPUT_SUMMARY:eval/ragas/output/summary.md}
+    top-k: ${RAGAS_TOP_K:5}
+    similarity-threshold: ${RAGAS_SIMILARITY_THRESHOLD:0.2}
+    generate-answer: ${RAGAS_GENERATE_ANSWER:true}
   ai:
     http:
       connect-timeout-ms: ${AI_HTTP_CONNECT_TIMEOUT_MS:10000}
