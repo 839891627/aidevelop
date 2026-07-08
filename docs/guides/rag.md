@@ -155,7 +155,13 @@ flowchart LR
 
 默认向量存储配置为 Milvus；当 Milvus 未启用时，`FallbackVectorStoreConfig` 会提供空结果降级实现，保证应用能启动，但 RAG 不会返回真实证据。
 
-## 8. 当前边界
+## 8. 效果评估
+
+RAG 离线效果评估使用 Java-native RAGAS-like 流程，评测集位于 `eval/ragas/datasets/financial_rag_eval.jsonl`。
+
+评估入口会复用 `RagFacade.retrieve()` 导出生产检索上下文，并生成 JSONL 明细和 Markdown 汇总报告。详见 [RAG 效果评估指南](rag-evaluation.md)。
+
+## 9. 当前边界
 
 当前 RAG 架构已经完成生产入口统一，但仍保留几个演进点：
 

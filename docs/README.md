@@ -8,9 +8,10 @@
 2. [架构总览](architecture/overview.md)：理解系统边界和整体模块。
 3. [Agent Loop](architecture/agent-loop.md)：重点看 Agent Runtime 的工程化设计。
 4. [RAG 指南](guides/rag.md)：理解统一 `RagFacade` 如何服务 Chat 和 Agent。
-5. [多 Agent](architecture/multi-agent.md)：理解 Supervisor / SubAgent 的分工。
-6. [成本观测](guides/cost-observability.md)：理解 traceId 如何关联模型调用成本。
-7. [执行链路示例](examples/execution-flows.md)：用于面试时按请求链路讲解。
+5. [RAG 效果评估](guides/rag-evaluation.md)：理解 Java-native RAGAS-like 离线评估流程。
+6. [多 Agent](architecture/multi-agent.md)：理解 Supervisor / SubAgent 的分工。
+7. [成本观测](guides/cost-observability.md)：理解 traceId 如何关联模型调用成本。
+8. [执行链路示例](examples/execution-flows.md)：用于面试时按请求链路讲解。
 
 ## 目录结构
 
@@ -27,6 +28,7 @@ docs/
 │   ├── quick-start.md
 │   ├── chat.md
 │   ├── rag.md
+│   ├── rag-evaluation.md
 │   ├── multi-llm.md
 │   ├── function-calling.md
 │   ├── prompt-engineering.md
@@ -47,6 +49,7 @@ docs/
 | 指南 | [快速开始](guides/quick-start.md) | 环境变量、数据库、启动和演示路径 |
 | 指南 | [Chat](guides/chat.md) | ChatMode、SSE、会话记忆、RAG 注入 |
 | 指南 | [RAG](guides/rag.md) | `RagFacade`、Pipeline、知识库构建 |
+| 指南 | [RAG 效果评估](guides/rag-evaluation.md) | Java-native RAGAS-like 评测集、导出和报告 |
 | 指南 | [多模型接入](guides/multi-llm.md) | Chat / Embedding / Agent LLM 配置 |
 | 指南 | [Function Calling](guides/function-calling.md) | 工具函数和业务工具 |
 | 指南 | [Prompt 工程](guides/prompt-engineering.md) | Prompt Registry 和版本治理 |
