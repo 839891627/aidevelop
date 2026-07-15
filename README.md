@@ -1,11 +1,22 @@
 # AI Credit Assistant — 智能金融信贷助手
 
-基于 Spring Boot 3.3 + Spring AI 1.1.6 构建的 AI 应用工程化样板。项目以金融信贷为业务场景，覆盖常规 Chat、统一 RAG、Function Calling、Agent Loop、多 Agent Supervisor、Prompt 治理、成本观测与 Agent Trace 持久化。
+基于 Spring Boot 3.3 + Spring AI 1.1.6 的 AI 应用工程化实践项目。以金融信贷为业务场景，覆盖常规 Chat、统一 RAG、Function Calling、Agent Loop、多 Agent Supervisor、Prompt 治理、成本观测与 Agent Trace 持久化。
+
 ![img.png](img.png)
+
+## 背景与动机
+
+这是一次围绕 **Spring AI 工程化落地** 的个人技术实践，目标是把「RAG 与 Multi-Agent 如何在大体量 Java 后端里工程化」真正走通，并形成自己的架构判断，而不是停留在调通一个 Demo。
+
+- **定位**：技术验证与架构演示，**非生产系统**。所有能力均为可运行的工程化样例，但不对接真实金融业务与数据。
+- **时间**：2026 年中集中投入的一段时间（详见 Commits），作为对 Spring AI 1.1 系列的体系化学习产出。
+- **为什么做**：市面上的 Spring AI 示例多为单点片段，缺少把 Chat / RAG / Agent / 可观测串成一条后端主链路的完整参考。本项目试图补上这块空白，也作为后续可复用的脚手架。
+
+> 说明：本项目用于展示工程化思路与代码组织，请勿将其等同于生产经验。架构取舍与边界在 [架构讲解与追问准备](docs/architecture/interview-guide.md) 中有专门说明。
 
 ## 核心定位
 
-这个项目不是简单的聊天接口 Demo，而是一个面向求职展示的企业 AI 应用后端架构样板：
+这不是一个简单的聊天接口 Demo，而是一个把 AI 能力当作**一等后端服务**来组织的工程化样例：
 
 - `Chat`：支持 `general`、`financial_rag`、`auto` 三种模式。
 - `RAG`：通过 `RagFacade` 统一 Chat 与 Agent 的知识库检索入口。
@@ -109,7 +120,7 @@ flowchart TB
 | `GET/POST /api/prompts/registry/*` | Prompt Registry 管理 |
 | `GET /api/cost/*` | 成本统计 |
 
-说明：生产链路不再暴露独立 RAG 调试入口。RAG 被视为内部能力，通过 `RagFacade` 被 Chat 和 Agent 复用。
+说明：RAG 作为内部能力封装，不单独暴露调试入口，通过 `RagFacade` 被 Chat 和 Agent 复用。
 
 ## 技术栈
 
@@ -168,7 +179,7 @@ src/main/java/com/example/aidevelop/
 | 文档 | 内容 |
 |---|---|
 | [项目文档入口](docs/README.md) | 文档结构、推荐阅读顺序和完整索引 |
-| [面试讲解指南](docs/architecture/interview-guide.md) | 项目介绍、亮点、架构取舍和追问准备 |
+| [架构讲解与追问准备](docs/architecture/interview-guide.md) | 项目介绍、亮点、架构取舍和追问准备 |
 | [架构总览](docs/architecture/overview.md) | 当前系统架构、Chat/RAG/Agent/Prompt/Cost 总览 |
 | [Agent Loop](docs/architecture/agent-loop.md) | Agent Runtime、步骤状态、失败分类和 trace |
 | [多 Agent](docs/architecture/multi-agent.md) | Supervisor、SubAgent、Agent-as-Tool |
